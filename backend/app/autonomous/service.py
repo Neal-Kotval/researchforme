@@ -54,7 +54,7 @@ from .engine import (
     root_node,
 )
 from .governor import UsageGovernor, get_governor
-from .pressure import pressure_test, score_viability
+from .pressure import adversarial_self_critique, pressure_test, score_viability
 from .schemas import (
     Budget,
     CreateProjectRequest,
@@ -476,6 +476,14 @@ class ExplorerService:
                     tools=tools,
                 )
                 viability, confidence = score_viability(child.gap, test)
+
+                # Adversarial self-critique (SPEC feature C): after scoring, a
+                # cheap meta-pass records the single strongest reason the score
+                # is wrong. Gated to real rigor so light/curbing stays cheap.
+                if rigor in _CORROBORATION_RIGORS:
+                    test.self_critique = await adversarial_self_critique(
+                        child.gap, viability, test, self.client, project.pressure_model
+                    )
 
                 child.pressure_test = test
                 child.viability = viability

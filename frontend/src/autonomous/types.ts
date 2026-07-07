@@ -29,6 +29,7 @@ export interface PressureTest {
   killed: number;
   test_rigor: TestRigor;
   summary: string;
+  self_critique: string;
 }
 
 export interface TreeNode {

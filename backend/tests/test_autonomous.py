@@ -318,3 +318,36 @@ def test_governor_snapshot_reports_measured_numbers():
     assert snap["spent_total"] == 1500
     assert snap["daily_spent"] == 1500
     assert snap["rate_per_min"] == 1500  # all within the trailing 60s window
+
+
+@pytest.mark.asyncio
+async def test_self_critique_degrades_and_guards_format():
+    """The adversarial self-critique (SPEC feature C) never raises and rejects non-prose."""
+    from app.autonomous.pressure import adversarial_self_critique
+    from app.autonomous.schemas import PressureTest
+
+    gap = _tiny_gap()
+    test = PressureTest(test_rigor="deep", summary="SURVIVED: 5/5 lenses survived.")
+
+    class _Fail:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            raise RuntimeError("llm down")
+
+    assert await adversarial_self_critique(gap, 80, test, _Fail(), "m") == ""
+
+    class _JsonDump:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            class R:
+                text = '{"reason":"model ignored the format"}'
+            return R()
+
+    assert await adversarial_self_critique(gap, 80, test, _JsonDump(), "m") == ""
+
+    class _Good:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            class R:
+                text = "The enabling shift predates 2026, so 80 overstates the why-now."
+            return R()
+
+    out = await adversarial_self_critique(gap, 80, test, _Good(), "m")
+    assert "80 overstates" in out

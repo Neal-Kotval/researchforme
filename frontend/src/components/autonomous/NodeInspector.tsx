@@ -189,6 +189,12 @@ export default function NodeInspector({ node, childNodes = [], onSelectChild }: 
         <div className="detail-block">
           <h4>Pressure test — {pt.lenses.length} adversarial lenses</h4>
           {pt.summary && <div className="pt-summary">{pt.summary}</div>}
+          {pt.self_critique && (
+            <div className="pt-critique">
+              <span className="ptc-k">Strongest reason the score is wrong</span>
+              <p>{pt.self_critique}</p>
+            </div>
+          )}
           <div className="lens-list">
             {pt.lenses.map((l, i) => {
               const meta = VERDICT_META[l.verdict] ?? VERDICT_META.weakens;

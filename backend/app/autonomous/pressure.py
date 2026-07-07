@@ -430,6 +430,54 @@ async def pressure_test(
 
 
 # --------------------------------------------------------------------------- #
+# Adversarial self-critique — after scoring, find the ONE strongest reason the  #
+# score itself is wrong (SPEC feature C). This is a meta-check on the gauntlet:  #
+# a confident-looking 82 that has an obvious "…but the whole segment is a fad"   #
+# hole should say so, on the record.                                            #
+# --------------------------------------------------------------------------- #
+_CRITIQUE_SYSTEM = """\
+You are a skeptical investor doing one final gut-check on a market-gap score.
+You are given a candidate gap, the adversarial pressure-test result, and the
+numeric viability score (0-100) the system assigned it. Your job: name the SINGLE
+strongest reason that score is WRONG — too high (most common) or too low. One
+sharp, specific, structural reason, grounded in what you were given. No fabricated
+facts. Output ONE or TWO plain sentences, no preamble, no markdown, no lists."""
+
+
+async def adversarial_self_critique(
+    gap: Gap,
+    viability: int,
+    test: PressureTest,
+    client: ClaudeClient,
+    model: str,
+) -> str:
+    """Return the single strongest reason ``viability`` is wrong (or "" on failure).
+
+    A cheap, single-turn meta-check run after scoring. NEVER raises: on any
+    failure it returns an empty string, so the node simply carries no critique.
+    """
+    try:
+        tally = f"{test.survived} survived / {test.weakened} weakened / {test.killed} killed"
+        prompt = (
+            f"CANDIDATE GAP:\n{json.dumps(_gap_payload(gap), indent=2)}\n\n"
+            f"PRESSURE TEST ({test.test_rigor} rigor): {tally}. {test.summary}\n\n"
+            f"ASSIGNED VIABILITY SCORE: {viability}/100.\n\n"
+            "Name the single strongest reason this score is wrong. One or two "
+            "sentences, specific and structural, grounded only in the above."
+        )
+        result = await client.complete(
+            prompt, system=_CRITIQUE_SYSTEM, max_turns=1, timeout=90, model=model
+        )
+        text = (result.text or "").strip()
+        # Guard against a model that ignores the format and dumps JSON/markdown.
+        if text.startswith("{") or text.startswith("["):
+            return ""
+        return text[:600]
+    except Exception:  # noqa: BLE001 - a critique is a bonus; never break scoring.
+        return ""
+
+
+# --------------------------------------------------------------------------- #
 # Viability scoring.                                                           #
 # --------------------------------------------------------------------------- #
 # Per-lens deltas applied on top of the base composite (0..100). Survivals nudge

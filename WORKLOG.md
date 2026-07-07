@@ -112,3 +112,21 @@ errors** after the fix reload despite the browser opening/closing 18 SSE connect
 Follow-ups: many stale "running" projects from prior sessions clutter the tab bar (dead
 workers, benign) — a boot-time reconciliation to mark orphaned runs as paused would tidy
 the UI; deferred (touches user data).
+
+## 2026-07-07 03:05 — Feature C: adversarial self-critique on each scored gap   [commit pending]
+What: After a gap is pressure-tested and scored, a cheap single-turn meta-pass
+(`adversarial_self_critique`) names the SINGLE strongest reason the viability score is
+wrong (too high or too low), recorded on `PressureTest.self_critique` and shown in the
+NodeInspector pressure panel (vermillion-accented block). Gated to standard/deep rigor so
+light/curbing stays cheap. Degrades to "" on any failure and rejects non-prose output.
+(`test_rigor` + confidence were already surfaced in the inspector — verified.)
+Why: The owner's #1 priority is engine depth; a score you can't second-guess is a weaker
+signal than one that carries its own strongest objection.
+Verification: `pytest -q` → 11 passed (+1 degrade/format test); ruff/tsc/vite clean.
+**Live Claude:** on a solo-therapist-notes gap scored 21/100, the critique argued the score
+is *too low* — "HIPAA compliance is a solvable cost-of-entry… not a structural void… market
+pull is severely under-weighted" — correctly catching an *under*-score, not just piling on.
+The backend/data path is verified on real Claude; the inspector render typechecks + builds.
+Follow-ups: a full in-browser screenshot of the critique in the inspector needs a run that
+reaches a scored gap (~minutes on the deep path) — deferred; render is a simple conditional
+block already covered by tsc + the verified data shape.

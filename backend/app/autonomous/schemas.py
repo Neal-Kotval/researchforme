@@ -69,6 +69,7 @@ class PressureTest(BaseModel):
     killed: int = 0
     test_rigor: TestRigor = "standard"
     summary: str = ""                          # one-line verdict of the gauntlet
+    self_critique: str = ""                    # strongest reason the score is wrong
 
 
 # --------------------------------------------------------------------------- #
