@@ -1,0 +1,30 @@
+[project]
+name = "market-gap-finder"
+version = "0.1.0"
+description = "Surfaces market gaps by cross-referencing Reddit, arXiv, and economic trends."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "feedparser>=6.0",        # arXiv Atom feed parsing
+    # The synthesis step runs on the user's Claude subscription via the Agent SDK
+    # (adds in-process tool calling). This is the primary LLM path when no
+    # ANTHROPIC_API_KEY is set, so it's a core dependency. If it's ever missing,
+    # the client still falls back to the `claude` CLI, then to a fixture.
+    "claude-agent-sdk>=0.2",
+]
+
+[project.optional-dependencies]
+# Only needed if you choose to bill the Anthropic API instead of the subscription.
+api = ["anthropic>=0.40"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.3"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

@@ -1,0 +1,50 @@
+- generic [ref=f5e3]:
+  - banner [ref=f5e4]:
+    - generic [ref=f5e5]:
+      - generic [ref=f5e6]:
+        - img [ref=f5e8]
+        - generic [ref=f5e16]:
+          - generic [ref=f5e17]: Market Gap Finder
+          - generic [ref=f5e18]: Signal-driven opportunity discovery
+      - tablist "Mode" [ref=f5e19]:
+        - tab "Single area" [selected] [ref=f5e20] [cursor=pointer]
+        - tab "✦ Autonomous" [ref=f5e21] [cursor=pointer]:
+          - generic [ref=f5e22]: ✦
+          - text: Autonomous
+  - main [ref=f5e23]:
+    - generic [ref=f5e24]:
+      - generic [ref=f5e25]:
+        - generic [ref=f5e26]: ✦
+        - text: Signal-driven market discovery
+      - heading "Find the gaps worth building in any market" [level=1] [ref=f5e27]
+      - paragraph [ref=f5e28]: We mine Reddit + Hacker News demand, arXiv + GitHub momentum, and tech newsletters — then synthesize the ranked, defensible openings that competitors have left wide open.
+      - generic [ref=f5e29]:
+        - generic [ref=f5e30]: Market area *
+        - textbox "Market area to analyze" [active] [ref=f5e32]:
+          - /placeholder: e.g. personal finance for freelancers
+        - generic [ref=f5e33]:
+          - generic [ref=f5e34]: Sub-segments (optional — narrows the hunt)
+          - textbox "Add a sub-segment" [ref=f5e36]:
+            - /placeholder: e.g. invoicing, taxes, retirement…
+        - generic [ref=f5e37]:
+          - generic [ref=f5e38]: Try one of these
+          - generic [ref=f5e39]:
+            - button "personal finance for freelancers" [ref=f5e40] [cursor=pointer]
+            - button "AI note-taking" [ref=f5e41] [cursor=pointer]
+            - button "tools for solo devs" [ref=f5e42] [cursor=pointer]
+            - button "sleep tracking for shift workers" [ref=f5e43] [cursor=pointer]
+            - button "compliance for small clinics" [ref=f5e44] [cursor=pointer]
+        - generic [ref=f5e45]:
+          - generic [ref=f5e46]: Synthesis model
+          - radiogroup "Synthesis model" [ref=f5e47]:
+            - radio "Opus 4.8 Deepest" [checked] [ref=f5e48] [cursor=pointer]:
+              - generic [ref=f5e49]: Opus 4.8
+              - generic [ref=f5e50]: Deepest
+            - radio "Sonnet 5 Balanced" [ref=f5e51] [cursor=pointer]:
+              - generic [ref=f5e52]: Sonnet 5
+              - generic [ref=f5e53]: Balanced
+            - radio "Haiku 4.5 Fastest" [ref=f5e54] [cursor=pointer]:
+              - generic [ref=f5e55]: Haiku 4.5
+              - generic [ref=f5e56]: Fastest
+        - button "Find market gaps →" [disabled] [ref=f5e58]
+    - generic [ref=f5e59]: Market Gap Finder · signals from Reddit, Hacker News, arXiv, GitHub & tech newsletters · gaps are hypotheses, not advice.

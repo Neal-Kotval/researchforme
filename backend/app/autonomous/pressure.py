@@ -1,0 +1,495 @@
+"""Adversarial pressure testing → viability score (SPEC §5).
+
+A ``GapCandidate`` produced by the synthesis pipeline is only a *hypothesis*.
+Before it earns a viability score (and a ⭐), it is dragged through a gauntlet of
+independent **kill-lenses** — each one trying to *destroy* the gap, not confirm
+it (the adversarial-verify pattern). A gap that walks out the far side of five
+lenses still standing is a very different animal from one nobody tried to kill.
+
+Three things happen here:
+
+1. **The lenses.** Five sharp, single-purpose adversaries (``LENSES``): is the
+   white space *empty for a reason*? could an *incumbent* close it in a weekend?
+   is the demand a *mirage* of loud complaints with no wallet? is the *why-now*
+   hand-waved? is there any *moat* once it works? Rigor picks how many run:
+   ``deep`` = all 5, ``standard`` = 3, ``light`` = the 2 cheapest.
+
+2. **The run.** ``pressure_test`` hands the gap + its branch context to the LLM
+   (optionally with the same ``search_*`` corroboration tools synthesis uses) and
+   asks for a strict JSON array of per-lens verdicts, parsed with the same robust
+   extractor ``synthesize`` uses. It **degrades, never raises**: if the call
+   fails or nothing parses, it synthesizes a *neutral light* PressureTest derived
+   purely from the gap's own 1..5 scores, so scoring still works with NO real LLM.
+
+3. **The score.** ``score_viability`` blends the five base scores with the lens
+   outcomes — rewarding survivals, penalizing weakens, and hard-penalizing any
+   kill — into a 0..100 viability plus a ``Confidence`` that reflects how hard the
+   gap was actually tested (rigor + evidence corroboration). A lightly-tested 80
+   is therefore visibly distinct from a battle-tested 80.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any, Optional
+
+from ..analysis.rank import composite_score
+from ..analysis.synthesize import _extract_json_array  # robust JSON-array parser
+from ..llm.client import ClaudeClient, ToolSpec
+from ..schemas import Evidence, Gap, Weights
+from .schemas import Confidence, LensVerdict, PressureTest, TestRigor
+
+
+# --------------------------------------------------------------------------- #
+# The five kill-lenses. Each is an *independent adversary* whose job is to      #
+# prove its own kill-question "yes". Order is canonical (SPEC §5 table); the    #
+# rigor-based subset is chosen from `_LENS_PRIORITY`, cheapest/most-decisive    #
+# first, so light ⊂ standard ⊂ deep.                                            #
+# --------------------------------------------------------------------------- #
+LENSES: list[dict] = [
+    {
+        "key": "empty_for_a_reason",
+        "prompt": (
+            "EMPTY-FOR-A-REASON. Try to prove this white space is empty because "
+            "it is a TRAP, not an opportunity: a regulatory wall, no real "
+            "willingness to pay, a channel that can't be reached economically, or "
+            "a structural reason nobody can serve it. If you can build a credible "
+            "case that the space is empty FOR A REASON, verdict=kills."
+        ),
+    },
+    {
+        "key": "incumbent_countermove",
+        "prompt": (
+            "INCUMBENT COUNTER-MOVE. Try to prove a well-resourced incumbent "
+            "could close this gap in a weekend if it actually mattered — a config "
+            "flag, a checkbox feature, a trivial extension of a product they "
+            "already ship. If the wall against incumbents is that thin, "
+            "verdict=kills; if they'd have to fight their own model, verdict=weakens."
+        ),
+    },
+    {
+        "key": "demand_mirage",
+        "prompt": (
+            "DEMAND MIRAGE. Try to prove the 'demand' is just loud complaints with "
+            "no willingness to pay — venting, a nice-to-have, or a problem people "
+            "won't actually open their wallet for. Separate real signal from noise. "
+            "If the demand is a mirage, verdict=kills."
+        ),
+    },
+    {
+        "key": "why_now_fragility",
+        "prompt": (
+            "WHY-NOW FRAGILITY. Try to prove the enabling 'why now' shift is "
+            "hand-waved or does not really exist — that nothing concrete changed "
+            "recently to make this newly feasible or newly urgent. If the why-now "
+            "collapses under scrutiny, verdict=kills; if it is real but soft, "
+            "verdict=weakens."
+        ),
+    },
+    {
+        "key": "moat",
+        "prompt": (
+            "MOAT / DEFENSIBILITY. Assume it works — now try to prove anyone could "
+            "copy it instantly, that there is no durable advantage (proprietary "
+            "data, network effects, distribution, switching cost, or hard tech). "
+            "If it is trivially copyable, verdict=weakens; if success actively "
+            "invites a fatal fast-follow, verdict=kills."
+        ),
+    },
+]
+
+# Selection priority (distinct from the canonical display order above). The
+# cheapest, most-decisive lenses come first so `light` runs the 2 that most
+# often kill a bad gap; each higher rigor is a superset.
+_LENS_PRIORITY: tuple[str, ...] = (
+    "demand_mirage",
+    "empty_for_a_reason",
+    "why_now_fragility",
+    "incumbent_countermove",
+    "moat",
+)
+
+_LENS_BY_KEY: dict[str, dict] = {lens["key"]: lens for lens in LENSES}
+
+# How many lenses each rigor level runs.
+_RIGOR_COUNT: dict[str, int] = {"light": 2, "standard": 3, "deep": 5}
+
+_VALID_VERDICTS = frozenset({"survives", "weakens", "kills"})
+
+
+# --------------------------------------------------------------------------- #
+# System prompt — the adversarial gauntlet's "brain".                          #
+# --------------------------------------------------------------------------- #
+_PRESSURE_SYSTEM = """\
+You are the RED TEAM of "Market Gap Finder". A candidate market gap has been
+proposed. Your job is NOT to like it — it is to try, in good faith and with
+evidence, to KILL it. You wear several independent adversarial lenses, one at a
+time, and for each you attempt to prove that lens's kill-question is TRUE.
+
+# RULES OF ENGAGEMENT
+- Each lens is independent. Reason it on its own merits; do not let one lens's
+  verdict soften another. A gap only earns a high score by surviving lenses that
+  genuinely tried to destroy it.
+- Be specific and structural. "It might be hard" is worthless. Name the exact
+  regulatory wall, the exact incumbent feature, the exact reason the demand won't
+  convert to dollars. Generic doubts do not kill a gap.
+- NO FABRICATION. Any Evidence.url you cite must come from the gap's own evidence,
+  the branch context you were given, or a tool result you actually fetched. Never
+  invent a URL, a quote, a competitor, or a statistic. If you can't ground a
+  kill, downgrade your verdict honestly.
+- Use tools (search_reddit / search_arxiv / search_hackernews / search_github /
+  search_newsletters) SPARINGLY and only to
+  corroborate a specific kill or rescue (e.g. "is the demand real?", "did the
+  enabling shift actually happen?"). If no tools are available, reason only from
+  what you were given.
+
+# VERDICTS (per lens)
+- "kills"    — you built a credible, specific case that this lens's kill-question
+               is TRUE; the gap is fatally wounded on this axis.
+- "weakens"  — the lens lands a real hit but not a fatal one; a genuine concern.
+- "survives" — the gap withstands this lens; say concretely WHY it holds up.
+
+# OUTPUT CONTRACT — STRICT
+Return ONLY a top-level JSON array (no prose, no markdown fences), one object per
+lens you were asked to apply, each EXACTLY:
+
+{
+  "lens": "<the lens key, verbatim>",
+  "verdict": "survives|weakens|kills",
+  "argument": "the specific, structural case for this verdict",
+  "evidence": [
+    {"source": "reddit|arxiv|hackernews|github|newsletter",
+     "url": "<real url from gap/context/tools>",
+     "quote": "the exact grounding snippet", "date": "YYYY-MM-DD or null"}
+  ]
+}
+
+Evidence is optional per lens (0-3 items) but every item must be real. Output the
+JSON array and NOTHING else.\
+"""
+
+
+# --------------------------------------------------------------------------- #
+# Prompt construction                                                          #
+# --------------------------------------------------------------------------- #
+def _gap_payload(gap: Gap) -> dict[str, Any]:
+    """A compact, model-friendly view of the gap under attack."""
+    return {
+        "title": gap.title,
+        "thesis": gap.thesis,
+        "why_now": gap.why_now,
+        "wedge": gap.wedge,
+        "riskiest_assumption": gap.riskiest_assumption,
+        "weakest_link": gap.weakest_link,
+        "empty_for_a_reason": gap.empty_for_a_reason,
+        "empty_reason": gap.empty_reason,
+        "sub_segment": gap.sub_segment,
+        "novelty": gap.novelty,
+        "scores": gap.scores.model_dump(),
+        "competitors": [
+            {
+                "name": c.name,
+                "positioning": c.positioning,
+                "segment": c.segment,
+                "price_tier": c.price_tier,
+                "weakness": c.weakness,
+            }
+            for c in gap.competitors
+        ],
+        "evidence": [
+            {"source": e.source.value, "url": e.url, "quote": e.quote, "date": e.date}
+            for e in gap.evidence
+        ],
+    }
+
+
+def _build_pressure_prompt(gap: Gap, context: str, lenses: list[dict]) -> str:
+    """Hand the model the gap, its branch context, and the lenses to apply."""
+    lens_block = "\n".join(f"- {lens['key']}: {lens['prompt']}" for lens in lenses)
+    payload = json.dumps(_gap_payload(gap), indent=2)
+    ctx = (context or "").strip() or "(no additional branch context provided)"
+    return (
+        "CANDIDATE GAP UNDER ATTACK (this is your ground truth — every Evidence.url "
+        "you cite must come from here, the branch context, or a tool result):\n"
+        f"{payload}\n\n"
+        "BRANCH CONTEXT (where this gap sits in the exploration + a compact view of "
+        "the corroborating signals mined for it):\n"
+        f"{ctx}\n\n"
+        "APPLY EXACTLY THESE LENSES (one verdict object each, in this order):\n"
+        f"{lens_block}\n\n"
+        "For each lens, genuinely try to prove its kill-question true, grounding "
+        "every claim. Optionally call the search_* tools to corroborate a kill or a "
+        "rescue. Then output ONLY the strict JSON array of verdict objects — one per "
+        "lens above, in order. No prose, no markdown."
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Rigor → lens subset                                                          #
+# --------------------------------------------------------------------------- #
+def _normalize_rigor(rigor: str) -> TestRigor:
+    r = (rigor or "").strip().lower()
+    return r if r in _RIGOR_COUNT else "standard"  # type: ignore[return-value]
+
+
+def _select_lenses(rigor: TestRigor) -> list[dict]:
+    """Pick the rigor-appropriate lens subset in canonical display order.
+
+    The *which* is chosen by `_LENS_PRIORITY` (cheapest/most-decisive first) so
+    lower rigor is a strict subset of higher; the *order* returned follows the
+    canonical `LENSES` order so the UI always lists lenses consistently.
+    """
+    n = _RIGOR_COUNT.get(rigor, 3)
+    chosen = set(_LENS_PRIORITY[:n])
+    return [lens for lens in LENSES if lens["key"] in chosen]
+
+
+# --------------------------------------------------------------------------- #
+# Robust verdict parsing.                                                      #
+# --------------------------------------------------------------------------- #
+def _parse_evidence(raw: Any) -> list[Evidence]:
+    """Validate each evidence object with ``Evidence(**obj)``; drop invalid ones."""
+    out: list[Evidence] = []
+    if not isinstance(raw, list):
+        return out
+    for obj in raw:
+        if not isinstance(obj, dict):
+            continue
+        try:
+            out.append(Evidence(**obj))
+        except Exception:  # noqa: BLE001 - pydantic ValidationError et al.
+            continue
+    return out
+
+
+def _parse_verdicts(raw: list, selected_keys: set[str]) -> dict[str, LensVerdict]:
+    """Fold the model's JSON array into ``{lens_key: LensVerdict}``.
+
+    Only verdicts whose ``lens`` matches a selected key are kept; unknown verdict
+    strings degrade to the neutral ``"weakens"`` rather than being dropped.
+    """
+    by_key: dict[str, LensVerdict] = {}
+    for obj in raw:
+        if not isinstance(obj, dict):
+            continue
+        key = str(obj.get("lens", "")).strip().lower()
+        if key not in selected_keys or key in by_key:
+            continue
+        verdict = str(obj.get("verdict", "")).strip().lower()
+        if verdict not in _VALID_VERDICTS:
+            verdict = "weakens"
+        argument = str(obj.get("argument", "") or "").strip()
+        by_key[key] = LensVerdict(
+            lens=key,
+            verdict=verdict,  # type: ignore[arg-type]
+            argument=argument,
+            evidence=_parse_evidence(obj.get("evidence")),
+        )
+    return by_key
+
+
+# --------------------------------------------------------------------------- #
+# Deterministic degrade — a neutral test derived from the gap's own scores.    #
+# --------------------------------------------------------------------------- #
+def _lens_base_score(gap: Gap, key: str) -> int:
+    """The 1..5 score most relevant to a lens (higher ⇒ more likely to survive)."""
+    s = gap.scores
+    return {
+        "empty_for_a_reason": s.demand_strength,       # real demand ⇒ not a trap
+        "incumbent_countermove": s.competitive_openness,  # open field ⇒ survives
+        "demand_mirage": s.willingness_to_pay,         # real WTP ⇒ not a mirage
+        "why_now_fragility": s.trend_tailwind,         # strong tailwind ⇒ survives
+        "moat": gap.novelty,                            # novelty ⇒ defensibility
+    }.get(key, 3)
+
+
+def _neutral_verdict(gap: Gap, key: str) -> LensVerdict:
+    """Derive one lens verdict from the gap's own scores — no LLM required.
+
+    Deliberately *neutral* (benefit-of-the-doubt): a middling gap survives; only a
+    genuinely soft axis weakens; and a gap that flags itself ``empty_for_a_reason``
+    is killed by that specific lens, since it has admitted the trap.
+    """
+    if key == "empty_for_a_reason" and gap.empty_for_a_reason:
+        return LensVerdict(
+            lens=key,
+            verdict="kills",
+            argument=(
+                "Heuristic fallback: the gap flags itself empty_for_a_reason — "
+                f"{gap.empty_reason or 'the white space is likely a trap'}."
+            ),
+        )
+    score = _lens_base_score(gap, key)
+    verdict = "survives" if score >= 3 else "weakens"
+    return LensVerdict(
+        lens=key,
+        verdict=verdict,
+        argument=(
+            f"Heuristic fallback (no LLM verdict available): the '{key}' axis rates "
+            f"{score}/5 on the gap's own scores, so it {verdict} a neutral test."
+        ),
+    )
+
+
+def _tally(lenses: list[LensVerdict]) -> tuple[int, int, int]:
+    """Count (survived, weakened, killed) across a list of verdicts."""
+    survived = sum(1 for lv in lenses if lv.verdict == "survives")
+    weakened = sum(1 for lv in lenses if lv.verdict == "weakens")
+    killed = sum(1 for lv in lenses if lv.verdict == "kills")
+    return survived, weakened, killed
+
+
+def _assemble(lenses: list[LensVerdict], rigor: TestRigor) -> PressureTest:
+    """Wrap a list of verdicts into a PressureTest with counts + a one-line summary."""
+    survived, weakened, killed = _tally(lenses)
+    n = len(lenses)
+    if killed:
+        verdict_word = "KILLED"
+    elif weakened > survived:
+        verdict_word = "WEAKENED"
+    else:
+        verdict_word = "SURVIVED"
+    summary = (
+        f"{verdict_word}: {survived}/{n} lenses survived, {weakened} weakened, "
+        f"{killed} killed ({rigor} rigor)."
+    )
+    return PressureTest(
+        lenses=lenses,
+        survived=survived,
+        weakened=weakened,
+        killed=killed,
+        test_rigor=rigor,
+        summary=summary,
+    )
+
+
+def _neutral_pressure_test(gap: Gap, rigor: TestRigor = "light") -> PressureTest:
+    """A fully-deterministic PressureTest from the gap's scores (LLM-free)."""
+    lenses = [_neutral_verdict(gap, lens["key"]) for lens in _select_lenses(rigor)]
+    return _assemble(lenses, rigor)
+
+
+# --------------------------------------------------------------------------- #
+# Public entry point — run the gauntlet.                                        #
+# --------------------------------------------------------------------------- #
+async def pressure_test(
+    gap: Gap,
+    context: str,
+    client: ClaudeClient,
+    model: str,
+    rigor: str,
+    tools: Optional[list[ToolSpec]] = None,
+) -> PressureTest:
+    """Attack ``gap`` from the rigor-appropriate lenses → a ``PressureTest``.
+
+    ``rigor`` picks the subset (``deep`` = 5, ``standard`` = 3, ``light`` = 2).
+    ``tools`` are the optional ``search_*`` corroboration tools (as built by
+    ``synthesize._build_tools``) so a lens can pull fresh evidence.
+
+    NEVER raises. On any failure — the LLM call erroring, empty output, or output
+    from which not a single usable verdict parses — it degrades to a *neutral
+    light* PressureTest synthesized from the gap's own scores, so downstream
+    scoring always has something honest to work with even with NO real LLM.
+    """
+    rig = _normalize_rigor(rigor)
+    lenses = _select_lenses(rig)
+    selected_keys = {lens["key"] for lens in lenses}
+
+    try:
+        prompt = _build_pressure_prompt(gap, context, lenses)
+        text = ""
+        try:
+            result = await client.complete(
+                prompt,
+                system=_PRESSURE_SYSTEM,
+                tools=tools,
+                max_turns=6,
+                timeout=240,
+                model=model,
+            )
+            text = result.text or ""
+        except Exception:  # noqa: BLE001 - resilient: fall through to the neutral test
+            text = ""
+
+        raw = _extract_json_array(text) if text else None
+        by_key = _parse_verdicts(raw, selected_keys) if raw else {}
+
+        # No usable verdicts at all -> honest neutral (light) fallback.
+        if not by_key:
+            return _neutral_pressure_test(gap, "light")
+
+        # Fill any lens the model skipped with a neutral per-lens verdict, keeping
+        # the requested rigor since the LLM *did* run the gauntlet.
+        assembled = [
+            by_key.get(lens["key"]) or _neutral_verdict(gap, lens["key"])
+            for lens in lenses
+        ]
+        return _assemble(assembled, rig)
+    except Exception:  # noqa: BLE001 - absolute last-resort guard; never raise
+        return _neutral_pressure_test(gap, "light")
+
+
+# --------------------------------------------------------------------------- #
+# Viability scoring.                                                           #
+# --------------------------------------------------------------------------- #
+# Per-lens deltas applied on top of the base composite (0..100). Survivals nudge
+# up, weakens bite, and any kill is hard-penalized (plus a hard viability cap).
+_SURVIVE_BONUS = 6.0
+_WEAKEN_PENALTY = 9.0
+_KILL_PENALTY = 26.0
+_KILL_CAP = 40          # a gap with any kill verdict cannot score above this
+_CORROBORATION_PER = 2.0
+_CORROBORATION_MAX = 10.0
+
+
+def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
+    """Blend the gap's base scores with the pressure-test outcome → (0..100, confidence).
+
+    Viability starts from the default-weighted composite of the five 1..5 scores,
+    linearly stretched onto 0..100, then adjusted by the gauntlet: reward each
+    survival, penalize each weaken, and hard-penalize any kill (a single kill also
+    caps the score). Corroborating evidence pulled by the lenses adds a small
+    bonus. The result is clamped to 0..100.
+
+    Confidence reflects how *hard* the gap was actually tested — ``test_rigor``,
+    how well-grounded the gap is, and whether the lenses corroborated with live
+    evidence — so a lightly-tested score reads as less trustworthy than a
+    battle-tested one, independent of the number itself.
+    """
+    # Base: default-weighted composite (1..5) stretched to 0..100.
+    composite = composite_score(gap.scores, Weights())  # 1..5
+    viability = (composite - 1.0) / 4.0 * 100.0
+
+    survived, weakened, killed = _tally(test.lenses)
+    viability += _SURVIVE_BONUS * survived
+    viability -= _WEAKEN_PENALTY * weakened
+    viability -= _KILL_PENALTY * killed
+
+    corroboration = sum(len(lv.evidence) for lv in test.lenses)
+    viability += min(_CORROBORATION_MAX, _CORROBORATION_PER * corroboration)
+
+    if killed:
+        viability = min(viability, float(_KILL_CAP))
+
+    viability_int = int(max(0, min(100, round(viability))))
+    return viability_int, _confidence_for(gap, test, corroboration)
+
+
+def _confidence_for(gap: Gap, test: PressureTest, corroboration: int) -> Confidence:
+    """Low/medium/high from rigor + how grounded/corroborated the gap is.
+
+    Points: rigor (deep=2, standard=1, light=0) + a point when the gap is well
+    grounded (>= 3 of its own evidence items) + a point when the lenses pulled
+    live corroborating evidence of their own. 3+ → high, 2 → medium, else low.
+    A gap resting only on a heuristic light test therefore stays honest ('low').
+    """
+    points = {"deep": 2, "standard": 1, "light": 0}.get(test.test_rigor, 0)
+    if len(gap.evidence) >= 3:
+        points += 1
+    if corroboration > 0:  # lenses corroborated with their own fetched evidence
+        points += 1
+    if points >= 3:
+        return "high"
+    if points == 2:
+        return "medium"
+    return "low"

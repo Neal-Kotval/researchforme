@@ -1,0 +1,490 @@
+"""The expansion engine — frontier + node expansion (SPEC §4).
+
+This is the *driver* that turns a domain into a tree. It owns three things:
+
+1. **Node minting & priority.** ``make_node`` gives every node a *content-hash*
+   id (a function of parent + kind + title), which is what makes dedup free
+   (SPEC §11): two branches that hypothesize the same segment collapse onto the
+   same id instead of re-exploring it. ``node_priority`` is the pure, no-LLM
+   §4.1 heuristic that decides what the frontier works next.
+
+2. **The frontier** — a max-priority queue (highest first) with id-dedup and
+   ``remove`` support. Best-first search over this is what makes "come back to
+   the good stuff" work instead of "come back to 4000 mediocre nodes".
+
+3. **Expansion strategies (SPEC §4.2).**
+   - ``expand_structural`` — a cheap-model LLM decomposition of a Domain/SubArea
+     into 4-8 distinct child sub-areas (or Segments at depth ≥ 2). It DEGRADES to
+     a deterministic ``scope_area``-keyword decomposition, so a tree still forms
+     with *no* LLM at all.
+   - ``expand_segment`` — reuses today's ``scope → fetch → extract → synthesize``
+     pipeline verbatim and returns one ``GapCandidate`` node per synthesized gap,
+     each carrying the full ``Gap`` object plus a compact evidence ``context``
+     (stashed on ``rationale``) for the pressure tester.
+
+Same degrade-don't-crash contract as the rest of the codebase: neither expansion
+ever raises; on failure it returns fewer (or no) children and the loop moves on.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import heapq
+
+from ..analysis.extract import extract_signals
+from ..analysis.scope import scope_area
+from ..analysis.synthesize import _extract_json_array, synthesize
+from ..llm.client import ClaudeClient
+from ..schemas import Gap, SourceReport, SourceStatus
+from ..sources.registry import get_sources
+from .schemas import Node, NodeKind, Project
+
+
+# --------------------------------------------------------------------------- #
+# Node minting                                                                #
+# --------------------------------------------------------------------------- #
+def make_node(
+    project_id: str,
+    parent: Node | None,
+    kind: NodeKind | str,
+    title: str,
+    rationale: str = "",
+    keywords: list[str] | None = None,
+    depth: int = 0,
+) -> Node:
+    """Mint a fresh ``Node`` with a deterministic, *content-hash* id.
+
+    The id is a hash of ``(project_id, parent_id, kind, title)`` — never a
+    timestamp or random value — so re-deriving the same node on a parallel branch
+    yields the *same* id and the frontier / store dedup it for free (SPEC §11).
+    Title is normalized (trimmed) before hashing so trivial whitespace differences
+    don't fork a node.
+    """
+    kind = NodeKind(kind)
+    parent_id = parent.id if parent is not None else None
+    norm_title = (title or "").strip()
+    seed = f"{project_id}|{parent_id or 'root'}|{kind.value}|{norm_title.lower()}"
+    node_id = hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]
+    return Node(
+        id=node_id,
+        project_id=project_id,
+        parent_id=parent_id,
+        kind=kind,
+        title=norm_title,
+        rationale=rationale or "",
+        keywords=[k for k in (keywords or []) if str(k).strip()],
+        depth=depth,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Frontier priority (SPEC §4.1) — a pure, no-LLM heuristic                     #
+# --------------------------------------------------------------------------- #
+# Kind-level base value: segments feed gap payoff, so they edge out plain
+# sub-areas; the domain root starts highest so the tree opens up immediately.
+_KIND_BASE: dict[NodeKind, float] = {
+    NodeKind.DOMAIN: 1.0,
+    NodeKind.SUBAREA: 0.8,
+    NodeKind.SEGMENT: 0.9,
+    NodeKind.GAP_CANDIDATE: 0.7,
+    NodeKind.GAP: 0.5,
+}
+# Words in a node's rationale that hint the branch is already source-corroborated.
+_DENSITY_HINTS = ("reddit", "arxiv", "hackernews", "github", "newsletter", "demand", "trend", "evidence")
+
+
+def node_priority(node: Node, parent: Node | None) -> float:
+    """Blend the §4.1 factors into a single frontier priority (higher = sooner).
+
+    Pure and cheap (recomputed on every push): no LLM, no I/O, no clock. It
+    blends **parent promise** (a child under a strong branch is worth more),
+    **novelty / uncrowdedness** (keyword-richness as a proxy for a distinct,
+    well-specified branch), **signal density** (rationale already references
+    corroboration), a **depth decay** (widen before tunneling), and the
+    **pinned boost** (a user-pinned node jumps the queue).
+    """
+    base = _KIND_BASE.get(node.kind, 0.5)
+
+    # Parent promise: a scored (gap) parent lends its viability; a structural
+    # parent lends a bounded fraction of its own priority; the root is maximal.
+    if parent is None:
+        promise = 1.0
+    elif parent.viability is not None:
+        promise = parent.viability / 100.0
+    else:
+        promise = max(0.0, min(parent.priority, 2.0)) / 2.0
+
+    # Novelty / uncrowdedness proxy: a richer, more specific keyword set reads as
+    # a more distinct branch worth opening.
+    novelty = min(len(node.keywords), 5) / 5.0
+
+    # Signal-density proxy: reward branches whose rationale already cites sources.
+    text = (node.rationale or "").lower()
+    density = min(0.1 * sum(1 for h in _DENSITY_HINTS if h in text), 0.4)
+
+    # Depth decay: a gentle "widen before tunneling" tiebreaker among nodes of
+    # the same kind at different depths. Kept small on purpose so it never
+    # inverts the kind ordering above — a SEGMENT must still edge out a plain
+    # SUBAREA (per _KIND_BASE) so the frontier reaches the productive gap layer
+    # instead of exhausting the node budget on structural breadth.
+    decay = 0.06 * node.depth
+
+    # User boost: a pinned node leaps the queue (SPEC §4.1).
+    boost = 1.0 if node.pinned else 0.0
+
+    return round(base + 0.9 * promise + 0.5 * novelty + density - decay + boost, 4)
+
+
+# --------------------------------------------------------------------------- #
+# The frontier — a max-priority queue with id-dedup                           #
+# --------------------------------------------------------------------------- #
+class Frontier:
+    """Priority queue of expandable nodes, highest ``priority`` popped first.
+
+    Backed by a min-heap over ``-priority`` with a monotonic tiebreaker so equal
+    priorities pop in push order (stable). De-dups by node id: an id it has ever
+    held is never re-accepted, which — combined with content-hash ids — stops the
+    same branch being explored twice and prevents re-queue loops. ``remove`` is
+    lazy: the heap entry is skipped when it surfaces.
+    """
+
+    def __init__(self) -> None:
+        self._heap: list[tuple[float, int, str]] = []
+        self._nodes: dict[str, Node] = {}
+        self._seen: set[str] = set()
+        self._counter = 0
+
+    def push(self, node: Node) -> None:
+        """Add ``node`` unless its id has already been seen (dedup)."""
+        if node.id in self._seen:
+            return
+        self._seen.add(node.id)
+        self._nodes[node.id] = node
+        heapq.heappush(self._heap, (-node.priority, self._counter, node.id))
+        self._counter += 1
+
+    def push_all(self, nodes: list[Node]) -> None:
+        for node in nodes:
+            self.push(node)
+
+    def pop(self) -> Node | None:
+        """Pop the highest-priority live node, or ``None`` if the frontier is empty."""
+        while self._heap:
+            _, _, node_id = heapq.heappop(self._heap)
+            node = self._nodes.pop(node_id, None)
+            if node is not None:  # None -> already removed/consumed; skip.
+                return node
+        return None
+
+    def remove(self, node_id: str) -> None:
+        """Drop a node from the queue (its heap entry is skipped lazily on pop)."""
+        self._nodes.pop(node_id, None)
+
+    def __len__(self) -> int:
+        return len(self._nodes)
+
+
+# --------------------------------------------------------------------------- #
+# Kind helpers & the root                                                     #
+# --------------------------------------------------------------------------- #
+def kind_is_structural(kind: NodeKind | str) -> bool:
+    """True for decomposition nodes (Domain/SubArea/Segment), not gap leaves."""
+    return NodeKind(kind) in (NodeKind.DOMAIN, NodeKind.SUBAREA, NodeKind.SEGMENT)
+
+
+def root_node(project: Project) -> Node:
+    """Build the DOMAIN root node for a project, priority pre-computed."""
+    scope = scope_area(project.domain, project.sub_segments)
+    node = make_node(
+        project.id,
+        None,
+        NodeKind.DOMAIN,
+        project.domain,
+        rationale=f"Root domain exploration of '{project.domain}'.",
+        keywords=list(scope.keywords),
+        depth=0,
+    )
+    node.priority = node_priority(node, None)
+    return node
+
+
+# --------------------------------------------------------------------------- #
+# Structural expansion (SPEC §4.2) — cheap-model decomposition + fallback      #
+# --------------------------------------------------------------------------- #
+_DECOMPOSE_SYSTEM = """\
+You are the decomposition step of an autonomous market-gap explorer. Given a node
+in an exploration tree, you break it into distinct, non-overlapping children a
+founder could specialize in — cheaply and widely. You do NOT evaluate gaps here;
+you only carve the space. Be concrete and MECE (mutually exclusive, collectively
+exhaustive). Output ONLY the requested JSON array — no prose, no markdown fences.\
+"""
+
+# How many structural children to keep from one decomposition (SPEC: 4-8).
+_MAX_STRUCTURAL_CHILDREN = 8
+# Deterministic fallback fans out narrower to avoid a bushy no-signal tree.
+_MAX_FALLBACK_CHILDREN = 3
+
+
+def _child_kind_for(node: Node) -> tuple[NodeKind, int]:
+    """Kind + depth of this node's structural children.
+
+    Domain(0)→SubArea(1)→Segment(2+): children at depth ≥ 2 are SEGMENTs (which
+    the segment expander, not this one, later runs the pipeline on).
+    """
+    child_depth = node.depth + 1
+    child_kind = NodeKind.SUBAREA if child_depth < 2 else NodeKind.SEGMENT
+    return child_kind, child_depth
+
+
+def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
+    """User prompt handing the model the node + its context to carve up."""
+    lines = [f"ROOT DOMAIN: {project.domain}"]
+    if project.sub_segments:
+        lines.append(f"SUB-SEGMENTS OF INTEREST: {', '.join(project.sub_segments)}")
+    lines.append(f"NODE TO DECOMPOSE ({node.kind.value}): {node.title}")
+    if node.rationale:
+        lines.append(f"WHY THIS BRANCH MIGHT MATTER: {node.rationale}")
+    if node.keywords:
+        lines.append(f"KEYWORDS: {', '.join(node.keywords)}")
+    return (
+        "\n".join(lines)
+        + f"\n\nBreak the node above into 4-8 distinct, non-overlapping {child_label} "
+        "a founder could specialize in. They must be *children* of it (not restatements) "
+        "and must not overlap each other. For each, give a short specific title, a "
+        "one-line rationale for why it might be an under-served gap, and 3 search "
+        "keywords.\n\n"
+        "Return ONLY a JSON array (no prose, no fences) shaped like:\n"
+        '[{"title": "...", "rationale": "one line", "keywords": ["a", "b", "c"]}]'
+    )
+
+
+def _child_keywords(obj: dict, title: str) -> list[str]:
+    """Pull keywords/tags off a decomposition object; derive from the title if bare."""
+    kw = obj.get("keywords") or obj.get("tags") or []
+    if isinstance(kw, str):
+        kw = [k for k in kw.replace(",", " ").split() if k]
+    keywords = [str(k).strip() for k in kw if str(k).strip()][:6]
+    if not keywords:
+        keywords = list(scope_area(title, []).keywords[:3])
+    return keywords
+
+
+def _children_from_raw(
+    node: Node, project: Project, child_kind: NodeKind, child_depth: int, raw: list
+) -> list[Node]:
+    """Turn parsed decomposition objects into prioritized child nodes (dedup titles)."""
+    children: list[Node] = []
+    seen: set[str] = set()
+    for obj in raw:
+        if len(children) >= _MAX_STRUCTURAL_CHILDREN:
+            break
+        if not isinstance(obj, dict):
+            continue
+        title = str(
+            obj.get("title") or obj.get("name") or obj.get("segment") or ""
+        ).strip()
+        key = title.lower()
+        if not title or key in seen or key == (node.title or "").strip().lower():
+            continue
+        seen.add(key)
+        rationale = str(
+            obj.get("rationale")
+            or obj.get("why")
+            or obj.get("thesis")
+            or obj.get("description")
+            or ""
+        ).strip()
+        child = make_node(
+            project.id,
+            node,
+            child_kind,
+            title,
+            rationale=rationale,
+            keywords=_child_keywords(obj, title),
+            depth=child_depth,
+        )
+        child.priority = node_priority(child, node)
+        children.append(child)
+    return children
+
+
+def _fallback_children(
+    node: Node, project: Project, child_kind: NodeKind, child_depth: int
+) -> list[Node]:
+    """Deterministic, no-LLM decomposition from ``scope_area`` keywords/segments.
+
+    Guarantees a tree still forms when the model is unavailable or unparseable:
+    derive 2-3 distinct child facets from the node's own scope.
+    """
+    scope = scope_area(node.title or project.domain, project.sub_segments)
+    parent_title = (node.title or "").strip().lower()
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for term in [*scope.keywords, *scope.sub_segments]:
+        low = term.strip().lower()
+        if not low or low in seen or low == parent_title:
+            continue
+        seen.add(low)
+        ordered.append(term.strip())
+
+    children: list[Node] = []
+    for term in ordered[:_MAX_FALLBACK_CHILDREN]:
+        title = term if child_kind is NodeKind.SUBAREA else f"{term} — {node.title}"
+        child = make_node(
+            project.id,
+            node,
+            child_kind,
+            title,
+            rationale=(
+                f"Deterministic decomposition of '{node.title}' along "
+                f"'{term}' (no-LLM fallback)."
+            ),
+            keywords=[term],
+            depth=child_depth,
+        )
+        child.priority = node_priority(child, node)
+        children.append(child)
+
+    # Absolute floor: never return empty for a structural node.
+    if not children:
+        title = f"General {node.title}" if child_kind is NodeKind.SUBAREA else f"Core {node.title}"
+        child = make_node(
+            project.id,
+            node,
+            child_kind,
+            title,
+            rationale=f"Fallback single child of '{node.title}'.",
+            keywords=list(scope.keywords[:3]),
+            depth=child_depth,
+        )
+        child.priority = node_priority(child, node)
+        children.append(child)
+    return children
+
+
+async def expand_structural(
+    node: Node, project: Project, client: ClaudeClient, model: str
+) -> list[Node]:
+    """Decompose a Domain/SubArea into child sub-areas (or Segments at depth ≥ 2).
+
+    Cheap, wide LLM call (SPEC §4.2). DEGRADES to a deterministic
+    ``scope_area``-keyword decomposition when the model is missing or its output
+    is unparseable, so a tree always forms. Never raises.
+    """
+    child_kind, child_depth = _child_kind_for(node)
+
+    raw: list = []
+    try:
+        child_label = "sub-areas" if child_kind is NodeKind.SUBAREA else "concrete segments"
+        result = await client.complete(
+            _decompose_prompt(node, project, child_label),
+            system=_DECOMPOSE_SYSTEM,
+            model=model,
+            max_turns=1,
+            timeout=120,
+        )
+        parsed = _extract_json_array(result.text) if result.text else None
+        if parsed:
+            raw = parsed
+    except Exception:  # noqa: BLE001 - resilient: fall through to the fallback.
+        raw = []
+
+    children = _children_from_raw(node, project, child_kind, child_depth, raw)
+    if not children:
+        children = _fallback_children(node, project, child_kind, child_depth)
+    return children
+
+
+# --------------------------------------------------------------------------- #
+# Segment expansion (SPEC §4.2) — reuse the existing analysis pipeline         #
+# --------------------------------------------------------------------------- #
+def _evidence_context(gap: Gap, reports: list[SourceReport]) -> str:
+    """A compact grounding blurb the pressure tester attacks (stashed on rationale).
+
+    Summarizes the gap's thesis / why-now / wedge, which sources fired live vs
+    mock (confidence input), and a few evidence quotes — kept short on purpose.
+    """
+    parts: list[str] = [f"Thesis: {gap.thesis}"]
+    if gap.why_now:
+        parts.append(f"Why now: {gap.why_now}")
+    if gap.wedge:
+        parts.append(f"Wedge: {gap.wedge}")
+    if gap.weakest_link:
+        parts.append(f"Weakest link: {gap.weakest_link}")
+
+    live = [r.name.value for r in reports if r.status is SourceStatus.LIVE]
+    mock = [r.name.value for r in reports if r.status is SourceStatus.MOCK]
+    if live:
+        parts.append(f"Live sources: {', '.join(live)}")
+    if mock:
+        parts.append(f"Mock sources (cap confidence): {', '.join(mock)}")
+
+    ev_lines: list[str] = []
+    for e in (gap.evidence or [])[:4]:
+        quote = " ".join((e.quote or "").split())
+        if len(quote) > 160:
+            quote = quote[:160] + "…"
+        ev_lines.append(f"[{e.source.value}] {quote} ({e.url})")
+    if ev_lines:
+        parts.append("Evidence:\n" + "\n".join(ev_lines))
+    return "\n".join(parts)
+
+
+async def _fetch_all(node_title: str, scope) -> tuple[dict, list[SourceReport]]:
+    """Fetch every source in parallel off the event loop; never raise."""
+    sources = get_sources()
+    results = await asyncio.gather(
+        *(
+            asyncio.to_thread(src.fetch, node_title, scope.keywords, scope.sub_segments)
+            for src in sources
+        ),
+        return_exceptions=True,
+    )
+    fetched: dict = {}
+    reports: list[SourceReport] = []
+    for src, res in zip(sources, results):
+        if isinstance(res, Exception) or res is None:
+            continue
+        fetched[src.name] = res
+        report = getattr(res, "report", None)
+        if report is not None:
+            reports.append(report)
+    return fetched, reports
+
+
+async def expand_segment(
+    node: Node, project: Project, client: ClaudeClient, model: str
+) -> list[Node]:
+    """Run the existing ``scope → fetch → extract → synthesize`` pipeline on a segment.
+
+    Returns one ``GapCandidate`` node per synthesized gap, each with ``node.gap``
+    set and a compact evidence ``context`` recorded on ``rationale`` for the
+    pressure tester. Reuses the source adapters and ``synthesize`` verbatim —
+    autonomous mode is a driver, not a rewrite. Never raises: degrades to no
+    children if every step fails.
+    """
+    try:
+        scope = scope_area(node.title, project.sub_segments)
+        fetched, reports = await _fetch_all(node.title, scope)
+        signals = extract_signals(node.title, scope, fetched)
+        gaps, _backend, _warnings = await synthesize(signals, reports, client, model=model)
+    except Exception:  # noqa: BLE001 - degrade to no children, never crash the loop.
+        return []
+
+    children: list[Node] = []
+    for gap in gaps:
+        child = make_node(
+            project.id,
+            node,
+            NodeKind.GAP_CANDIDATE,
+            gap.title,
+            rationale=_evidence_context(gap, reports),
+            keywords=list(gap.tags or [])[:6],
+            depth=node.depth + 1,
+        )
+        child.gap = gap
+        child.priority = node_priority(child, node)
+        children.append(child)
+    return children

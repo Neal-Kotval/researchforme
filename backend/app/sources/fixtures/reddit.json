@@ -1,0 +1,149 @@
+{
+  "_comment": "Realistic mock Reddit corpus for the Market Gap Finder. Used when no OAuth creds are present. Twelve posts spanning pain quotes, wishes, and 1-3 star complaints across several themes. Permalinks, upvotes and created_utc look real but point at plausible-shaped URLs.",
+  "posts": [
+    {
+      "id": "1a2b3c1",
+      "subreddit": "smallbusiness",
+      "title": "I wish there was an app that just did my quarterly sales tax across states",
+      "selftext": "I run a tiny Shopify store and every quarter I lose a full weekend reconciling sales tax for 14 states. QuickBooks half-does it and TaxJar is $$$ for my volume. Why does no simple tool exist that just files the small-seller returns automatically? I'd pay $30/mo in a heartbeat.",
+      "permalink": "https://reddit.com/r/smallbusiness/comments/1a2b3c1/i_wish_there_was_an_app_that_just_did_my/",
+      "ups": 842,
+      "num_comments": 213,
+      "created_utc": 1749081600,
+      "link_flair_text": "Question",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c2",
+      "subreddit": "freelance",
+      "title": "Is there an app that chases late invoices for me without being rude?",
+      "selftext": "Half my clients pay 30-60 days late. I hate nagging. I want something that sends escalating but polite reminders, then offers a payment plan link. Everything I find is either a full ERP or a $99/mo AR suite built for agencies with 40 clients, not solo folks.",
+      "permalink": "https://reddit.com/r/freelance/comments/1a2b3c2/is_there_an_app_that_chases_late_invoices_for_me/",
+      "ups": 517,
+      "num_comments": 96,
+      "created_utc": 1748908800,
+      "link_flair_text": "Tools",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c3",
+      "subreddit": "personalfinance",
+      "title": "Why does no budgeting app handle irregular gig income well?",
+      "selftext": "I drive rideshare and do DoorDash. My income swings 3x month to month. Every budgeting app (YNAB, Mint's replacements, Copilot) assumes a steady paycheck. I want envelope budgeting that adapts to a bad week automatically. So frustrating that this doesn't exist for the millions of us doing gig work.",
+      "permalink": "https://reddit.com/r/personalfinance/comments/1a2b3c3/why_does_no_budgeting_app_handle_irregular_gig/",
+      "ups": 1204,
+      "num_comments": 341,
+      "created_utc": 1748563200,
+      "link_flair_text": "Budgeting",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c4",
+      "subreddit": "Accounting",
+      "title": "Rant: our AP automation tool is a 2-star nightmare",
+      "selftext": "We pay $600/mo for an AP automation SaaS and it still can't OCR a two-page invoice reliably. Support takes 4 days. If someone built something that actually handled multi-line PO matching for mid-market I would switch tomorrow. The incumbents are coasting.",
+      "permalink": "https://reddit.com/r/Accounting/comments/1a2b3c4/rant_our_ap_automation_tool_is_a_2star_nightmare/",
+      "ups": 389,
+      "num_comments": 74,
+      "created_utc": 1749340800,
+      "link_flair_text": "Rant",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c5",
+      "subreddit": "smallbusiness",
+      "title": "Anyone else frustrated that scheduling tools don't talk to payroll?",
+      "selftext": "I run a coffee shop with 11 part-timers. I build the schedule in one app, export to CSV, then re-key it into payroll every two weeks. It's 2025. Why is there no affordable tool that does shift scheduling AND spits out payroll-ready hours for a business my size?",
+      "permalink": "https://reddit.com/r/smallbusiness/comments/1a2b3c5/anyone_else_frustrated_that_scheduling_tools_dont/",
+      "ups": 663,
+      "num_comments": 128,
+      "created_utc": 1748736000,
+      "link_flair_text": "General",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c6",
+      "subreddit": "Entrepreneur",
+      "title": "The one-star reviews on the top receipt-scanning apps are a goldmine",
+      "selftext": "Spent an evening reading the 1-3 star reviews on the leading expense apps. Same complaints over and over: no mileage tracking for contractors, terrible multi-currency, exports break QuickBooks import. Feels like a wide-open wedge for someone who just nails the boring parts.",
+      "permalink": "https://reddit.com/r/Entrepreneur/comments/1a2b3c6/the_onestar_reviews_on_the_top_receiptscanning/",
+      "ups": 977,
+      "num_comments": 205,
+      "created_utc": 1749513600,
+      "link_flair_text": "Idea",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c7",
+      "subreddit": "startups",
+      "title": "I'd pay real money for a tool that reconciles Stripe payouts to my bank",
+      "selftext": "Stripe lumps payouts, so matching them to individual charges and fees at month-end is agony. My bookkeeper charges me extra hours just for this. Surely a focused tool could auto-reconcile Stripe/PayPal/Square payouts. I have not found one that does it cleanly under $50/mo.",
+      "permalink": "https://reddit.com/r/startups/comments/1a2b3c7/id_pay_real_money_for_a_tool_that_reconciles/",
+      "ups": 431,
+      "num_comments": 88,
+      "created_utc": 1749168000,
+      "link_flair_text": "Ops",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c8",
+      "subreddit": "bookkeeping",
+      "title": "Complaint: every 'AI bookkeeper' still needs me to fix 30% of categorizations",
+      "selftext": "Tried three of the new AI bookkeeping startups. They're confidently wrong on vendor categorization and I spend more time auditing than if I'd done it myself. If one actually learned my corrections and stopped repeating mistakes, that's the whole product.",
+      "permalink": "https://reddit.com/r/bookkeeping/comments/1a2b3c8/complaint_every_ai_bookkeeper_still_needs_me_to/",
+      "ups": 356,
+      "num_comments": 61,
+      "created_utc": 1749427200,
+      "link_flair_text": "Software",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3c9",
+      "subreddit": "smallbusiness",
+      "title": "Is there an app that turns my bank feed into a simple cash-flow forecast?",
+      "selftext": "I don't need a full FP&A suite. I just want to see 'you will run out of cash on X date at this burn' from my bank transactions. Everything is either a $0 spreadsheet template I have to maintain or a $300/mo forecasting platform for VC-backed teams.",
+      "permalink": "https://reddit.com/r/smallbusiness/comments/1a2b3c9/is_there_an_app_that_turns_my_bank_feed_into_a/",
+      "ups": 588,
+      "num_comments": 103,
+      "created_utc": 1748649600,
+      "link_flair_text": "Question",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3ca",
+      "subreddit": "Etsy",
+      "title": "Frustrated: no tool tracks true profit per item including fees and shipping",
+      "selftext": "Etsy fees, ad fees, shipping, materials, my time. I want to know which of my 60 listings actually make money. I built a monster spreadsheet but it breaks constantly. Why does no affordable tool just show real per-SKU margin for handmade sellers?",
+      "permalink": "https://reddit.com/r/Etsy/comments/1a2b3ca/frustrated_no_tool_tracks_true_profit_per_item/",
+      "ups": 742,
+      "num_comments": 157,
+      "created_utc": 1749254400,
+      "link_flair_text": "Tips",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3cb",
+      "subreddit": "nonprofit",
+      "title": "I wish grant-reporting software wasn't built like it's still 2008",
+      "selftext": "Small nonprofit here. Grant financial reporting means re-formatting the same numbers for six different funders in six different templates. The 'solutions' cost more than our program budget. There has to be room for a lightweight tool that maps our ledger to each funder's format.",
+      "permalink": "https://reddit.com/r/nonprofit/comments/1a2b3cb/i_wish_grantreporting_software_wasnt_built_like/",
+      "ups": 298,
+      "num_comments": 52,
+      "created_utc": 1748995200,
+      "link_flair_text": "Finance",
+      "over_18": false
+    },
+    {
+      "id": "1a2b3cc",
+      "subreddit": "smallbusiness",
+      "title": "2-star review energy: the incumbent invoicing app just raised prices 40% again",
+      "selftext": "Third price hike in two years and they removed features from my tier. The switching cost is the only thing keeping me. If a competitor offered painless data import and matched the basics at a fair price, half this sub would move. The market feels ripe for disruption.",
+      "permalink": "https://reddit.com/r/smallbusiness/comments/1a2b3cc/2star_review_energy_the_incumbent_invoicing_app/",
+      "ups": 811,
+      "num_comments": 176,
+      "created_utc": 1749600000,
+      "link_flair_text": "Vent",
+      "over_18": false
+    }
+  ]
+}

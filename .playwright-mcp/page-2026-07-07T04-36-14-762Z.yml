@@ -1,0 +1,127 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - banner [ref=f2e4]:
+      - generic [ref=f2e5]:
+        - generic [ref=f2e6]:
+          - img [ref=f2e8]
+          - generic [ref=f2e16]:
+            - generic [ref=f2e17]: Market Gap Finder
+            - generic [ref=f2e18]: Signal-driven opportunity discovery
+        - tablist "Mode" [ref=f2e19]:
+          - tab "Single area" [ref=f2e20] [cursor=pointer]
+          - tab "✦ Autonomous" [active] [selected] [ref=f2e21] [cursor=pointer]:
+            - generic [ref=f2e22]: ✦
+            - text: Autonomous
+    - main [ref=f2e438]:
+      - generic [ref=f2e439]:
+        - tablist "Explorations" [ref=f2e440]:
+          - generic [ref=f2e441]:
+            - tab "note-taking apps running 0 tok" [selected] [ref=f2e442] [cursor=pointer]:
+              - generic [ref=f2e444]:
+                - generic [ref=f2e445]: note-taking apps
+                - generic [ref=f2e446]:
+                  - generic [ref=f2e447]: running
+                  - generic [ref=f2e448]: 0 tok
+            - tab "note-taking apps running 0 tok" [ref=f2e449] [cursor=pointer]:
+              - generic [ref=f2e451]:
+                - generic [ref=f2e452]: note-taking apps
+                - generic [ref=f2e453]:
+                  - generic [ref=f2e454]: running
+                  - generic [ref=f2e455]: 0 tok
+          - button "＋ New exploration" [ref=f2e456] [cursor=pointer]:
+            - generic [ref=f2e457]: ＋
+            - text: New exploration
+        - generic [ref=f2e458]:
+          - generic [ref=f2e459]:
+            - generic [ref=f2e460]:
+              - heading "note-taking apps" [level=2] [ref=f2e462]
+              - button "✕ Delete" [ref=f2e463] [cursor=pointer]
+            - generic [ref=f2e464]:
+              - generic [ref=f2e465]:
+                - generic [ref=f2e466]:
+                  - generic [ref=f2e467]: "0"
+                  - generic [ref=f2e468]: tokens
+                - generic [ref=f2e469]: Idle
+              - generic [ref=f2e471]:
+                - generic [ref=f2e472]: 1 in frontier
+                - generic [ref=f2e473]: 1 nodes
+                - generic [ref=f2e474]: 0 top viability
+              - generic [ref=f2e477]: All explorations · 0 tokens · idle
+            - generic [ref=f2e479]:
+              - generic [ref=f2e480]:
+                - button "★ Starred only" [ref=f2e481] [cursor=pointer]:
+                  - generic [ref=f2e482]: ★
+                  - text: Starred only
+                - generic [ref=f2e483]:
+                  - generic [ref=f2e484]: Viability ≥
+                  - slider "Minimum viability filter" [ref=f2e485] [cursor=pointer]: "0"
+                  - generic [ref=f2e486]: "0"
+                - generic [ref=f2e487]: 1 shown
+              - tree "Exploration tree" [ref=f2e488]:
+                - treeitem "note-taking apps Zoom into this branch" [level=1] [ref=f2e489] [cursor=pointer]:
+                  - generic [ref=f2e491]: note-taking apps
+                  - button "Zoom into this branch" [ref=f2e493]: ⤢
+          - complementary [ref=f2e494]:
+            - generic [ref=f2e496]:
+              - button "❚❚ Pause" [ref=f2e498] [cursor=pointer]
+              - generic [ref=f2e499]:
+                - generic [ref=f2e500]: Pace
+                - radiogroup "Pace" [ref=f2e501]:
+                  - radio "Eco Subscription-safe" [ref=f2e502] [cursor=pointer]:
+                    - generic [ref=f2e503]: Eco
+                    - generic [ref=f2e504]: Subscription-safe
+                  - radio "Balanced Default" [checked] [ref=f2e505] [cursor=pointer]:
+                    - generic [ref=f2e506]: Balanced
+                    - generic [ref=f2e507]: Default
+                  - radio "Sprint Full throttle" [ref=f2e508] [cursor=pointer]:
+                    - generic [ref=f2e509]: Sprint
+                    - generic [ref=f2e510]: Full throttle
+              - generic [ref=f2e511]:
+                - generic [ref=f2e512]:
+                  - generic [ref=f2e513]: Star threshold
+                  - generic [ref=f2e514]: ≥ 75
+                - slider "Star threshold" [ref=f2e515] [cursor=pointer]: "75"
+              - generic [ref=f2e516]:
+                - generic [ref=f2e517]: Budget & caps
+                - generic [ref=f2e518]:
+                  - generic [ref=f2e519]:
+                    - generic [ref=f2e520]: Max tokens
+                    - spinbutton "Max tokens" [ref=f2e521]
+                  - generic [ref=f2e522]:
+                    - generic [ref=f2e523]: Daily cap
+                    - spinbutton "Daily cap" [ref=f2e524]
+                  - generic [ref=f2e525]:
+                    - generic [ref=f2e526]: Max nodes
+                    - spinbutton "Max nodes" [ref=f2e527]: "400"
+                  - generic [ref=f2e528]:
+                    - generic [ref=f2e529]: Time limit (min)
+                    - spinbutton "Time limit (min)" [ref=f2e530]
+                  - generic [ref=f2e531]:
+                    - generic [ref=f2e532]: Milestone tokens
+                    - spinbutton "Milestone tokens" [ref=f2e533]
+                - button "Saved" [disabled] [ref=f2e534]
+              - generic [ref=f2e535]:
+                - generic [ref=f2e536]: Model policy
+                - generic [ref=f2e537]:
+                  - generic [ref=f2e538]:
+                    - generic [ref=f2e539]: Decompose
+                    - generic [ref=f2e540]: Haiku 4.5
+                  - generic [ref=f2e541]:
+                    - generic [ref=f2e542]: Synthesize
+                    - generic [ref=f2e543]: Opus 4.8
+                  - generic [ref=f2e544]:
+                    - generic [ref=f2e545]: Pressure-test
+                    - generic [ref=f2e546]: Opus 4.8
+                - radiogroup "Synthesis model" [ref=f2e549]:
+                  - radio "Opus 4.8" [checked] [disabled] [ref=f2e550] [cursor=pointer]:
+                    - generic [ref=f2e551]: Opus 4.8
+                  - radio "Sonnet 5" [disabled] [ref=f2e552] [cursor=pointer]:
+                    - generic [ref=f2e553]: Sonnet 5
+                  - radio "Haiku 4.5" [disabled] [ref=f2e554] [cursor=pointer]:
+                    - generic [ref=f2e555]: Haiku 4.5
+            - generic [ref=f2e557]:
+              - generic [ref=f2e558]:
+                - generic [ref=f2e559]: Digest
+                - heading "Worth your attention" [level=4] [ref=f2e560]
+              - generic [ref=f2e561]: No strong finds yet — the explorer is still pressure-testing candidates.
+  - generic [ref=f2e437]: "1"

@@ -1,0 +1,227 @@
+"""Shared data contracts for the Market Gap Finder.
+
+This module is the single source of truth for the shape of data that flows
+through the pipeline and out to the frontend. The LLM synthesis step is forced
+to emit JSON matching `Gap`; the API returns `GapReport`. Keep frontend
+`src/types.ts` in sync with these models.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field, field_validator
+
+
+# --------------------------------------------------------------------------- #
+# Source status                                                               #
+# --------------------------------------------------------------------------- #
+class SourceName(str, Enum):
+    REDDIT = "reddit"
+    ARXIV = "arxiv"
+    HACKERNEWS = "hackernews"
+    GITHUB = "github"
+    NEWSLETTER = "newsletter"
+
+
+class SourceStatus(str, Enum):
+    LIVE = "live"          # real API responded with real data
+    MOCK = "mock"          # no credentials -> realistic fixture data
+    UNAVAILABLE = "unavailable"  # credentials present but the fetch failed
+    EMPTY = "empty"        # queried fine but nothing relevant returned
+
+
+class SourceReport(BaseModel):
+    """Per-source telemetry surfaced in the UI ('which sources fired')."""
+
+    name: SourceName
+    status: SourceStatus
+    item_count: int = 0
+    freshest: Optional[datetime] = None  # newest datapoint we ingested
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    note: Optional[str] = None           # human-readable ('rate-limited', 'no key', ...)
+    query_terms: list[str] = Field(default_factory=list)
+
+
+# --------------------------------------------------------------------------- #
+# Raw & extracted signals (internal; not all shipped to the UI)               #
+# --------------------------------------------------------------------------- #
+class RawItem(BaseModel):
+    """A normalized unit from any source before signal extraction."""
+
+    source: SourceName
+    id: str
+    title: str
+    body: str = ""
+    url: str = ""
+    created: Optional[datetime] = None
+    # source-specific strength signals (upvotes, citations, series delta, ...)
+    weight: float = 0.0
+    meta: dict = Field(default_factory=dict)
+
+
+class DemandSignal(BaseModel):
+    """A distilled unmet-need / pain / interest indicator."""
+
+    source: SourceName
+    kind: Literal["pain", "wish", "complaint", "interest", "search"]
+    quote: str
+    url: str = ""
+    strength: float = 0.0            # normalized 0..1
+    date: Optional[datetime] = None
+    tags: list[str] = Field(default_factory=list)
+
+
+class CapabilitySignal(BaseModel):
+    """A 'what just became feasible' tailwind (arXiv momentum, econ shift)."""
+
+    source: SourceName
+    description: str
+    url: str = ""
+    momentum: float = 0.0            # acceleration proxy, normalized 0..1
+    date: Optional[datetime] = None
+
+
+class SupplySignal(BaseModel):
+    """An incumbent / existing-solution hint mined from the sources."""
+
+    source: SourceName
+    name: str
+    hint: str                        # what was said about them
+    url: str = ""
+
+
+class ExtractedSignals(BaseModel):
+    """Everything the synthesis step reasons over, per run."""
+
+    area: str
+    sub_segments: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    demand: list[DemandSignal] = Field(default_factory=list)
+    capability: list[CapabilitySignal] = Field(default_factory=list)
+    supply: list[SupplySignal] = Field(default_factory=list)
+
+
+# --------------------------------------------------------------------------- #
+# The gap contract (LLM output shape)                                         #
+# --------------------------------------------------------------------------- #
+SCORE_KEYS = (
+    "demand_strength",
+    "competitive_openness",
+    "trend_tailwind",
+    "feasibility",
+    "willingness_to_pay",
+)
+
+
+class Scores(BaseModel):
+    """Each 1..5. Higher is more attractive."""
+
+    demand_strength: int = Field(ge=1, le=5)
+    competitive_openness: int = Field(ge=1, le=5)
+    trend_tailwind: int = Field(ge=1, le=5)
+    feasibility: int = Field(ge=1, le=5)
+    willingness_to_pay: int = Field(ge=1, le=5)
+
+
+class Evidence(BaseModel):
+    source: SourceName
+    url: str
+    quote: str
+    date: Optional[str] = None       # kept as string; sources vary in precision
+
+
+class Competitor(BaseModel):
+    name: str
+    url: str = ""
+    positioning: str                 # what they're actually known for
+    segment: str                     # who they target
+    price_tier: str                  # rough tier: free / $ / $$ / $$$ / enterprise
+    weakness: str                    # the blind spot that leaves the gap open
+
+
+class Gap(BaseModel):
+    """One candidate market gap. This is what the LLM must return per item."""
+
+    title: str
+    thesis: str                      # one-line
+    scores: Scores
+    evidence: list[Evidence] = Field(default_factory=list)
+    competitors: list[Competitor] = Field(default_factory=list, max_length=8)
+    wedge: str                       # the sharp initial entry point
+    riskiest_assumption: str         # what must be validated first
+    weakest_link: str                # the softest score / biggest doubt, named
+    why_now: str = ""                # the recent shift that unlocks this gap
+    empty_for_a_reason: bool = False # True if this is likely empty-for-a-reason
+    empty_reason: str = ""           # ...and why, if so
+    novelty: int = Field(default=3, ge=1, le=5)  # creativity / non-obviousness
+    sub_segment: str = ""
+    tags: list[str] = Field(default_factory=list)
+
+    @field_validator("competitors")
+    @classmethod
+    def _cap_competitors(cls, v: list[Competitor]) -> list[Competitor]:
+        return v[:5]                  # top 5 per the spec
+
+
+# --------------------------------------------------------------------------- #
+# Scoring weights & the served report                                         #
+# --------------------------------------------------------------------------- #
+class Weights(BaseModel):
+    """User-tunable weighting for the composite rank score. Auto-normalized."""
+
+    demand_strength: float = 1.0
+    competitive_openness: float = 1.0
+    trend_tailwind: float = 0.8
+    feasibility: float = 0.8
+    willingness_to_pay: float = 0.9
+
+    def normalized(self) -> dict[str, float]:
+        total = sum(getattr(self, k) for k in SCORE_KEYS) or 1.0
+        return {k: getattr(self, k) / total for k in SCORE_KEYS}
+
+
+class RankedGap(BaseModel):
+    """A Gap plus its server-computed composite score, for the table/2x2."""
+
+    gap: Gap
+    composite: float                 # 0..5 weighted blend
+    rank: int
+
+
+class GapReport(BaseModel):
+    """The full payload the frontend renders."""
+
+    area: str
+    sub_segments: list[str] = Field(default_factory=list)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    sources: list[SourceReport] = Field(default_factory=list)
+    weights: Weights = Field(default_factory=Weights)
+    gaps: list[RankedGap] = Field(default_factory=list)
+    llm_mode: str = "unknown"        # 'agent-sdk' | 'cli' | 'api' | 'fixture'
+    model: str = ""                  # the Claude model used for synthesis
+    cache_hit: bool = False
+    warnings: list[str] = Field(default_factory=list)
+
+
+# --------------------------------------------------------------------------- #
+# API request models                                                          #
+# --------------------------------------------------------------------------- #
+class AnalyzeRequest(BaseModel):
+    area: str = Field(min_length=2, max_length=200)
+    sub_segments: list[str] = Field(default_factory=list)
+    weights: Optional[Weights] = None
+    refresh: bool = False            # bypass the ingest cache
+    reweight_only: bool = False      # re-rank cached synthesis without re-fetch
+    model: Optional[str] = None      # which Claude model to synthesize with
+
+
+class RankRequest(BaseModel):
+    """Re-rank an already-synthesized report with new weights (no re-fetch)."""
+
+    area: str
+    sub_segments: list[str] = Field(default_factory=list)
+    weights: Weights
+    model: Optional[str] = None      # only used if the rerank falls back to a full run

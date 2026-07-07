@@ -1,0 +1,111 @@
+/* ============================================================================
+   Design tokens — Market Gap Finder
+   The single source of truth for color, type, space, radius, elevation, motion.
+   Components and index.css consume these via var(--token); nothing hardcodes a
+   raw value. See DESIGN.md for the rationale and usage rules.
+
+   Aesthetic: minimal, informative, light. Off-white canvas, white surfaces,
+   near-black ink, hairline neutral borders. One vermillion accent, reserved
+   for the top pick, primary actions, selection, and the headline metric.
+   ========================================================================== */
+
+:root {
+  /* ---- color · surfaces (warm-neutral, near-zero chroma) ---------------- */
+  --bg: #faf9f7;          /* app canvas */
+  --surface: #ffffff;     /* cards, drawer, primary content */
+  --surface-2: #f6f5f2;   /* table header, insets, secondary panels */
+  --surface-3: #efede8;   /* chips, tracks, tertiary fills */
+  --surface-hover: #f1efea;
+
+  /* ---- color · lines & elevation (borders carry structure, not shadows) - */
+  --border: #ddd8ce;        /* stronger hairline for crisp, geometric edges */
+  --border-strong: #c7c1b4;
+  --ring: rgba(227, 74, 47, 0.5);
+  --shadow-sm: 0 1px 2px rgba(24, 23, 20, 0.05);
+  --shadow-md: 0 1px 2px rgba(24, 23, 20, 0.05), 0 2px 4px rgba(24, 23, 20, 0.05);
+  --shadow-lg: 0 20px 46px -20px rgba(24, 23, 20, 0.28);
+
+  /* ---- color · ink (higher contrast; all body clears 4.5:1 on --surface) - */
+  --text: #17160f;        /* near-black, ~17:1 — primary */
+  --text-dim: #3d3b34;    /* ~10:1 — secondary body */
+  --text-faint: #605d54;  /* ~6.5:1 — labels, captions */
+  --text-ghost: #8b877d;  /* decorative only, never body copy */
+  --text-on-accent: #ffffff;
+
+  /* ---- color · accent (vermillion) -------------------------------------- */
+  --accent: #e34a2f;
+  --accent-bright: #f2542d;   /* hover */
+  --accent-strong: #bb3a20;   /* inline/link text on light (≥4.5:1) */
+  --accent-tint: #fbeae5;     /* selected row, soft fills */
+  --accent-tint-2: #f6d8ce;   /* soft borders */
+
+  /* ---- color · semantic states ------------------------------------------ */
+  --live: #2f7d55;         --live-tint: #e6f2ea;
+  --mock: #a66412;         --mock-tint: #f6ecd9;
+  --unavailable: #c0392b;  --unavailable-tint: #f7e4e1;
+  --empty: #8a877f;        --empty-tint: #eeece7;
+
+  /* ---- color · data ramp (neutral → vermillion; the map's one color axis) */
+  --ramp-0: #b8bec4;
+  --ramp-1: #e0a48b;
+  --ramp-2: #e37f57;
+  --ramp-3: #dd5731;
+  --ramp-4: #c1320f;
+  --data-neutral: #6f6c63;  /* single-hue score bars, higher contrast */
+
+  /* ---- source brand hues (badges/icons only) ---------------------------- */
+  --src-reddit: #d93900;      --src-reddit-tint: #fbeee7;
+  --src-arxiv: #a01c1c;       --src-arxiv-tint: #f8ebeb;
+  --src-hn: #d95300;          --src-hn-tint: #fdeee2;      /* Hacker News orange */
+  --src-github: #2b2b33;      --src-github-tint: #ecebe9;  /* near-ink */
+  --src-newsletter: #4a6b8a;  --src-newsletter-tint: #eaf0f5; /* calm slate-blue */
+
+  /* ---- typography ------------------------------------------------------- */
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, monospace;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 680;
+
+  /* type scale (fixed rem, product-grade — ratio ~1.2) */
+  --fs-xs: 11px;
+  --fs-sm: 12.5px;
+  --fs-base: 13.5px;
+  --fs-md: 15px;
+  --fs-lg: 19px;
+  --fs-xl: 22px;
+
+  /* ---- spacing scale (4px base) ----------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* ---- radius (geometric: sharp, near-square) --------------------------- */
+  --r-xs: 2px;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --r-lg: 6px;
+  --r-xl: 8px;
+  --r-pill: 4px;  /* was 999px; chips/badges are squared for a geometric feel */
+
+  /* ---- motion ----------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 0.14s;
+  --dur-mid: 0.24s;
+
+  /* ---- layout ----------------------------------------------------------- */
+  --maxw: 1320px;
+
+  /* ---- z-index (semantic scale) ----------------------------------------- */
+  --z-sticky: 40;
+  --z-scrim: 60;
+  --z-drawer: 61;
+
+  color-scheme: light;
+}

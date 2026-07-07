@@ -1,0 +1,24 @@
+- generic [ref=f5e3]:
+  - banner [ref=f5e4]:
+    - generic [ref=f5e5]:
+      - generic [ref=f5e6]:
+        - img [ref=f5e8]
+        - generic [ref=f5e16]:
+          - generic [ref=f5e17]: Market Gap Finder
+          - generic [ref=f5e18]: Signal-driven opportunity discovery
+      - tablist "Mode" [ref=f5e19]:
+        - tab "Single area" [ref=f5e20] [cursor=pointer]
+        - tab "✦ Autonomous" [active] [selected] [ref=f5e21] [cursor=pointer]:
+          - generic [ref=f5e22]: ✦
+          - text: Autonomous
+  - main [ref=f5e60]:
+    - generic [ref=f5e61]:
+      - tablist "Explorations" [ref=f5e62]:
+        - button "＋ New exploration" [ref=f5e64] [cursor=pointer]:
+          - generic [ref=f5e65]: ＋
+          - text: New exploration
+      - generic [ref=f5e66]:
+        - generic [ref=f5e67]: ◇
+        - heading "Spawn an autonomous explorer" [level=2] [ref=f5e68]
+        - paragraph [ref=f5e69]: Give it a domain and walk away. It recursively decomposes the space, mines signals, hypothesizes gaps, pressure-tests the promising ones, and scores each 0–100 — spending more effort where it's paying off.
+        - button "＋ New exploration" [ref=f5e70] [cursor=pointer]

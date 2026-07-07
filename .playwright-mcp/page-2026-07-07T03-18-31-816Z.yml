@@ -1,0 +1,284 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e3]:
+    - banner [ref=f8e4]:
+      - generic [ref=f8e5]:
+        - generic [ref=f8e6]:
+          - img [ref=f8e8]
+          - generic [ref=f8e16]:
+            - generic [ref=f8e17]: Market Gap Finder
+            - generic [ref=f8e18]: Signal-driven opportunity discovery
+        - generic [ref=f8e56]:
+          - generic [ref=f8e57]: fresh fetch
+          - generic "claude-opus-4-8" [ref=f8e59]:
+            - text: Opus 4.8
+            - generic [ref=f8e61]: · fixture
+          - generic [ref=f8e62]: Jul 6, 11:18 PM
+        - generic [ref=f8e63]:
+          - radiogroup "Synthesis model" [ref=f8e65]:
+            - radio "Opus 4.8" [checked] [ref=f8e66] [cursor=pointer]:
+              - generic [ref=f8e67]: Opus 4.8
+            - radio "Sonnet 5" [ref=f8e68] [cursor=pointer]:
+              - generic [ref=f8e69]: Sonnet 5
+            - radio "Haiku 4.5" [ref=f8e70] [cursor=pointer]:
+              - generic [ref=f8e71]: Haiku 4.5
+          - button "↻ Re-run" [ref=f8e72] [cursor=pointer]
+          - button "New search" [ref=f8e73] [cursor=pointer]
+    - main [ref=f8e19]:
+      - generic [ref=f8e75]:
+        - generic [ref=f8e76]: Analysis
+        - heading "personal finance for freelancers" [level=2] [ref=f8e77]
+        - paragraph [ref=f8e78]: 5 ranked openings across 3 sources
+      - list "Data sources" [ref=f8e79]:
+        - listitem [ref=f8e80]:
+          - generic [ref=f8e81]: r/
+          - generic [ref=f8e82]:
+            - generic [ref=f8e83]:
+              - generic [ref=f8e84]: Reddit
+              - generic [ref=f8e85]: Mock
+            - generic [ref=f8e86]:
+              - generic [ref=f8e87]: 12 items
+              - generic [ref=f8e88]: · freshest 13mo ago
+            - generic "no Reddit OAuth credentials" [ref=f8e89]
+        - listitem [ref=f8e90]:
+          - generic [ref=f8e91]: aX
+          - generic [ref=f8e92]:
+            - generic [ref=f8e93]:
+              - generic [ref=f8e94]: arXiv
+              - generic [ref=f8e95]: Mock
+            - generic [ref=f8e96]:
+              - generic [ref=f8e97]: 10 items
+              - generic [ref=f8e98]: · freshest 16mo ago
+            - 'generic "Live arXiv fetch failed (HTTPStatusError); using fixture. Redirect response ''301 Moved Permanently'' for url ''http://export.arxiv.org/api/query?search_query=all%3A%22personal+finance+for+freelancers%22+OR+all%3A%22personal%22+OR+all%3A%22finance%22+OR+all%3A%22freelancers%22+OR+all%3A%22financial%22+OR+all%3A%22money%22&sortBy=submittedDate&sortOrder=descending&start=0&max_results=40'' Redirect location: ''https://export.arxiv.org/api/query?search_query=all%3A%22personal+finance+for+freelancers%22+OR+all%3A%22personal%22+OR+all%3A%22finance%22+OR+all%3A%22freelancers%22+OR+all%3A%22financial%22+OR+all%3A%22money%22&sortBy=submittedDate&sortOrder=descending&start=0&max_results=40'' For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/301" [ref=f8e99]'
+        - listitem [ref=f8e100]:
+          - generic [ref=f8e101]: F
+          - generic [ref=f8e102]:
+            - generic [ref=f8e103]:
+              - generic [ref=f8e104]: FRED
+              - generic [ref=f8e105]: Mock
+            - generic [ref=f8e106]:
+              - generic [ref=f8e107]: 6 items
+              - generic [ref=f8e108]: · freshest 2mo ago
+            - generic "Served from ingest cache." [ref=f8e109]
+      - generic [ref=f8e111]:
+        - generic [ref=f8e113]:
+          - generic [ref=f8e114]: Opportunity map
+          - heading "Where the openings are" [level=2] [ref=f8e115]
+          - paragraph [ref=f8e116]: X — competitive openness · Y — demand strength · bubble size — feasibility · color — trend tailwind
+        - generic [ref=f8e117]:
+          - generic:
+            - generic: Build now
+            - text: high demand · wide open
+          - generic:
+            - generic: Crowded but wanted
+            - text: demand meets incumbents
+          - generic:
+            - generic: Open but quiet
+            - text: space exists, demand thin
+          - generic:
+            - generic: Skip
+            - text: low demand · crowded
+          - img [ref=f8e120]:
+            - generic [ref=f8e124]:
+              - generic [ref=f8e125]:
+                - generic [ref=f8e127]: "1"
+                - generic [ref=f8e129]: "2"
+                - generic [ref=f8e131]: "3"
+                - generic [ref=f8e133]: "4"
+                - generic [ref=f8e135]: "5"
+              - generic [ref=f8e136]: Competitive openness →
+            - generic [ref=f8e137]:
+              - generic [ref=f8e138]:
+                - generic [ref=f8e140]: "1"
+                - generic [ref=f8e142]: "2"
+                - generic [ref=f8e144]: "3"
+                - generic [ref=f8e146]: "4"
+                - generic [ref=f8e148]: "5"
+              - generic [ref=f8e149]: Demand strength →
+            - generic [ref=f8e151]:
+              - img [ref=f8e152]:
+                - 'button "Gap 1: Real-time quarterly tax autopilot for 1099 income" [ref=f8e153] [cursor=pointer]':
+                  - generic: ★
+              - img [ref=f8e157]:
+                - 'button "Gap 2: Income-smoothing account for lumpy freelance cash flow" [ref=f8e158] [cursor=pointer]'
+              - img [ref=f8e160]:
+                - 'button "Gap 3: On-device bookkeeping copilot that never sends data to the cloud" [ref=f8e161] [cursor=pointer]'
+              - img [ref=f8e163]:
+                - 'button "Gap 4: Invoice-backed instant advance without predatory factoring" [ref=f8e164] [cursor=pointer]'
+              - img [ref=f8e166]:
+                - 'button "Gap 5: All-in-one freelancer retirement + benefits marketplace" [ref=f8e167] [cursor=pointer]'
+        - generic [ref=f8e169]:
+          - generic [ref=f8e170]:
+            - generic [ref=f8e171]: Trend tailwind
+            - generic [ref=f8e173]: low → high
+          - generic [ref=f8e175]: Feasibility
+          - generic [ref=f8e179]:
+            - generic [ref=f8e180]: ★
+            - text: Top pick
+      - generic [ref=f8e182]:
+        - generic [ref=f8e183]: Ranked openings
+        - heading "The shortlist" [level=2] [ref=f8e184]
+        - paragraph [ref=f8e185]: Sort by any dimension · click a row for the full case
+      - generic [ref=f8e186]:
+        - table [ref=f8e189]:
+          - rowgroup [ref=f8e190]:
+            - row "# ▲ Gap Demand Openness Tailwind Feasibility WTP Composite" [ref=f8e191]:
+              - columnheader "# ▲" [ref=f8e192] [cursor=pointer]
+              - columnheader "Gap" [ref=f8e193]
+              - columnheader "Demand" [ref=f8e194] [cursor=pointer]
+              - columnheader "Openness" [ref=f8e195] [cursor=pointer]
+              - columnheader "Tailwind" [ref=f8e196] [cursor=pointer]
+              - columnheader "Feasibility" [ref=f8e197] [cursor=pointer]
+              - columnheader "WTP" [ref=f8e198] [cursor=pointer]
+              - columnheader "Composite" [ref=f8e199] [cursor=pointer]
+          - rowgroup [ref=f8e200]:
+            - button "Open details for Real-time quarterly tax autopilot for 1099 income" [pressed] [ref=f8e201] [cursor=pointer]:
+              - cell "1" [ref=f8e202]:
+                - generic [ref=f8e203]: "1"
+              - cell "★ Real-time quarterly tax autopilot for 1099 income solo 1099 freelancers taxes cash-flow ◆◆◆◆◆ mock" [ref=f8e204]:
+                - generic [ref=f8e205]:
+                  - generic [ref=f8e206]: ★
+                  - text: Real-time quarterly tax autopilot for 1099 income
+                - generic [ref=f8e207]:
+                  - generic [ref=f8e208]: solo 1099 freelancers
+                  - generic [ref=f8e209]: taxes
+                  - generic [ref=f8e210]: cash-flow
+                  - generic "Novelty 4/5" [ref=f8e211]: ◆◆◆◆◆
+                  - generic "mock evidence" [ref=f8e212]: mock
+              - cell "5" [ref=f8e214]:
+                - generic [ref=f8e216]: "5"
+              - cell "4" [ref=f8e218]:
+                - generic [ref=f8e220]: "4"
+              - cell "4" [ref=f8e222]:
+                - generic [ref=f8e224]: "4"
+              - cell "4" [ref=f8e226]:
+                - generic [ref=f8e228]: "4"
+              - cell "5" [ref=f8e230]:
+                - generic [ref=f8e232]: "5"
+              - cell "4.42" [ref=f8e234]:
+                - generic [ref=f8e236]: "4.42"
+            - button "Open details for Income-smoothing account for lumpy freelance cash flow" [ref=f8e238] [cursor=pointer]:
+              - cell "2" [ref=f8e239]:
+                - generic [ref=f8e240]: "2"
+              - cell "Income-smoothing account for lumpy freelance cash flow variable-income freelancers and creators cash-flow budgeting ◆◆◆◆◆ mock" [ref=f8e241]:
+                - generic [ref=f8e242]: Income-smoothing account for lumpy freelance cash flow
+                - generic [ref=f8e243]:
+                  - generic [ref=f8e244]: variable-income freelancers and creators
+                  - generic [ref=f8e245]: cash-flow
+                  - generic [ref=f8e246]: budgeting
+                  - generic "Novelty 4/5" [ref=f8e247]: ◆◆◆◆◆
+                  - generic "mock evidence" [ref=f8e248]: mock
+              - cell "4" [ref=f8e250]:
+                - generic [ref=f8e252]: "4"
+              - cell "5" [ref=f8e254]:
+                - generic [ref=f8e256]: "5"
+              - cell "4" [ref=f8e258]:
+                - generic [ref=f8e260]: "4"
+              - cell "3" [ref=f8e262]:
+                - generic [ref=f8e264]: "3"
+              - cell "4" [ref=f8e266]:
+                - generic [ref=f8e268]: "4"
+              - cell "4.04" [ref=f8e270]:
+                - generic [ref=f8e272]: "4.04"
+            - button "Open details for On-device bookkeeping copilot that never sends data to the cloud" [ref=f8e274] [cursor=pointer]:
+              - cell "3" [ref=f8e275]:
+                - generic [ref=f8e276]: "3"
+              - cell "On-device bookkeeping copilot that never sends data to the cloud privacy-conscious freelancers and consultants privacy on-device-ai ◆◆◆◆◆ mock" [ref=f8e277]:
+                - generic [ref=f8e278]: On-device bookkeeping copilot that never sends data to the cloud
+                - generic [ref=f8e279]:
+                  - generic [ref=f8e280]: privacy-conscious freelancers and consultants
+                  - generic [ref=f8e281]: privacy
+                  - generic [ref=f8e282]: on-device-ai
+                  - generic "Novelty 5/5" [ref=f8e283]: ◆◆◆◆◆
+                  - generic "mock evidence" [ref=f8e284]: mock
+              - cell "3" [ref=f8e286]:
+                - generic [ref=f8e288]: "3"
+              - cell "4" [ref=f8e290]:
+                - generic [ref=f8e292]: "4"
+              - cell "5" [ref=f8e294]:
+                - generic [ref=f8e296]: "5"
+              - cell "3" [ref=f8e298]:
+                - generic [ref=f8e300]: "3"
+              - cell "3" [ref=f8e302]:
+                - generic [ref=f8e304]: "3"
+              - cell "3.58" [ref=f8e306]:
+                - generic [ref=f8e308]: "3.58"
+            - button "Open details for Invoice-backed instant advance without predatory factoring" [ref=f8e310] [cursor=pointer]:
+              - cell "4" [ref=f8e311]:
+                - generic [ref=f8e312]: "4"
+              - cell "Invoice-backed instant advance without predatory factoring freelancers invoicing mid-market and enterprise clients lending cash-flow ◆◆◆◆◆ mock" [ref=f8e313]:
+                - generic [ref=f8e314]: Invoice-backed instant advance without predatory factoring
+                - generic [ref=f8e315]:
+                  - generic [ref=f8e316]: freelancers invoicing mid-market and enterprise clients
+                  - generic [ref=f8e317]: lending
+                  - generic [ref=f8e318]: cash-flow
+                  - generic "Novelty 3/5" [ref=f8e319]: ◆◆◆◆◆
+                  - generic "mock evidence" [ref=f8e320]: mock
+              - cell "4" [ref=f8e322]:
+                - generic [ref=f8e324]: "4"
+              - cell "3" [ref=f8e326]:
+                - generic [ref=f8e328]: "3"
+              - cell "3" [ref=f8e330]:
+                - generic [ref=f8e332]: "3"
+              - cell "3" [ref=f8e334]:
+                - generic [ref=f8e336]: "3"
+              - cell "4" [ref=f8e338]:
+                - generic [ref=f8e340]: "4"
+              - cell "3.42" [ref=f8e342]:
+                - generic [ref=f8e344]: "3.42"
+            - button "Open details for All-in-one freelancer retirement + benefits marketplace" [ref=f8e346] [cursor=pointer]:
+              - cell "5" [ref=f8e347]:
+                - generic [ref=f8e348]: "5"
+              - cell "All-in-one freelancer retirement + benefits marketplace established solo freelancers planning long-term retirement benefits ◆◆◆◆◆ mock" [ref=f8e349]:
+                - generic [ref=f8e350]: All-in-one freelancer retirement + benefits marketplace
+                - generic [ref=f8e351]:
+                  - generic [ref=f8e352]: established solo freelancers planning long-term
+                  - generic [ref=f8e353]: retirement
+                  - generic [ref=f8e354]: benefits
+                  - generic "Novelty 2/5" [ref=f8e355]: ◆◆◆◆◆
+                  - generic "mock evidence" [ref=f8e356]: mock
+              - cell "3" [ref=f8e358]:
+                - generic [ref=f8e360]: "3"
+              - cell "2" [ref=f8e362]:
+                - generic [ref=f8e364]: "2"
+              - cell "3" [ref=f8e366]:
+                - generic [ref=f8e368]: "3"
+              - cell "2" [ref=f8e370]:
+                - generic [ref=f8e372]: "2"
+              - cell "2" [ref=f8e374]:
+                - generic [ref=f8e376]: "2"
+              - cell "2.40" [ref=f8e378]:
+                - generic [ref=f8e380]: "2.40"
+        - generic [ref=f8e382]:
+          - generic [ref=f8e383]:
+            - generic [ref=f8e384]:
+              - generic [ref=f8e385]: Priorities
+              - heading "Weighting" [level=3] [ref=f8e386]
+            - button "Reset" [disabled] [ref=f8e387]
+          - paragraph [ref=f8e388]: Tune what matters. The map and ranking update live.
+          - generic [ref=f8e389]:
+            - generic [ref=f8e390]:
+              - generic [ref=f8e391]: Demand
+              - generic [ref=f8e392]: 1.0×
+            - slider "Demand weight — How loud is the unmet need" [ref=f8e393] [cursor=pointer]: "1"
+          - generic [ref=f8e394]:
+            - generic [ref=f8e395]:
+              - generic [ref=f8e396]: Openness
+              - generic [ref=f8e397]: 1.0×
+            - slider "Openness weight — How wide open the field is" [ref=f8e398] [cursor=pointer]: "1"
+          - generic [ref=f8e399]:
+            - generic [ref=f8e400]:
+              - generic [ref=f8e401]: Tailwind
+              - generic [ref=f8e402]: 0.8×
+            - slider "Tailwind weight — Momentum making it newly feasible" [ref=f8e403] [cursor=pointer]: "0.8"
+          - generic [ref=f8e404]:
+            - generic [ref=f8e405]:
+              - generic [ref=f8e406]: Feasibility
+              - generic [ref=f8e407]: 0.8×
+            - slider "Feasibility weight — How buildable it is now" [ref=f8e408] [cursor=pointer]: "0.8"
+          - generic [ref=f8e409]:
+            - generic [ref=f8e410]:
+              - generic [ref=f8e411]: WTP
+              - generic [ref=f8e412]: 0.9×
+            - slider "WTP weight — How ready buyers are to pay" [ref=f8e413] [cursor=pointer]: "0.9"
+      - generic [ref=f8e55]: Market Gap Finder · signals from Reddit, arXiv & FRED · gaps are hypotheses, not advice.
+  - generic [ref=f8e414]: "1"
