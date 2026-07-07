@@ -392,8 +392,8 @@ class ExplorerService:
                     continue
                 self._usage_active(rt, project_id, mode)
 
-                node = rt.frontier.pop()
-                if node is None:
+                first = rt.frontier.pop()
+                if first is None:
                     extra = self._completeness_check(project)
                     if extra:
                         rt.frontier.push_all(extra)
@@ -404,9 +404,33 @@ class ExplorerService:
                     )
                     return
 
-                # Expand + pressure-test inside the shared concurrency slot.
-                async with self.governor.slot():
-                    await self._expand_and_process(rt, project, node, mode, spent)
+                # "Maximize parallel agent activity": fan out only on the expensive
+                # gap-yielding work — SEGMENT nodes each run a full synthesis +
+                # adversarial pressure test. Batch consecutive top-priority segments
+                # and expand them concurrently, each in its own shared governor slot
+                # (the global semaphore still caps total concurrency across every
+                # project). Cheap structural decomposition (domain/subarea) stays
+                # serial so best-first priority can interleave segments between
+                # branches (and tiny node budgets still reach the gap layer).
+                batch: list[Node] = [first]
+                if first.kind is NodeKind.SEGMENT:
+                    width = max(1, self.governor.concurrency_for(budget))
+                    while len(batch) < width:
+                        nxt = rt.frontier.pop()
+                        if nxt is None:
+                            break
+                        if nxt.kind is not NodeKind.SEGMENT:
+                            rt.frontier.push(nxt)  # keep non-segments serial
+                            break
+                        batch.append(nxt)
+
+                async def _one(target: Node) -> None:
+                    async with self.governor.slot():
+                        await self._expand_and_process(rt, project, target, mode, spent)
+
+                # return_exceptions: one bad expansion can't sink the whole batch
+                # (each _expand_and_process is already contractually non-raising).
+                await asyncio.gather(*(_one(n) for n in batch), return_exceptions=True)
 
                 self._maybe_milestone(rt, project_id)
         except Exception as exc:  # noqa: BLE001 - the worker must never raise out.

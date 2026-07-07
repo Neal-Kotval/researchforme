@@ -66,7 +66,14 @@ class UsageGovernor:
 
     def __init__(self, max_concurrency: int | None = None) -> None:
         if max_concurrency is None:
-            max_concurrency = max(1, min(8, (os.cpu_count() or 4) - 2))
+            # Aggressive by default so a sprinting run keeps many agents busy;
+            # override with AP_MAX_CONCURRENCY. The rate-limit backoff (§6.1) is
+            # the real safety valve, so we can afford to fan out wide.
+            env = os.getenv("AP_MAX_CONCURRENCY")
+            if env and env.isdigit() and int(env) > 0:
+                max_concurrency = int(env)
+            else:
+                max_concurrency = max(4, min(12, (os.cpu_count() or 4) * 2))
         self._max_concurrency = max_concurrency
         self._sem = asyncio.Semaphore(max_concurrency)
         self._lock = threading.Lock()
