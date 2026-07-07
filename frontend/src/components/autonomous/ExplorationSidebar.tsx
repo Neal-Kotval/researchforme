@@ -8,6 +8,7 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onHome: () => void;
 }
 
 function fmtTokens(n: number): string {
@@ -30,7 +31,7 @@ function rank(p: Project): number {
  * point of "come back to many explorations".
  */
 export default function ExplorationSidebar({
-  projects, activeId, onSelect, onNew, onDelete,
+  projects, activeId, onSelect, onNew, onDelete, onHome,
 }: Props) {
   const [q, setQ] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -54,6 +55,12 @@ export default function ExplorationSidebar({
   return (
     <aside className="exp-sidebar" aria-label="Explorations">
       <div className="es-head">
+        <button
+          className={`es-home${activeId === null ? " active" : ""}`}
+          onClick={onHome}
+        >
+          <span className="es-home-ico" aria-hidden>⌂</span> Home
+        </button>
         <button className="es-new" onClick={onNew}>
           <span className="es-new-plus">＋</span> New exploration
         </button>

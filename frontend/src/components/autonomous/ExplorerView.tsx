@@ -27,6 +27,7 @@ import RunControls from "./RunControls";
 import UsageMeter from "./UsageMeter";
 import LiveActivity, { type Sample } from "./LiveActivity";
 import GlobalUsageBar from "./GlobalUsageBar";
+import HomeDashboard from "./HomeDashboard";
 import ProjectDigest from "./ProjectDigest";
 
 /* -------------------------------------------------------------- live series -- */
@@ -255,13 +256,11 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
     if (newExplorationSignal && newExplorationSignal > 0) setShowNew(true);
   }, [newExplorationSignal]);
 
-  // Keep an active tab valid as projects come and go.
+  // Default to the Home dashboard (activeId === null); only clear a selection
+  // that points at a now-deleted project. Never auto-jump into a project, so the
+  // landing surface is the "glance at everything" home.
   useEffect(() => {
-    if (!state.order.length) {
-      if (activeId !== null) setActiveId(null);
-      return;
-    }
-    if (!activeId || !state.byId[activeId]) setActiveId(state.order[0]);
+    if (activeId && !state.byId[activeId]) setActiveId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderSig]);
 
@@ -359,22 +358,16 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
           onSelect={setActiveId}
           onNew={() => setShowNew(true)}
           onDelete={onDelete}
+          onHome={() => setActiveId(null)}
         />
 
         <div className="exp-main">
           {!project ? (
-            <div className="explorer-empty">
-              <div className="ee-mark">◇</div>
-              <h2>Spawn an autonomous explorer</h2>
-              <p>
-                Give it a domain and walk away. It recursively decomposes the space, mines
-                signals, hypothesizes gaps, pressure-tests the promising ones, and scores each
-                0–100 — spending more effort where it's paying off.
-              </p>
-              <button className="btn btn-primary" onClick={() => setShowNew(true)}>
-                ＋ New exploration
-              </button>
-            </div>
+            <HomeDashboard
+              projects={allProjects}
+              onOpen={setActiveId}
+              onNew={() => setShowNew(true)}
+            />
           ) : (
             <>
               <div className="exp-topline">
