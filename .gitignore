@@ -26,3 +26,7 @@ frontend/.vite/
 .DS_Store
 .idea/
 .vscode/
+
+# Browser-automation / verification artifacts
+.playwright-mcp/
+/*.png
