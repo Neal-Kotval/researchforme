@@ -245,6 +245,16 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
     return () => unsub();
   }, [activeId]);
 
+  // Opening a project always lands on the Nodes/tree with no stale idea selected
+  // (a lingering per-project selection used to dump you straight into a full-page
+  // idea detail). Clear the selection and reset the tab on every project switch.
+  useEffect(() => {
+    if (activeId) {
+      setSelByProject((prev) => (prev[activeId] ? { ...prev, [activeId]: null } : prev));
+      setView("nodes");
+    }
+  }, [activeId]);
+
   // ⌘K: jump to a specific exploration (refresh first if we don't have it yet).
   useEffect(() => {
     if (!focusProjectId) return;

@@ -6,6 +6,9 @@
    ========================================================================== */
 
 @import "./tokens.css";
+/* Techy typefaces — geometric sans + mono. Loads if the network allows; the
+   token stacks fall back gracefully to system fonts if the fetch fails. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 /* ---------------------------------------------------------------- reset --- */
 * { box-sizing: border-box; }
@@ -121,7 +124,7 @@ button {
   font-size: 12px; font-weight: 600; letter-spacing: 0;
   color: var(--text-faint);
 }
-.card-title { font-size: 15.5px; margin-top: 2px; }
+.card-title { font-size: 15px; margin-top: 2px; }
 .card-desc { font-size: 12.5px; color: var(--text-faint); margin-top: 3px; line-height: 1.45; }
 
 /* ======================================================= hero / input === */
@@ -438,6 +441,27 @@ input[type="range"]::-moz-range-thumb {
 }
 .detail-title { font-size: 22px; line-height: 1.18; letter-spacing: -0.02em; color: var(--text); }
 .detail-thesis { font-size: 14.5px; color: var(--text-dim); margin-top: 10px; line-height: 1.5; }
+
+/* rendered Markdown (LLM prose: thesis, rationale) — was a raw-syntax text wall */
+.md { color: var(--text-dim); font-size: 14px; line-height: 1.6; max-width: 74ch; }
+.md > * + * { margin-top: 10px; }
+.md p { margin: 0; }
+.md strong { color: var(--text); font-weight: 640; }
+.md em { font-style: italic; }
+.md a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 2px; }
+.md code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-3); padding: 1px 5px; border-radius: var(--r-xs); color: var(--text); }
+.md .md-h { font-family: var(--font); color: var(--text); font-weight: 640; letter-spacing: -0.01em; margin-top: 16px; }
+h4.md-h { font-size: 14px; }
+h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-faint); }
+.md .md-list { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.md .md-list li { line-height: 1.5; }
+.md .md-quote { margin: 0; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text-faint); font-style: italic; }
+.md .md-table-wrap { overflow-x: auto; margin-top: 10px; border: 1px solid var(--border); border-radius: var(--r-sm); }
+.md .md-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.md .md-table th, .md .md-table td { border: 1px solid var(--border); padding: 5px 9px; text-align: left; vertical-align: top; }
+.md .md-table th { background: var(--surface-2); font-weight: 600; color: var(--text); font-family: var(--mono); font-size: 11px; }
+/* Clamp verbose node rationales so they never dominate; theses render in full. */
+.md-clamp { max-height: 340px; overflow-y: auto; }
 .detail-scorebar { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
 .dsb-item { flex: 1 1 auto; text-align: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 9px 8px; min-width: 62px; }
 .dsb-item .dsb-val { font-size: 17px; font-weight: 680; font-variant-numeric: tabular-nums; color: var(--text); }
@@ -670,7 +694,7 @@ input[type="range"]::-moz-range-thumb {
 .exp-right { display: flex; flex-direction: column; gap: 14px; }
 
 .exp-topline { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
-.exp-title h2 { font-size: 20px; letter-spacing: -0.025em; }
+.exp-title h2 { font-size: 22px; letter-spacing: -0.025em; }
 .exp-subseg { font-size: 12.5px; color: var(--text-faint); margin-top: 3px; display: block; }
 
 /* ---- exploration tabs (Overview / Nodes / Idea) -------------------------- */
@@ -1110,7 +1134,7 @@ input[type="range"]::-moz-range-thumb {
 .hc-status { font-size: 10.5px; font-weight: 560; color: var(--text-faint); text-transform: capitalize; }
 .hc-status.sprinting { color: var(--live); }
 .hc-status.error { color: var(--unavailable); }
-.hc-domain { font-size: 14px; font-weight: 640; color: var(--text); line-height: 1.3; }
+.hc-domain { font-size: 15px; font-weight: 640; color: var(--text); line-height: 1.3; }
 .hc-stats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-faint); }
 .hc-stats b { color: var(--text); font-weight: 660; font-variant-numeric: tabular-nums; }
 .hc-star b { color: var(--accent-strong); }
@@ -1153,7 +1177,7 @@ input[type="range"]::-moz-range-thumb {
 /* ---- digest -------------------------------------------------------------- */
 .digest { padding: 18px; }
 .digest-head { margin-bottom: 14px; }
-.digest-title { font-size: 16px; margin-top: 2px; }
+.digest-title { font-size: 15px; margin-top: 2px; }
 .digest-empty { font-size: 12.5px; color: var(--text-faint); line-height: 1.5; padding: 8px 0; }
 .digest-sec { margin-bottom: 16px; }
 .digest-sec:last-child { margin-bottom: 0; }
@@ -1240,3 +1264,23 @@ input[type="range"]::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* ============================================================================
+   Technical readouts → mono (CNC blueprint). Every numeric / metric value uses
+   IBM Plex Mono with tabular figures so the UI reads like a machine readout.
+   Grouped here so the intent is explicit and the set is easy to audit.
+   ========================================================================== */
+.vb-num, .viab-chip, .viab-chip.avg,
+.dsb-val, .composite-cell .cnum, .score-bar .val, .rank-badge,
+.um-num, .um-stat b, .la-tile-val, .la-tile-sub, .la-rate,
+.gu-metric b, .gu-gauge-pct, .gu-backoff, .gu-conc,
+.hu-fig b, .hu-gauge-cap, .hc-stats b, .hc-tok,
+.tree-count, .tv-val, .exp-tab-n, .tr-childcount, .es-count,
+.cmdk-item-hint, .cmdk-esc, .vs-tally .tally, .slider-val,
+.mode-pill, .gu-level, .hu-level-sub, .rigor-pill, .conf-pill {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+/* Mono numbers run a touch wide — tighten letter-spacing on the big figures. */
+.vb-num, .um-num, .la-tile-val, .hu-fig b { letter-spacing: -0.02em; }

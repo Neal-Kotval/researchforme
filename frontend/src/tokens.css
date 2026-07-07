@@ -4,66 +4,68 @@
    Components and index.css consume these via var(--token); nothing hardcodes a
    raw value. See DESIGN.md for the rationale and usage rules.
 
-   Aesthetic: minimal, informative, light. Off-white canvas, white surfaces,
-   near-black ink, hairline neutral borders. One vermillion accent, reserved
-   for the top pick, primary actions, selection, and the headline metric.
+   Aesthetic: CNC / blueprint. Cool-grey machined surfaces, near-black ink,
+   hairline slate rules, sharp corners. One steel-blue accent (blueprint blue)
+   reserved for primary actions, selection, links, the live state, and the
+   headline metric. Data reads as a grey→blue→navy density ramp.
    ========================================================================== */
 
 :root {
-  /* ---- color · surfaces (warm-neutral, near-zero chroma) ---------------- */
-  --bg: #faf9f7;          /* app canvas */
+  /* ---- color · surfaces (cool slate-neutral, near-zero chroma) ---------- */
+  --bg: #f4f5f6;          /* app canvas — cool machined paper */
   --surface: #ffffff;     /* cards, drawer, primary content */
-  --surface-2: #f6f5f2;   /* table header, insets, secondary panels */
-  --surface-3: #efede8;   /* chips, tracks, tertiary fills */
-  --surface-hover: #f1efea;
+  --surface-2: #eef0f2;   /* table header, insets, secondary panels */
+  --surface-3: #e4e7ea;   /* chips, tracks, tertiary fills */
+  --surface-hover: #eaedf0;
 
   /* ---- color · lines & elevation (borders carry structure, not shadows) - */
-  --border: #ddd8ce;        /* stronger hairline for crisp, geometric edges */
-  --border-strong: #c7c1b4;
-  --ring: rgba(227, 74, 47, 0.5);
-  --shadow-sm: 0 1px 2px rgba(24, 23, 20, 0.05);
-  --shadow-md: 0 1px 2px rgba(24, 23, 20, 0.05), 0 2px 4px rgba(24, 23, 20, 0.05);
-  --shadow-lg: 0 20px 46px -20px rgba(24, 23, 20, 0.28);
+  --border: #d3d7dd;        /* cool hairline for crisp, machined edges */
+  --border-strong: #a9afb8;
+  --ring: rgba(53, 104, 196, 0.48);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 38, 0.06);
+  --shadow-md: 0 1px 2px rgba(15, 23, 38, 0.06), 0 2px 4px rgba(15, 23, 38, 0.05);
+  --shadow-lg: 0 20px 46px -20px rgba(15, 23, 38, 0.30);
 
-  /* ---- color · ink (higher contrast; all body clears 4.5:1 on --surface) - */
-  --text: #17160f;        /* near-black, ~17:1 — primary */
-  --text-dim: #3d3b34;    /* ~10:1 — secondary body */
-  --text-faint: #605d54;  /* ~6.5:1 — labels, captions */
-  --text-ghost: #8b877d;  /* decorative only, never body copy */
+  /* ---- color · ink (cool near-black; all body clears 4.5:1 on --surface) - */
+  --text: #0d1017;        /* cool near-black, ~18:1 — primary */
+  --text-dim: #363b44;    /* ~10:1 — secondary body */
+  --text-faint: #5b616b;  /* ~6.4:1 — labels, captions */
+  --text-ghost: #878d97;  /* decorative only, never body copy */
   --text-on-accent: #ffffff;
 
-  /* ---- color · accent (vermillion) -------------------------------------- */
-  --accent: #e34a2f;
-  --accent-bright: #f2542d;   /* hover */
-  --accent-strong: #bb3a20;   /* inline/link text on light (≥4.5:1) */
-  --accent-tint: #fbeae5;     /* selected row, soft fills */
-  --accent-tint-2: #f6d8ce;   /* soft borders */
+  /* ---- color · accent (blueprint / steel blue) -------------------------- */
+  --accent: #3568c4;
+  --accent-bright: #4278d8;   /* hover — lifted steel */
+  --accent-strong: #2b5aa0;   /* inline/link text on light (≥4.5:1) */
+  --accent-tint: #e8eef8;     /* selected row, soft fills */
+  --accent-tint-2: #cddbf0;   /* soft borders */
 
-  /* ---- color · semantic states ------------------------------------------ */
-  --live: #2f7d55;         --live-tint: #e6f2ea;
-  --mock: #a66412;         --mock-tint: #f6ecd9;
-  --unavailable: #c0392b;  --unavailable-tint: #f7e4e1;
-  --empty: #8a877f;        --empty-tint: #eeece7;
+  /* ---- color · semantic states (live=blue · danger=one muted red) ------- */
+  --live: #2b5aa0;         --live-tint: #e8eef8;   /* live / sprinting / high */
+  --mock: #5b6472;         --mock-tint: #e9ebee;   /* curbing / medium — slate */
+  --unavailable: #b23b30;  --unavailable-tint: #f6e7e5; /* the one danger hue */
+  --empty: #878d97;        --empty-tint: #ebedf0;
 
-  /* ---- color · data ramp (neutral → vermillion; the map's one color axis) */
-  --ramp-0: #b8bec4;
-  --ramp-1: #e0a48b;
-  --ramp-2: #e37f57;
-  --ramp-3: #dd5731;
-  --ramp-4: #c1320f;
-  --data-neutral: #6f6c63;  /* single-hue score bars, higher contrast */
+  /* ---- color · data ramp (cool grey → steel blue → navy; denser = better) */
+  --ramp-0: #667281;   /* low — cool slate grey */
+  --ramp-1: #4f6690;   /* steel grey-blue */
+  --ramp-2: #3568c4;   /* the blueprint blue */
+  --ramp-3: #2b4a86;   /* deep blue */
+  --ramp-4: #12233f;   /* near-navy / near-black */
+  --data-neutral: #55606f;  /* single-hue score bars / sparklines — cool slate */
 
-  /* ---- source brand hues (badges/icons only) ---------------------------- */
-  --src-reddit: #d93900;      --src-reddit-tint: #fbeee7;
-  --src-arxiv: #a01c1c;       --src-arxiv-tint: #f8ebeb;
-  --src-hn: #d95300;          --src-hn-tint: #fdeee2;      /* Hacker News orange */
-  --src-github: #2b2b33;      --src-github-tint: #ecebe9;  /* near-ink */
-  --src-newsletter: #4a6b8a;  --src-newsletter-tint: #eaf0f5; /* calm slate-blue */
+  /* ---- source brand hues → monochrome cool graphite (badges/icons only) - */
+  --src-reddit: #2f3540;      --src-reddit-tint: #e9ebee;
+  --src-arxiv: #2f3540;       --src-arxiv-tint: #e9ebee;
+  --src-hn: #2f3540;          --src-hn-tint: #e9ebee;
+  --src-github: #2f3540;      --src-github-tint: #e9ebee;
+  --src-newsletter: #2f3540;  --src-newsletter-tint: #e9ebee;
 
-  /* ---- typography ------------------------------------------------------- */
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
-  --mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, monospace;
+  /* ---- typography (technical: geometric sans + strong mono readouts) ---- */
+  --font: "Space Grotesk", "IBM Plex Sans", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo,
+    "Fira Code", monospace;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
@@ -87,12 +89,12 @@
   --sp-8: 32px;
 
   /* ---- radius (geometric: sharp, near-square) --------------------------- */
-  --r-xs: 2px;
-  --r-sm: 3px;
-  --r-md: 4px;
-  --r-lg: 6px;
-  --r-xl: 8px;
-  --r-pill: 4px;  /* was 999px; chips/badges are squared for a geometric feel */
+  --r-xs: 1px;
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 4px;
+  --r-xl: 6px;
+  --r-pill: 2px;  /* squared — machined, not rounded */
 
   /* ---- motion ----------------------------------------------------------- */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

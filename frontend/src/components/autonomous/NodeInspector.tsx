@@ -4,6 +4,7 @@ import {
   SOURCE_LABEL,
 } from "../../types";
 import { viabilityRamp, type TreeNode } from "../../autonomous/types";
+import Markdown from "./Markdown";
 
 interface Props {
   node: TreeNode | null;
@@ -17,9 +18,11 @@ const VERDICT_META: Record<string, { cls: string; word: string }> = {
   kills: { cls: "kills", word: "Kills" },
 };
 
+// Map a 1..5 score onto the theme's grey→blue→navy ramp (denser = stronger),
+// so score numbers read in the CNC palette, not a rainbow.
 function scoreColor(v: number): string {
-  const stops = ["#6366f1", "#22d3ee", "#4ade80", "#ffcb47", "#f97316"];
-  return stops[Math.min(stops.length - 1, Math.max(0, Math.round(v) - 1))];
+  const i = Math.min(4, Math.max(0, Math.round(v) - 1));
+  return `var(--ramp-${i})`;
 }
 function titleCase(k: string): string {
   return k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -62,7 +65,7 @@ export default function NodeInspector({ node, childNodes = [], onSelectChild }: 
           <div className="insp-kind">{titleCase(node.kind)}</div>
           <h3 className="insp-title">{node.title}</h3>
         </div>
-        {node.rationale && <p className="detail-thesis">{node.rationale}</p>}
+        {node.rationale && <Markdown className="detail-thesis md-clamp" text={node.rationale} />}
 
         {node.keywords.length > 0 && (
           <div className="detail-block">
@@ -158,7 +161,7 @@ export default function NodeInspector({ node, childNodes = [], onSelectChild }: 
         </div>
       </div>
 
-      <p className="detail-thesis">{g.thesis}</p>
+      <Markdown className="detail-thesis" text={g.thesis} />
 
       {/* base scores */}
       <div className="detail-scorebar">

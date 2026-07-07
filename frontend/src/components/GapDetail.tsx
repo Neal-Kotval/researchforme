@@ -11,9 +11,10 @@ interface Props {
   onClose: () => void;
 }
 
+// Grey→blue→navy theme ramp (denser = stronger); no rainbow.
 function scoreColor(v: number): string {
-  const stops = ["#6366f1", "#22d3ee", "#4ade80", "#ffcb47", "#f97316"];
-  return stops[Math.min(stops.length - 1, Math.max(0, Math.round(v) - 1))];
+  const i = Math.min(4, Math.max(0, Math.round(v) - 1));
+  return `var(--ramp-${i})`;
 }
 
 function fmtDate(d: string | null): string | null {

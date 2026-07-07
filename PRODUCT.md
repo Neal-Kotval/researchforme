@@ -33,7 +33,12 @@ Gaps are framed as hypotheses, not advice. Honesty over optimism: the UI shows w
 data is mock, when a source failed, and when a gap is "empty for a reason".
 
 ## Brand
-Single accent: **vermillion `#e34a2f`**. Everything else is warm-neutral (off-white
-canvas, white surfaces, near-black ink, hairline borders). The accent is reserved —
-it marks the top pick, primary actions, selection, and the headline metric. See
-DESIGN.md for the full system.
+**CNC / blueprint** aesthetic. Single accent: **steel/blueprint blue `#3568c4`**.
+Everything else is cool-neutral machined greys (cool off-white canvas, white
+surfaces, near-black ink, hairline slate borders), squared/sharp radii. The blue is
+reserved — primary actions, selection, links, the live state, and the headline
+metric. Data reads as a **grey→blue→navy** density ramp (denser = stronger), never a
+rainbow. One muted red is kept for genuine danger/heavy-usage/delete only.
+Typography is technical: **Space Grotesk** (display/body) + **IBM Plex Mono** for all
+numeric/metric readouts (viability, token counts, gauges, KPI values) so the UI reads
+like a machine readout. See DESIGN.md / tokens.css for the full system.
