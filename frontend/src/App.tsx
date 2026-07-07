@@ -17,6 +17,7 @@ import GapDetail from "./components/GapDetail";
 import WeightControls from "./components/WeightControls";
 import ModelPicker from "./components/ModelPicker";
 import ExplorerView from "./components/autonomous/ExplorerView";
+import CommandPalette from "./components/CommandPalette";
 
 type Phase = "idle" | "loading" | "ready" | "error";
 type Mode = "single" | "autonomous";
@@ -37,6 +38,22 @@ export default function App() {
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [reweighting, setReweighting] = useState(false);
+
+  // ⌘K command palette + the signals it uses to drive the autonomous view.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [focusProjectId, setFocusProjectId] = useState<string | null>(null);
+  const [newExplorationSignal, setNewExplorationSignal] = useState(0);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Selecting a gap highlights it on the map + table AND opens the detail drawer.
   const selectGap = useCallback((title: string) => {
@@ -227,7 +244,7 @@ export default function App() {
 
       {mode === "autonomous" && (
         <main className="shell explorer-shell">
-          <ExplorerView />
+          <ExplorerView focusProjectId={focusProjectId} newExplorationSignal={newExplorationSignal} />
         </main>
       )}
 
@@ -380,6 +397,23 @@ export default function App() {
       {mode === "single" && (
         <GapDetail ranked={detailOpen ? selectedRanked : null} onClose={() => setDetailOpen(false)} />
       )}
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        ctx={{
+          mode,
+          setMode,
+          jumpProject: (pid) => {
+            setMode("autonomous");
+            setFocusProjectId(pid);
+          },
+          newExploration: () => {
+            setMode("autonomous");
+            setNewExplorationSignal((n) => n + 1);
+          },
+        }}
+      />
     </div>
   );
 }

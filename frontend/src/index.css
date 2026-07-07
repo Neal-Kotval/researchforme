@@ -1032,6 +1032,36 @@ input[type="range"]::-moz-range-thumb {
   .global-usage { flex-wrap: wrap; gap: 8px; }
 }
 
+/* ---- ⌘K command palette -------------------------------------------------- */
+.cmdk-scrim {
+  position: fixed; inset: 0; z-index: var(--z-drawer);
+  background: rgba(23, 22, 15, 0.28); backdrop-filter: blur(2px);
+  display: flex; align-items: flex-start; justify-content: center; padding-top: 14vh;
+  animation: cmdk-fade 0.12s ease;
+}
+@keyframes cmdk-fade { from { opacity: 0; } to { opacity: 1; } }
+.cmdk {
+  width: min(560px, calc(100vw - 32px)); max-height: 60vh; display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg); overflow: hidden; animation: slidein 0.16s var(--ease-out);
+}
+.cmdk-input-row { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-bottom: 1px solid var(--border); }
+.cmdk-ico { color: var(--text-ghost); font-size: 16px; }
+.cmdk-input { flex: 1; border: none; outline: none; background: transparent; font-size: 15px; color: var(--text); }
+.cmdk-input::placeholder { color: var(--text-ghost); }
+.cmdk-esc { font-size: 10px; color: var(--text-faint); border: 1px solid var(--border); border-radius: var(--r-xs); padding: 2px 6px; background: var(--surface-2); }
+.cmdk-list { overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.cmdk-empty { padding: 20px; text-align: center; font-size: 12.5px; color: var(--text-faint); }
+.cmdk-item {
+  display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: var(--r-sm);
+  text-align: left; width: 100%; color: var(--text-dim); border: 1px solid transparent;
+}
+.cmdk-item.sel { background: var(--accent-tint); border-color: var(--accent-tint-2); color: var(--text); }
+.cmdk-item-ico { width: 18px; text-align: center; color: var(--text-faint); flex: none; }
+.cmdk-item.sel .cmdk-item-ico { color: var(--accent-strong); }
+.cmdk-item-label { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmdk-item-hint { font-size: 10.5px; color: var(--text-ghost); font-variant-numeric: tabular-nums; text-transform: capitalize; flex: none; }
+
 /* ---- digest -------------------------------------------------------------- */
 .digest { padding: 18px; }
 .digest-head { margin-bottom: 14px; }

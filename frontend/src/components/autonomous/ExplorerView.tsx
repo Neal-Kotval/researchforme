@@ -188,7 +188,14 @@ function errMsg(e: unknown, fallback: string): string {
  * Several projects run at once — each has its own event subscription so every tab
  * stays live.
  */
-export default function ExplorerView() {
+interface ExplorerViewProps {
+  /** ⌘K "jump to exploration" — focus this project when it changes. */
+  focusProjectId?: string | null;
+  /** ⌘K "new exploration" — open the new-exploration dialog when this bumps. */
+  newExplorationSignal?: number;
+}
+
+export default function ExplorerView({ focusProjectId, newExplorationSignal }: ExplorerViewProps = {}) {
   const [state, dispatch] = useReducer(reduce, { byId: {}, order: [] });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selByProject, setSelByProject] = useState<Record<string, string | null>>({});
@@ -229,6 +236,19 @@ export default function ExplorerView() {
     });
     return () => unsub();
   }, [activeId]);
+
+  // ⌘K: jump to a specific exploration (refresh first if we don't have it yet).
+  useEffect(() => {
+    if (!focusProjectId) return;
+    setActiveId(focusProjectId);
+    if (!state.byId[focusProjectId]) refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusProjectId]);
+
+  // ⌘K: open the new-exploration dialog (ignore the initial 0).
+  useEffect(() => {
+    if (newExplorationSignal && newExplorationSignal > 0) setShowNew(true);
+  }, [newExplorationSignal]);
 
   // Keep an active tab valid as projects come and go.
   useEffect(() => {
