@@ -43,3 +43,24 @@ file changes mid-run — orphaned a real run at 9 nodes. Verification runs must 
 non-reloading server (or after edits are done).
 Follow-ups: MED/LOW audit items (fabricated token metering, intra-project concurrency,
 cross-branch dedup docs) deferred; will revisit if a feature needs them.
+
+## 2026-07-07 01:35 — Corroboration seam verified on live Claude   [commit f03d6dd]
+What: Ran a targeted real-LLM verification of the pressure-test corroboration seam
+(`/tmp/verify_corroboration.py`): built the deep-rigor tools via `corroboration_tools_for`,
+instrumented each handler to count calls, and ran a real `pressure_test` on a plausible
+podcast-tools gap.
+Result (live agent-sdk / Haiku): the red team made **3 real tool calls** —
+`search_hackernews`, `search_reddit`, `search_github` — with sensible queries, pulled back
+**4 lens-fetched evidence items**, and used them to kill the gap (0 survived / 2 weakened /
+3 killed → viability 0). GitHub evidence was live (`github.com/tobi/qmd`); Reddit was mock
+(keyless-mock in this env) and honestly labeled. The seam is live: lenses now corroborate
+against real sources mid-test, exactly as SPEC §5 intends.
+Verification: real Claude tool-call counter = 3; lens evidence = 4. Conclusive.
+
+## 2026-07-07 01:40 — Switch to main + push (per owner)   [commit pending]
+What: Per the owner's mid-run instruction, fast-forward-merged `overnight/autonomous-deepening`
+into `main`, pushed to `origin/main`, and switched to working directly on `main` with
+continuous push/sync. Also stopped tracking `frontend/tsconfig.tsbuildinfo` (build artifact).
+Why: Owner explicitly authorized working on main and pushing continuously (overrides the
+prompt's "never touch main" guardrail — they own the repo).
+Verification: `git merge --ff-only` clean; `git push` → 9f7c44f..f03d6dd.

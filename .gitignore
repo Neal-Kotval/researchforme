@@ -21,6 +21,8 @@ cache.db*
 node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
 
 # OS / editor
 .DS_Store
