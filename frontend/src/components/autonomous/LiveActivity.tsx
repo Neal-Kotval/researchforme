@@ -11,6 +11,7 @@ export interface Sample {
   candidates: number;
   frontier: number;
   maxViability: number;
+  avgViability: number; // mean viability across all scored gaps at this instant
   mode: ExplorerMode;
 }
 
@@ -102,25 +103,28 @@ export default function LiveActivity({ project, history }: Props) {
   const running = project.status === "running";
 
   const {
-    tokensSeries, nodesSeries, gapsSeries, frontierSeries, gapMarkers, spendArea, spendLine, frontierArea,
+    tokensSeries, nodesSeries, gapsSeries, frontierSeries, avgViabSeries, gapMarkers, spendArea, spendLine, frontierArea,
   } = useMemo(() => {
     const h = history.length ? history : [
-      { t: Date.now(), tokens: s.tokens_spent, nodes: s.nodes, gaps: s.gaps, stars: s.stars, candidates: s.candidates, frontier: s.frontier_size, maxViability: s.max_viability, mode: s.mode } as Sample,
+      { t: Date.now(), tokens: s.tokens_spent, nodes: s.nodes, gaps: s.gaps, stars: s.stars, candidates: s.candidates, frontier: s.frontier_size, maxViability: s.max_viability, avgViability: 0, mode: s.mode } as Sample,
     ];
     const tokensSeries = h.map((p) => p.tokens);
     const nodesSeries = h.map((p) => p.nodes);
     const gapsSeries = h.map((p) => p.gaps);
     const frontierSeries = h.map((p) => p.frontier);
+    const avgViabSeries = h.map((p) => p.avgViability);
     // Discovery markers: indices where the gap count ticked up.
     const gapMarkers: number[] = [];
     for (let i = 1; i < h.length; i++) if (h[i].gaps > h[i - 1].gaps) gapMarkers.push(i);
     const spend = paths(tokensSeries, 640, 132, 4);
     const front = paths(frontierSeries, 640, 132, 4);
     return {
-      tokensSeries, nodesSeries, gapsSeries, frontierSeries, gapMarkers,
+      tokensSeries, nodesSeries, gapsSeries, frontierSeries, avgViabSeries, gapMarkers,
       spendArea: spend.area, spendLine: spend.line, frontierArea: front.area,
     };
   }, [history, s]);
+
+  const avgViabNow = avgViabSeries[avgViabSeries.length - 1] ?? 0;
 
   const nodeRate = ratePerMin(history, (p) => p.nodes);
   const tokRate = ratePerMin(history, (p) => p.tokens);
@@ -156,6 +160,7 @@ export default function LiveActivity({ project, history }: Props) {
         <StatTile label="Tokens" value={fmt(s.tokens_spent)} series={tokensSeries} accent />
         <StatTile label="Nodes" value={`${s.nodes}`} sub={`${s.frontier_size} queued`} series={nodesSeries} />
         <StatTile label="Gaps" value={`${s.gaps}`} sub={`${s.stars}★`} series={gapsSeries} />
+        <StatTile label="Avg viability" value={s.gaps > 0 ? `${avgViabNow}` : "—"} sub={`top ${s.max_viability}`} series={avgViabSeries} />
       </div>
 
       <div className="la-chart">

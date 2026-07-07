@@ -35,7 +35,19 @@ import ProjectDigest from "./ProjectDigest";
 // graphs) instead of a spinner. Kept small + capped; purely client-side.
 const HISTORY_CAP = 400;
 
-function sampleOf(project: Project, atMs: number): Sample {
+function avgViabilityOf(nodes: Record<string, TreeNode>): number {
+  let sum = 0;
+  let count = 0;
+  for (const n of Object.values(nodes)) {
+    if ((n.kind === "gap" || n.kind === "gap_candidate") && n.viability != null) {
+      sum += n.viability;
+      count += 1;
+    }
+  }
+  return count > 0 ? Math.round(sum / count) : 0;
+}
+
+function sampleOf(project: Project, nodes: Record<string, TreeNode>, atMs: number): Sample {
   const s = project.stats;
   return {
     t: atMs,
@@ -46,6 +58,7 @@ function sampleOf(project: Project, atMs: number): Sample {
     candidates: s.candidates,
     frontier: s.frontier_size,
     maxViability: s.max_viability,
+    avgViability: avgViabilityOf(nodes),
     mode: s.mode as ExplorerMode,
   };
 }
@@ -115,7 +128,7 @@ function reduce(state: StoreState, action: Action): StoreState {
       const prev = state.byId[project.id];
       // Preserve any history already gathered, then seed a current point so the
       // graph has an anchor even before the first live event lands.
-      const history = pushSample(prev?.history ?? [], sampleOf(project, Date.now()));
+      const history = pushSample(prev?.history ?? [], sampleOf(project, map, Date.now()));
       return {
         ...state,
         byId: {
@@ -132,7 +145,7 @@ function reduce(state: StoreState, action: Action): StoreState {
       const project = ev.project ?? ps.project;
       // Every event that carries fresh project stats becomes a graph sample.
       const history = ev.project
-        ? pushSample(ps.history, sampleOf(ev.project, atMs(ev.at)))
+        ? pushSample(ps.history, sampleOf(ev.project, nodes, atMs(ev.at)))
         : ps.history;
       return {
         ...state,

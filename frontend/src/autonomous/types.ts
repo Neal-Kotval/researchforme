@@ -131,6 +131,8 @@ export interface TreeSnapshot {
   last_seq: number;
 }
 
+export type UsageLevel = "low" | "medium" | "high" | "heavy";
+
 /** Shared governor snapshot for the global usage bar (GET /api/usage). */
 export interface GlobalUsage {
   spent_total: number;
@@ -141,6 +143,18 @@ export interface GlobalUsage {
   backoff_remaining_s: number;
   recent_limits: number;
   max_concurrency: number;
+  // Usage-shaping policy + derived gauge fields.
+  daily_cap: number | null;
+  limit_pct: number;
+  effective_cap: number | null;
+  usage_ratio: number | null;
+  usage_level: UsageLevel;
+  projected_24h: number;
+}
+
+export interface UsagePolicy {
+  daily_cap_tokens?: number | null;
+  limit_pct?: number;
 }
 
 export interface CreateProjectRequest {

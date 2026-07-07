@@ -14,6 +14,7 @@ import type {
   CreateProjectRequest,
   ExplorerEvent,
   GlobalUsage,
+  UsagePolicy,
   Pace,
   Project,
   TreeSnapshot,
@@ -60,6 +61,15 @@ export function listProjects(): Promise<Project[]> {
 /** The shared governor's real global usage snapshot — drives the global bar. */
 export function getUsage(): Promise<GlobalUsage> {
   return request<GlobalUsage>("/api/usage");
+}
+
+/** Set the dynamic usage-shaping policy (daily cap + % limit) → fresh snapshot. */
+export function setUsagePolicy(policy: UsagePolicy): Promise<GlobalUsage> {
+  return request<GlobalUsage>("/api/usage/policy", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(policy),
+  });
 }
 
 /** One project's metadata + live stats. */

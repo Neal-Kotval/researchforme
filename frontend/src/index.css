@@ -762,6 +762,12 @@ input[type="range"]::-moz-range-thumb {
 .viab-chip.star { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 0 1.5px var(--accent); }
 .viab-chip .vc-star { font-size: 9px; text-shadow: none; }
 .viab-chip.pending { background: var(--surface-3) !important; color: var(--text-faint); text-shadow: none; font-weight: 600; }
+/* Aggregate (avg-of-sub-ideas) chip on macro/structural rows — lighter + outlined
+   so it reads as a rollup, not a leaf gap's own score. Same 0..100 ramp/scale. */
+.viab-chip.avg {
+  min-width: 30px; font-size: 10.5px; font-weight: 680; color: var(--text);
+  text-shadow: none; opacity: 0.92; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
 
 .tree-empty, .inspector-empty { text-align: center; padding: 54px 24px; }
 .tree-empty-ico, .ie-ico { font-size: 26px; color: var(--text-ghost); margin-bottom: 10px; }
@@ -920,7 +926,8 @@ input[type="range"]::-moz-range-thumb {
 .la-status { display: flex; align-items: center; gap: 10px; }
 .la-rate { font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 
-.la-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.la-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+@media (max-width: 1180px) { .la-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .la-tile {
   border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2);
   padding: 9px 11px 6px; display: flex; flex-direction: column; gap: 2px; min-width: 0; position: relative; overflow: hidden;
@@ -976,10 +983,52 @@ input[type="range"]::-moz-range-thumb {
 .gu-rate { color: var(--accent-strong) !important; }
 .gu-sep { color: var(--border-strong); }
 .gu-backoff { color: var(--mock); font-weight: 560; }
-.gu-right { flex: none; }
+.gu-right { flex: none; position: relative; }
 .gu-conc { font-size: 11px; color: var(--text-ghost); font-variant-numeric: tabular-nums; }
+
+/* level read-out */
+.gu-level { font-weight: 660; }
+.gu-level.lvl-low { color: var(--live); }
+.gu-level.lvl-medium { color: var(--text-dim); }
+.gu-level.lvl-high { color: var(--mock); }
+.gu-level.lvl-heavy { color: var(--accent-strong); }
+.gu-mode-sub { color: var(--text-ghost); font-size: 11px; }
+
+/* ratio gauge toward the effective cap */
+.gu-gauge {
+  position: relative; flex: none; width: 130px; height: 16px; border-radius: var(--r-pill);
+  background: var(--surface-3); border: 1px solid var(--border); overflow: hidden;
+  display: flex; align-items: center;
+}
+.gu-gauge-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--live); transition: width var(--dur-mid) ease, background var(--dur-mid) ease; }
+.global-usage.lvl-medium .gu-gauge-fill { background: var(--data-neutral); }
+.global-usage.lvl-high .gu-gauge-fill { background: var(--mock); }
+.global-usage.lvl-heavy .gu-gauge-fill { background: var(--accent); }
+.gu-gauge-pct { position: relative; z-index: 1; margin: 0 auto; font-size: 10px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.gu-limit-btn {
+  font-size: 11px; font-weight: 560; color: var(--text-dim); padding: 4px 9px;
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2);
+}
+.gu-limit-btn:hover { border-color: var(--accent-tint-2); color: var(--accent-strong); }
+
+.gu-popover {
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: 280px; z-index: var(--z-drawer);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.gu-pop-title { font-size: 13px; font-weight: 660; color: var(--text); }
+.gu-pop-row { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: var(--text-dim); }
+.gu-pop-row input[type="number"] { padding: 6px 9px; border: 1px solid var(--border); border-radius: var(--r-sm); font-size: 12.5px; background: var(--surface-2); }
+.gu-pop-row input[type="range"] { accent-color: var(--accent); }
+.gu-pop-hint { font-size: 10.5px; color: var(--text-faint); line-height: 1.45; margin: 0; }
+.gu-pop-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.gu-pop-actions .btn { font-size: 12px; padding: 6px 12px; }
+
+@media (max-width: 720px) {
+  .gu-gauge { display: none; }
+}
 @media (max-width: 640px) {
-  .gu-right { display: none; }
   .global-usage { flex-wrap: wrap; gap: 8px; }
 }
 

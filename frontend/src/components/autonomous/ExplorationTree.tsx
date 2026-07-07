@@ -65,21 +65,49 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
     return m;
   }, [nodes]);
 
-  // Best (max) viability anywhere in a node's subtree — drives branch ordering.
-  const bestBelow = useMemo(() => {
-    const memo = new Map<string, number>();
-    const visit = (id: string): number => {
+  // Aggregate viability of the *scored sub-ideas* under each node: `best` drives
+  // branch ordering; `avg` gives a macro node one honest 0..100 score (the mean
+  // of its descendant gaps) so the whole tree speaks a single viability scale
+  // instead of mixing a 0..100 gap chip with a raw child-count on branches.
+  const aggBelow = useMemo(() => {
+    const memo = new Map<string, { best: number; sum: number; count: number }>();
+    const visit = (id: string): { best: number; sum: number; count: number } => {
       const cached = memo.get(id);
       if (cached !== undefined) return cached;
       const node = nodes[id];
-      let best = node && isGapish(node) && node.viability != null ? node.viability : -1;
-      for (const c of childrenOf[id] ?? []) best = Math.max(best, visit(c.id));
-      memo.set(id, best);
-      return best;
+      let best = -1;
+      let sum = 0;
+      let count = 0;
+      if (node && isGapish(node) && node.viability != null) {
+        best = node.viability;
+        sum = node.viability;
+        count = 1;
+      }
+      for (const c of childrenOf[id] ?? []) {
+        const r = visit(c.id);
+        best = Math.max(best, r.best);
+        sum += r.sum;
+        count += r.count;
+      }
+      const agg = { best, sum, count };
+      memo.set(id, agg);
+      return agg;
     };
     for (const id of Object.keys(nodes)) visit(id);
     return memo;
   }, [nodes, childrenOf]);
+  const bestBelow = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const [id, a] of aggBelow) m.set(id, a.best);
+    return m;
+  }, [aggBelow]);
+  const avgViab = useCallback(
+    (id: string): number | null => {
+      const a = aggBelow.get(id);
+      return a && a.count > 0 ? Math.round(a.sum / a.count) : null;
+    },
+    [aggBelow]
+  );
 
   const sortedChildren = useCallback(
     (id: string): TreeNode[] => {
@@ -311,9 +339,26 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
 
               <span className="tr-right">
                 {live && <span className="tr-live" aria-label={n.state} />}
-                {!gapish && row.hasChildren && (
-                  <span className="tr-childcount">{(childrenOf[n.id] ?? []).length}</span>
-                )}
+                {!gapish && (() => {
+                  const av = avgViab(n.id);
+                  const kids = (childrenOf[n.id] ?? []).length;
+                  return (
+                    <>
+                      {kids > 0 && (
+                        <span className="tr-childcount" title={`${kids} sub-branches`}>{kids}</span>
+                      )}
+                      {av != null && (
+                        <span
+                          className="viab-chip avg"
+                          style={{ background: viabilityRamp(av) }}
+                          title={`Average viability of scored sub-ideas: ${av}/100`}
+                        >
+                          ⌀{av}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
                 {gapish && n.viability != null ? (
                   <span
                     className={`viab-chip${n.star ? " star" : ""}`}
