@@ -20,7 +20,7 @@ import {
   type TreeSnapshot,
 } from "../../autonomous/types";
 import ModelPicker from "../ModelPicker";
-import ProjectTabs from "./ProjectTabs";
+import ExplorationSidebar from "./ExplorationSidebar";
 import ExplorationTree from "./ExplorationTree";
 import NodeInspector from "./NodeInspector";
 import RunControls from "./RunControls";
@@ -198,18 +198,24 @@ export default function ExplorerView() {
     refresh();
   }, [refresh]);
 
-  // One SSE subscription per project; re-established whenever the set changes.
+  // Keep the whole list fresh (status/stats for every row in the sidebar) with a
+  // light poll — cheap, and far kinder than holding an SSE stream open for every
+  // project at once (which never lets the network idle and doesn't scale).
   useEffect(() => {
-    if (!state.order.length) return;
-    const unsubs = state.order.map((id) =>
-      subscribeEvents(id, {
-        onSnapshot: (snapshot) => dispatch({ type: "hydrate", snapshot }),
-        onEvent: (ev) => dispatch({ type: "event", ev }),
-      })
-    );
-    return () => unsubs.forEach((u) => u());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderSig]);
+    const t = window.setInterval(refresh, 4000);
+    return () => window.clearInterval(t);
+  }, [refresh]);
+
+  // Stream live events for the ACTIVE exploration only — that's the one whose
+  // tree + graphs are on screen. Its snapshot re-hydrates on every (re)connect.
+  useEffect(() => {
+    if (!activeId) return;
+    const unsub = subscribeEvents(activeId, {
+      onSnapshot: (snapshot) => dispatch({ type: "hydrate", snapshot }),
+      onEvent: (ev) => dispatch({ type: "event", ev }),
+    });
+    return () => unsub();
+  }, [activeId]);
 
   // Keep an active tab valid as projects come and go.
   useEffect(() => {
@@ -276,30 +282,28 @@ export default function ExplorerView() {
     [refresh]
   );
 
-  const onDelete = useCallback(async () => {
-    if (!activeId) return;
-    if (!window.confirm("Delete this exploration and its whole tree? This cannot be undone.")) return;
-    const id = activeId;
-    try {
-      await deleteProject(id);
-      dispatch({ type: "removeProject", id });
-    } catch (e) {
-      setErr(errMsg(e, "Could not delete the exploration."));
-    }
-  }, [activeId]);
+  // Delete by id (the sidebar row asks for confirmation inline — no blocking
+  // browser dialog). Remove locally at once for a snappy feel; if it was the
+  // active tab, fall through to the next exploration.
+  const onDelete = useCallback(
+    async (id: string) => {
+      try {
+        await deleteProject(id);
+        dispatch({ type: "removeProject", id });
+        setActiveId((cur) => (cur === id ? state.order.find((x) => x !== id) ?? null : cur));
+      } catch (e) {
+        setErr(errMsg(e, "Could not delete the exploration."));
+        refresh();
+      }
+    },
+    [state.order, refresh]
+  );
 
   /* ------------------------------------------------------------------ view -- */
   const project = active?.project ?? null;
 
   return (
     <div className="explorer">
-      <ProjectTabs
-        projects={allProjects}
-        activeId={activeId}
-        onSelect={setActiveId}
-        onNew={() => setShowNew(true)}
-      />
-
       {err && (
         <div className="exp-error" role="alert">
           <span className="w-ico">⚠︎</span>
@@ -310,72 +314,80 @@ export default function ExplorerView() {
         </div>
       )}
 
-      {!project ? (
-        <div className="explorer-empty">
-          <div className="ee-mark">◇</div>
-          <h2>Spawn an autonomous explorer</h2>
-          <p>
-            Give it a domain and walk away. It recursively decomposes the space, mines signals,
-            hypothesizes gaps, pressure-tests the promising ones, and scores each 0–100 — spending
-            more effort where it's paying off.
-          </p>
-          <button className="btn btn-primary" onClick={() => setShowNew(true)}>
-            ＋ New exploration
-          </button>
-        </div>
-      ) : (
-        <div className="exp-layout">
-          <div className="exp-left">
-            <div className="exp-topline">
-              <div className="exp-title">
-                <h2>{project.domain}</h2>
-                {project.sub_segments.length > 0 && (
-                  <span className="exp-subseg">{project.sub_segments.join(" · ")}</span>
-                )}
-              </div>
-              <button className="exp-del" onClick={onDelete} title="Delete exploration">
-                ✕ Delete
+      <div className="exp-shell">
+        <ExplorationSidebar
+          projects={allProjects}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onNew={() => setShowNew(true)}
+          onDelete={onDelete}
+        />
+
+        <div className="exp-main">
+          {!project ? (
+            <div className="explorer-empty">
+              <div className="ee-mark">◇</div>
+              <h2>Spawn an autonomous explorer</h2>
+              <p>
+                Give it a domain and walk away. It recursively decomposes the space, mines
+                signals, hypothesizes gaps, pressure-tests the promising ones, and scores each
+                0–100 — spending more effort where it's paying off.
+              </p>
+              <button className="btn btn-primary" onClick={() => setShowNew(true)}>
+                ＋ New exploration
               </button>
             </div>
+          ) : (
+            <>
+              <div className="exp-topline">
+                <div className="exp-title">
+                  <h2>{project.domain}</h2>
+                  {project.sub_segments.length > 0 && (
+                    <span className="exp-subseg">{project.sub_segments.join(" · ")}</span>
+                  )}
+                </div>
+              </div>
 
-            <UsageMeter project={project} allProjects={allProjects} />
+              <UsageMeter project={project} allProjects={allProjects} />
+              <LiveActivity project={project} history={active!.history} />
 
-            <LiveActivity project={project} history={active!.history} />
-
-            <div className="card exp-tree-card">
-              <ExplorationTree
-                nodes={active!.nodes}
-                rootId={rootId}
-                selectedId={selectedId}
-                onSelect={selectNode}
-              />
-            </div>
-          </div>
-
-          <aside className="exp-right">
-            <div className="card exp-panel">
-              <RunControls project={project} busy={busy} onControl={onControl} />
-            </div>
-
-            <div className="card exp-panel exp-inspect">
-              {selectedNode ? (
-                <>
-                  <button className="inspect-back" onClick={() => selectNode(null)}>
-                    ‹ Back to digest
-                  </button>
-                  <NodeInspector
-                    node={selectedNode}
-                    childNodes={selectedChildren}
-                    onSelectChild={selectNode}
+              <div className="exp-body">
+                <div className="card exp-tree-card">
+                  <ExplorationTree
+                    nodes={active!.nodes}
+                    rootId={rootId}
+                    selectedId={selectedId}
+                    onSelect={selectNode}
                   />
-                </>
-              ) : (
-                <ProjectDigest nodes={active!.nodes} onSelect={selectNode} />
-              )}
-            </div>
-          </aside>
+                </div>
+
+                <aside className="exp-right">
+                  <div className="card exp-panel">
+                    <RunControls project={project} busy={busy} onControl={onControl} />
+                  </div>
+
+                  <div className="card exp-panel exp-inspect">
+                    {selectedNode ? (
+                      <>
+                        <button className="inspect-back" onClick={() => selectNode(null)}>
+                          ‹ Back to digest
+                        </button>
+                        <NodeInspector
+                          node={selectedNode}
+                          childNodes={selectedChildren}
+                          onSelectChild={selectNode}
+                        />
+                      </>
+                    ) : (
+                      <ProjectDigest nodes={active!.nodes} onSelect={selectNode} />
+                    )}
+                  </div>
+                </aside>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {state.order.length > 0 && <GlobalUsageBar projects={allProjects} />}
 

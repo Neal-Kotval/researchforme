@@ -130,3 +130,32 @@ The backend/data path is verified on real Claude; the inspector render typecheck
 Follow-ups: a full in-browser screenshot of the critique in the inspector needs a run that
 reaches a scored gap (~minutes on the deep path) — deferred; render is a simple conditional
 block already covered by tsc + the verified data shape.
+
+## 2026-07-07 08:10 — Explorer UX overhaul: sidebar + search, fix delete + tree   [commit pending]
+What: Reworked the autonomous screen from a cramped horizontal tab bar (only ~5 of 17
+projects visible) into a proper **app shell** — a left **`ExplorationSidebar`** with search
++ a scrollable, ranked list of every exploration (status dot, gaps/★, spend), a scrolling
+main column, and the global usage bar pinned at the bottom.
+Fixes for the owner's report:
+1. **Delete now works** — the backend DELETE was fine (200→404); the frontend used a
+   blocking `window.confirm` and a whole-view delete button. Replaced with a reliable
+   inline-confirm 🗑 on each sidebar row (id-based `onDelete`, optimistic removal, falls
+   through to the next exploration). Verified in-browser: 17→16, 0 errors.
+2. **Tree view no longer "messed up"** — the tree overflowed its card and collided *behind*
+   the sticky global bar. Root cause: the layout had no bounded scroll region. New app-shell
+   makes `.exp-main` the single internal scroll region (grid row `minmax(0,1fr)` so it
+   actually constrains) and moves the global bar outside the scroll area — verified the main
+   column is now clipped above the bar (mainBottom 903 ≤ barTop 913, mainScrolls true).
+3. **More intuitive** — sidebar + live search (typing "note" → 17→9 rows), scales past a
+   handful of runs.
+4. **Immediate-then-grow** confirmed: creating an exploration shows its root node at once
+   (1 node), then the decompose grows it — verified the new project is created running with
+   1 node and switches in.
+Also: **stopped opening an SSE stream for every project at once** (17 open EventSources meant
+the network never idled and didn't scale) — now only the ACTIVE exploration streams live;
+the sidebar stays fresh via a light 4s `listProjects` poll.
+Why: direct owner feedback — delete broken, tree messed up, wants sidebar/search.
+Verification: `tsc`/`vite build` clean. Headless-Chromium checks above; screenshot
+`verification/ui-review/redesign.png`. 0 page errors throughout.
+Follow-ups: `ProjectTabs.tsx` is now only used for its `statusMeta` export (component
+unused) — could be trimmed. A formal Impeccable critique pass would be the next polish step.
