@@ -39,6 +39,8 @@ from ..autonomous.schemas import (
     ControlRequest,
     CreateProjectRequest,
     ExplorerEvent,
+    IntakeRequest,
+    IntakeResponse,
     Project,
     TreeSnapshot,
 )
@@ -82,6 +84,22 @@ def set_usage_policy(req: UsagePolicyRequest) -> dict:
 # --------------------------------------------------------------------------- #
 # CRUD                                                                        #
 # --------------------------------------------------------------------------- #
+@router.post("/projects/intake", response_model=IntakeResponse)
+async def project_intake(req: IntakeRequest) -> IntakeResponse:
+    """Generate a short set of preflight clarifying questions for a domain.
+
+    Never fails hard — degrades to a solid static question set if the LLM can't
+    help — so the intake step always returns something useful (SPEC feature A).
+    """
+    from ..autonomous.intake import generate_intake_questions
+    from ..config import get_settings
+    from ..llm.client import get_client
+
+    model = get_settings().llm_model
+    questions = await generate_intake_questions(req.domain, get_client(), model)
+    return IntakeResponse(questions=questions)
+
+
 @router.post("/projects", response_model=Project)
 async def create_project(req: CreateProjectRequest) -> Project:
     """Create an autonomous exploration project and (by default) start it.

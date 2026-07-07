@@ -4,6 +4,7 @@ import {
   control,
   createProject,
   deleteProject,
+  getIntake,
   listProjects,
   subscribeEvents,
   type ControlRequest,
@@ -14,6 +15,7 @@ import {
   type CreateProjectRequest,
   type ExplorerEvent,
   type ExplorerMode,
+  type IntakeQuestion,
   type Pace,
   type Project,
   type TreeNode,
@@ -476,6 +478,28 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Preflight intake: generated clarifying questions that steer the exploration.
+  const [questions, setQuestions] = useState<IntakeQuestion[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [intakeLoading, setIntakeLoading] = useState(false);
+
+  const refineWithQuestions = async () => {
+    if (domain.trim().length < 2) {
+      setError("Enter a domain first, then refine.");
+      return;
+    }
+    setIntakeLoading(true);
+    setError(null);
+    try {
+      const { questions: qs } = await getIntake(domain.trim());
+      setQuestions(qs);
+    } catch (e) {
+      setError(errMsg(e, "Could not load intake questions."));
+    } finally {
+      setIntakeLoading(false);
+    }
+  };
+
   useEffect(() => {
     inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -501,6 +525,9 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
     setSubmitting(true);
     setError(null);
     try {
+      const intake = Object.fromEntries(
+        Object.entries(answers).filter(([, v]) => v && v.trim())
+      );
       await onCreate({
         domain: domain.trim(),
         sub_segments: segs,
@@ -508,6 +535,7 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
         decompose_model: decompose,
         synth_model: synth,
         pressure_model: pressure,
+        intake,
         autostart,
       });
     } catch (e) {
@@ -542,6 +570,51 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
             onChange={(e) => setDomain(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
           />
+
+          {/* preflight intake — clarifying questions that steer the exploration */}
+          <div className="nd-intake">
+            <button
+              type="button"
+              className="nd-refine"
+              onClick={refineWithQuestions}
+              disabled={intakeLoading}
+            >
+              {intakeLoading ? "Thinking…" : questions.length ? "↻ Regenerate questions" : "✦ Refine with questions"}
+            </button>
+            <span className="nd-refine-hint">
+              {questions.length ? "Answer any that help — they steer the tree." : "Let it ask a few sharp questions first (optional)."}
+            </span>
+          </div>
+
+          {questions.length > 0 && (
+            <div className="nd-questions">
+              {questions.map((q, i) => (
+                <div className="nd-q" key={i}>
+                  <div className="nd-q-label">{q.question}</div>
+                  <div className="nd-q-chips">
+                    {q.suggestions.map((s) => (
+                      <button
+                        type="button"
+                        key={s}
+                        className={`nd-q-chip${answers[q.question] === s ? " on" : ""}`}
+                        onClick={() =>
+                          setAnswers((a) => ({ ...a, [q.question]: a[q.question] === s ? "" : s }))
+                        }
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    className="nd-q-free"
+                    placeholder="…or type your own"
+                    value={q.suggestions.includes(answers[q.question]) ? "" : answers[q.question] ?? ""}
+                    onChange={(e) => setAnswers((a) => ({ ...a, [q.question]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           <label className="field-label" style={{ marginTop: 16 }}>
             Seed sub-segments <span className="nd-opt">(optional)</span>

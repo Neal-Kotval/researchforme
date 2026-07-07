@@ -164,7 +164,13 @@ export interface CreateProjectRequest {
   decompose_model?: string;
   synth_model?: string;
   pressure_model?: string;
+  intake?: Record<string, string>;
   autostart?: boolean;
+}
+
+export interface IntakeQuestion {
+  question: string;
+  suggestions: string[];
 }
 
 export type ControlAction =

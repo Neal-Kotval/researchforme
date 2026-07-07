@@ -162,6 +162,8 @@ class Project(BaseModel):
     status: ProjectStatus = ProjectStatus.PAUSED
     budget: Budget = Field(default_factory=Budget)
     stats: ProjectStats = Field(default_factory=ProjectStats)
+    # Preflight intake answers (question → answer) that steer decomposition/scope.
+    intake: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -206,7 +208,23 @@ class CreateProjectRequest(BaseModel):
     decompose_model: Optional[str] = None
     synth_model: Optional[str] = None
     pressure_model: Optional[str] = None
+    intake: dict[str, str] = Field(default_factory=dict)  # preflight answers
     autostart: bool = True
+
+
+class IntakeQuestion(BaseModel):
+    """One preflight clarifying question with a few suggested answers."""
+
+    question: str
+    suggestions: list[str] = Field(default_factory=list)
+
+
+class IntakeRequest(BaseModel):
+    domain: str = Field(min_length=2, max_length=200)
+
+
+class IntakeResponse(BaseModel):
+    questions: list[IntakeQuestion] = Field(default_factory=list)
 
 
 class ControlAction(str, Enum):

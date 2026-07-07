@@ -385,3 +385,22 @@ def test_usage_level_bands_without_cap_use_rate():
     assert _usage_level(None, 12_000) == "high"
     assert _usage_level(None, 50_000) == "heavy"
     assert _usage_level(0.5, 0) == "medium"  # ratio wins when a cap is set
+
+
+@pytest.mark.asyncio
+async def test_intake_degrades_to_static_questions():
+    """Intake never raises: a failing LLM falls back to a solid static question set."""
+    from app.autonomous.intake import generate_intake_questions, intake_context_block
+
+    class _Fail:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            raise RuntimeError("no llm")
+
+    qs = await generate_intake_questions("bookkeeping for freelancers", _Fail(), "m")
+    assert 3 <= len(qs) <= 5
+    assert all(q.question and q.suggestions for q in qs)
+
+    # Context block renders answers, and is empty when there are none.
+    block = intake_context_block({"Who for?": "SMB", "Win?": ""})
+    assert "Who for? → SMB" in block and "Win?" not in block
+    assert intake_context_block({}) == ""

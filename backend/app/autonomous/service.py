@@ -196,6 +196,7 @@ class ExplorerService:
             domain=req.domain,
             sub_segments=list(req.sub_segments or []),
             budget=budget,
+            intake=dict(req.intake or {}),
             status=ProjectStatus.RUNNING if req.autostart else ProjectStatus.PAUSED,
             stats=ProjectStats(nodes=1, frontier_size=1, mode=ExplorerMode.PAUSED),
         )

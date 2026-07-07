@@ -14,6 +14,7 @@ import type {
   CreateProjectRequest,
   ExplorerEvent,
   GlobalUsage,
+  IntakeQuestion,
   UsagePolicy,
   Pace,
   Project,
@@ -42,6 +43,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(res.status, detail);
   }
   return (await res.json()) as T;
+}
+
+/** Generate preflight intake questions for a domain (steers the exploration). */
+export function getIntake(domain: string): Promise<{ questions: IntakeQuestion[] }> {
+  return request<{ questions: IntakeQuestion[] }>("/api/projects/intake", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ domain }),
+  });
 }
 
 /** Create (and, by default, autostart) an autonomous exploration project. */

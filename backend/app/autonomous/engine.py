@@ -38,6 +38,7 @@ from ..analysis.synthesize import _extract_json_array, synthesize
 from ..llm.client import ClaudeClient
 from ..schemas import Gap, SourceReport, SourceStatus
 from ..sources.registry import get_sources
+from .intake import intake_context_block
 from .schemas import Node, NodeKind, Project
 
 
@@ -196,12 +197,16 @@ def kind_is_structural(kind: NodeKind | str) -> bool:
 def root_node(project: Project) -> Node:
     """Build the DOMAIN root node for a project, priority pre-computed."""
     scope = scope_area(project.domain, project.sub_segments)
+    intake_block = intake_context_block(project.intake)
+    rationale = f"Root domain exploration of '{project.domain}'."
+    if intake_block:
+        rationale += "\n" + intake_block
     node = make_node(
         project.id,
         None,
         NodeKind.DOMAIN,
         project.domain,
-        rationale=f"Root domain exploration of '{project.domain}'.",
+        rationale=rationale,
         keywords=list(scope.keywords),
         depth=0,
     )
@@ -242,6 +247,9 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
     lines = [f"ROOT DOMAIN: {project.domain}"]
     if project.sub_segments:
         lines.append(f"SUB-SEGMENTS OF INTEREST: {', '.join(project.sub_segments)}")
+    intake_block = intake_context_block(project.intake)
+    if intake_block:
+        lines.append(intake_block)
     lines.append(f"NODE TO DECOMPOSE ({node.kind.value}): {node.title}")
     if node.rationale:
         lines.append(f"WHY THIS BRANCH MIGHT MATTER: {node.rationale}")
