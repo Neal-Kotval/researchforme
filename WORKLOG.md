@@ -159,3 +159,41 @@ Verification: `tsc`/`vite build` clean. Headless-Chromium checks above; screensh
 `verification/ui-review/redesign.png`. 0 page errors throughout.
 Follow-ups: `ProjectTabs.tsx` is now only used for its `statusMeta` export (component
 unused) — could be trimmed. A formal Impeccable critique pass would be the next polish step.
+
+## 2026-07-07 08:30–11:10 — Owner feature sprint (batch)   [commits de39420 … b00a3c8]
+Ten owner-requested features, each committed + pushed to `main` and verified live in a
+real (headless Chromium) browser and/or on live Claude. In order:
+- **Parallelize agents** (`de39420`): the frontier loop now fans out on the expensive
+  gap-yielding work — consecutive top-priority SEGMENT nodes synthesize + pressure-test
+  concurrently in shared governor slots (`concurrency_for(pace)`), cheap structural
+  decomposition stays serial. `AP_MAX_CONCURRENCY`-configurable (default ~2× cores).
+  Verified: fixture e2e now yields 20 gaps scored in parallel.
+- **tmux persistence** (`6f5f7a4`): `scripts/dev-tmux.sh` runs backend (no `--reload`) +
+  frontend in a persistent session so runs don't die on a file save or a closed terminal.
+- **Dynamic usage limit** (`6f5f7a4`): `governor.set_policy(daily_cap, limit_pct)` +
+  `POST /api/usage/policy`; spend auto-curbs as it nears cap×limit% then pauses. Snapshot
+  exposes level (low/med/high/heavy), ratio, projected_24h. Verified live on :8030.
+- **Viability scale unified** (`6e12e82`): macro/structural nodes show the ⌀average
+  viability of their descendant sub-ideas (0..100), not a bare child-count. Verified:
+  8 ⌀ chips (⌀41..⌀54) alongside gap chips.
+- **Avg-viability-over-time** (`6e12e82`): 4th LiveActivity KPI tile + sparkline.
+- **Usage gauge** (`6e12e82`): GlobalUsageBar → claude-usage-style level + ratio bar +
+  projected + a ⚙ popover to set the percent limit.
+- **⌘K command palette** (`d55b2bb`): jump to any exploration / run quick actions; verified
+  open→filter→jump.
+- **Exploration tabs** (`f9e1f03`): Overview / Nodes / full-page Idea detail — a single
+  idea opens like the single-area page; a Nodes tab holds the tree. Verified.
+- **Home dashboard** (`4090f3e`): autonomous mode lands on a dashboard — usage gauge +
+  a card per exploration; ⌂ Home in the sidebar. Verified.
+- **Interactive intake** (`b00a3c8`): `POST /api/projects/intake` generates 3-5 steering
+  questions (degrades to a static set); answers persist on `Project.intake` and thread
+  into decomposition + root rationale. New-exploration dialog gains the intake step.
+  Verified live: real questions generated, answers persisted on the created project.
+Also fixed earlier the same session: **delete** (backend was fine; frontend used a blocking
+confirm → inline-confirm sidebar rows), the **tree overflow/collision** (app-shell single
+scroll region), and the **17-simultaneous-SSE-streams** problem (active-only stream + 4s
+list poll).
+Verification gate held throughout: `pytest` 14 passed, `ruff`/`tsc --noEmit` clean,
+`vite build` succeeds, both servers boot. Screenshots in `verification/ui-review/`.
+Follow-ups: prove intake divergence with two full real runs; trim unused `ProjectTabs`
+component; a formal Impeccable critique pass.
