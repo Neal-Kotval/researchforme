@@ -43,7 +43,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
-from ..llm.client import ClaudeClient, get_client
+from ..analysis.synthesize import build_corroboration_tools
+from ..llm.client import ClaudeClient, ToolSpec, get_client
 from .engine import (
     Frontier,
     expand_segment,
@@ -73,6 +74,32 @@ from .store import TreeStore, get_store
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# Rigor levels at which the pressure-test red team is allowed to spend real
+# fetches corroborating a kill/rescue against live sources. ``light`` (the
+# governor's curbing rigor) stays deliberately tool-free and cheap (SPEC §5).
+_CORROBORATION_RIGORS = frozenset({"standard", "deep"})
+
+
+def corroboration_tools_for(
+    segment: Node, gap_sub_segment: str, project: Project, rigor: str
+) -> Optional[list[ToolSpec]]:
+    """Live ``search_*`` tools for a pressure test, or ``None`` when not warranted.
+
+    Wires the SPEC §5 corroboration seam: at ``standard``/``deep`` rigor the red
+    team gets fresh-evidence tools scoped to the segment being explored (so a
+    lens can actually verify "is the demand real?" against live Reddit/HN/etc).
+    At ``light`` rigor — the governor's curbing mode — it returns ``None`` so the
+    test stays cheap and tool-free. Pure/deterministic, so it's unit-testable
+    without an event loop.
+    """
+    if (rigor or "").strip().lower() not in _CORROBORATION_RIGORS:
+        return None
+    # Scope: the specific segment title is the sharpest "area"; carry the gap's
+    # sub-segment (and the project's) so fetches stay on-target.
+    subs = [s for s in (gap_sub_segment, *project.sub_segments) if s]
+    return build_corroboration_tools(segment.title, subs)
 
 
 # --------------------------------------------------------------------------- #
@@ -434,12 +461,19 @@ class ExplorerService:
                 new_candidates += 1
 
                 rigor = self.governor.rigor_for(budget, spent)
+                # Wire the live-corroboration seam (SPEC §5): at standard/deep
+                # rigor the red team can pull fresh evidence from real sources to
+                # verify a kill or rescue; light rigor stays tool-free and cheap.
+                tools = corroboration_tools_for(
+                    node, child.gap.sub_segment, project, rigor
+                )
                 test = await pressure_test(
                     child.gap,
                     child.rationale,
                     self.client,
                     project.pressure_model,
                     rigor,
+                    tools=tools,
                 )
                 viability, confidence = score_viability(child.gap, test)
 

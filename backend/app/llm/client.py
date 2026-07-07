@@ -41,6 +41,62 @@ class LLMResult:
     tool_calls: int = 0
 
 
+# --------------------------------------------------------------------------- #
+# Rate-limit signalling. The client is the one place that actually sees a 429 /
+# retry-after, but it must stay independent of the autonomous layer (no import
+# cycle). So it exposes a tiny observer hook: the UsageGovernor registers its
+# `note_rate_limit` here, and the client fires it whenever a call fails with a
+# rate-limit-shaped error — turning the audit's "note_rate_limit is dead code"
+# into a live, authoritative throttle signal (SPEC §6.1).
+# --------------------------------------------------------------------------- #
+_rate_limit_listeners: list[Callable[[Optional[float]], None]] = []
+
+
+def register_rate_limit_listener(fn: Callable[[Optional[float]], None]) -> None:
+    """Register a callback fired on every observed rate-limit signal (idempotent)."""
+    if fn not in _rate_limit_listeners:
+        _rate_limit_listeners.append(fn)
+
+
+def _looks_rate_limited(exc: Exception) -> bool:
+    """Best-effort: does this exception look like a 429 / overload across backends?"""
+    if getattr(exc, "status_code", None) == 429:
+        return True
+    name = type(exc).__name__.lower()
+    if "ratelimit" in name or "overload" in name:
+        return True
+    msg = str(exc).lower()
+    return any(
+        s in msg
+        for s in ("rate limit", "rate_limit", "429", "too many requests", "overloaded")
+    )
+
+
+def _retry_after_of(exc: Exception) -> Optional[float]:
+    """Pull a ``retry-after`` (seconds) off the exception's response, if present."""
+    resp = getattr(exc, "response", None)
+    headers = getattr(resp, "headers", None)
+    if not headers:
+        return None
+    try:
+        raw = headers.get("retry-after") or headers.get("Retry-After")
+        return float(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _notify_rate_limit(exc: Exception) -> None:
+    """Fire the observer hook if ``exc`` is rate-limit-shaped. Never raises."""
+    if not _looks_rate_limited(exc):
+        return
+    retry_after = _retry_after_of(exc)
+    for fn in list(_rate_limit_listeners):
+        try:
+            fn(retry_after)
+        except Exception:  # noqa: BLE001 - an observer must never break a call
+            continue
+
+
 class ClaudeClient:
     def __init__(self) -> None:
         self.settings = get_settings()
@@ -72,6 +128,9 @@ class ClaudeClient:
                     return self._via_fixture()
             except Exception as exc:  # noqa: BLE001 - deliberately resilient
                 last_err = exc
+                # Surface a rate-limit signal to the governor before cascading —
+                # the authoritative live throttle signal (SPEC §6.1).
+                _notify_rate_limit(exc)
                 continue
         raise RuntimeError(f"All LLM backends failed. Last error: {last_err}")
 

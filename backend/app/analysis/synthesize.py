@@ -244,8 +244,15 @@ def _make_tool_handler(name: SourceName, area: str, sub_segments: list[str]):
     return _handler
 
 
-def _build_tools(signals: ExtractedSignals) -> list[ToolSpec]:
-    """One corroboration tool per source, bound to the registry's fetch."""
+def build_corroboration_tools(area: str, sub_segments: list[str]) -> list[ToolSpec]:
+    """One live ``search_*`` corroboration tool per source, bound to ``area``.
+
+    Public factory so callers outside synthesis (notably the autonomous
+    pressure-test path, SPEC §5) can hand the same fresh-evidence tools to a
+    red-team model. The handlers take the *query* from the model and keep the
+    given ``area``/``sub_segments`` as scope; each NEVER raises (returns a text
+    note on failure) so tool use can't crash a run.
+    """
     schema = {
         "type": "object",
         "properties": {
@@ -298,10 +305,15 @@ def _build_tools(signals: ExtractedSignals) -> list[ToolSpec]:
             name=tool_name,
             description=desc,
             input_schema=schema,
-            handler=_make_tool_handler(src, signals.area, signals.sub_segments),
+            handler=_make_tool_handler(src, area, sub_segments),
         )
         for tool_name, src, desc in specs
     ]
+
+
+def _build_tools(signals: ExtractedSignals) -> list[ToolSpec]:
+    """Corroboration tools scoped to a segment's mined ``ExtractedSignals``."""
+    return build_corroboration_tools(signals.area, signals.sub_segments)
 
 
 # --------------------------------------------------------------------------- #

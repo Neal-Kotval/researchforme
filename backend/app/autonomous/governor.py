@@ -37,6 +37,8 @@ from .schemas import Budget, ExplorerMode
 # with headroom; sprint pushes concurrency and rigor to the ceiling.           #
 # --------------------------------------------------------------------------- #
 _RATE_WINDOW = 60.0          # rolling window for token-rate + 429 accounting
+_DAILY_WINDOW = 86400.0      # rolling 24h window for the shared daily cap
+_DAILY_BUCKET = 3600.0       # bucket width for the daily meter (memory-bounded)
 _BACKOFF_BASE = 1.0          # first backoff after a rate limit (seconds)
 _BACKOFF_CAP = 60.0          # exponential backoff ceiling
 _IDLE_WAIT = 1.0             # bounded idle when paused with no explicit backoff
@@ -70,9 +72,12 @@ class UsageGovernor:
         self._lock = threading.Lock()
 
         # Rolling spend + rate accounting (global across projects).
-        self._spent_total = 0
+        self._spent_total = 0                              # lifetime, for reporting
         self._recent: deque[tuple[float, int]] = deque()   # (ts, tokens) in window
         self._limit_hits: deque[float] = deque()           # 429 timestamps in window
+        # Rolling 24h spend for the shared daily cap, in hourly buckets so memory
+        # stays bounded (≤25 buckets) instead of growing per-call over a long run.
+        self._daily: deque[list[float]] = deque()          # [bucket_start_ts, tokens]
 
         # Exponential backoff memory (SPEC §6.1).
         self._consecutive_limits = 0
@@ -124,6 +129,7 @@ class UsageGovernor:
         with self._lock:
             self._spent_total += tokens
             self._recent.append((now, tokens))
+            self._add_daily(now, tokens)
             self._prune(now)
             # A successful call after the backoff window has passed clears the
             # consecutive-limit memory so we don't back off forever.
@@ -157,6 +163,21 @@ class UsageGovernor:
             self._recent.popleft()
         while self._limit_hits and self._limit_hits[0] < horizon:
             self._limit_hits.popleft()
+
+    def _add_daily(self, now: float, tokens: int) -> None:
+        """Fold ``tokens`` into the current hourly bucket. Caller holds lock."""
+        bucket = now - (now % _DAILY_BUCKET)
+        if self._daily and self._daily[-1][0] == bucket:
+            self._daily[-1][1] += tokens
+        else:
+            self._daily.append([bucket, float(tokens)])
+
+    def _daily_spent(self, now: float) -> int:
+        """Tokens metered in the trailing 24h, pruning stale buckets. Holds lock."""
+        horizon = now - _DAILY_WINDOW
+        while self._daily and self._daily[0][0] < horizon:
+            self._daily.popleft()
+        return int(sum(b[1] for b in self._daily))
 
     # ----------------------------------------------------------------- #
     # Policy                                                            #
@@ -193,8 +214,12 @@ class UsageGovernor:
         if budget.max_tokens and budget.max_tokens > 0:
             fracs.append(max(0.0, (budget.max_tokens - spent) / budget.max_tokens))
         if budget.daily_cap_tokens and budget.daily_cap_tokens > 0:
+            # Measure the shared daily cap against a *rolling 24h* spend, not the
+            # process-lifetime total, so a long-lived server doesn't falsely
+            # exhaust the "daily" cap and never recover (audit HIGH #3).
+            day = self._daily_spent(time.time())
             fracs.append(
-                max(0.0, (budget.daily_cap_tokens - self._spent_total) / budget.daily_cap_tokens)
+                max(0.0, (budget.daily_cap_tokens - day) / budget.daily_cap_tokens)
             )
         if not fracs:
             return 1.0
@@ -266,10 +291,21 @@ _GOVERNOR_LOCK = threading.Lock()
 
 
 def get_governor() -> UsageGovernor:
-    """Return the process-wide governor shared by every project."""
+    """Return the process-wide governor shared by every project.
+
+    On first creation it registers its :meth:`note_rate_limit` with the LLM
+    client's observer hook, so real 429 / ``retry-after`` signals from live calls
+    actually drive the backoff (SPEC §6.1) instead of the meter running blind.
+    """
     global _GOVERNOR
     if _GOVERNOR is None:
         with _GOVERNOR_LOCK:
             if _GOVERNOR is None:
                 _GOVERNOR = UsageGovernor()
+                try:
+                    from ..llm.client import register_rate_limit_listener
+
+                    register_rate_limit_listener(_GOVERNOR.note_rate_limit)
+                except Exception:  # noqa: BLE001 - wiring must never break startup
+                    pass
     return _GOVERNOR
