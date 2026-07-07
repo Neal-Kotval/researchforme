@@ -351,3 +351,37 @@ async def test_self_critique_degrades_and_guards_format():
 
     out = await adversarial_self_critique(gap, 80, test, _Good(), "m")
     assert "80 overstates" in out
+
+
+def test_usage_policy_shapes_headroom_around_limit():
+    """A dynamic percent usage limit auto-curbs then pauses as spend nears cap×pct."""
+    from app.autonomous.governor import UsageGovernor
+    from app.autonomous.schemas import Budget
+
+    gov = UsageGovernor()
+    # 100k/day cap, aim to stay under 90% of it -> effective ceiling 90k.
+    gov.set_policy(daily_cap_tokens=100_000, limit_pct=0.90)
+    b = Budget()  # no per-project caps; the global policy does the shaping
+
+    assert gov.headroom(b, 0) == "ample"
+    snap = gov.snapshot()
+    assert snap["effective_cap"] == 90_000 and snap["limit_pct"] == 0.90
+
+    gov.record_usage(80_000)  # 80k of 90k effective -> ~11% left -> curbing
+    assert gov.headroom(b, 0) == "tight"
+    lvl = gov.snapshot()["usage_level"]
+    assert lvl in {"high", "heavy"}
+
+    gov.record_usage(15_000)  # 95k > 90k effective -> no headroom -> pause
+    assert gov.headroom(b, 0) == "none"
+    assert gov.snapshot()["usage_level"] == "heavy"
+
+
+def test_usage_level_bands_without_cap_use_rate():
+    from app.autonomous.governor import _usage_level
+
+    assert _usage_level(None, 0) == "low"
+    assert _usage_level(None, 5_000) == "medium"
+    assert _usage_level(None, 12_000) == "high"
+    assert _usage_level(None, 50_000) == "heavy"
+    assert _usage_level(0.5, 0) == "medium"  # ratio wins when a cap is set

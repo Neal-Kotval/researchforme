@@ -53,6 +53,31 @@ _SPRINT_DELAY: dict[str, float] = {"eco": 0.5, "balanced": 0.05, "sprint": 0.0}
 # Inter-step delay while CURBING (tight): a light throttle to ease off the limit.
 _CURB_DELAY: dict[str, float] = {"eco": 2.0, "balanced": 1.0, "sprint": 0.5}
 
+# Rate bands (tokens/min) for the qualitative gauge when no cap is set.
+_RATE_BANDS: tuple[tuple[int, str], ...] = (
+    (2_000, "low"), (8_000, "medium"), (20_000, "high"),
+)
+
+
+def _usage_level(ratio: float | None, rate_per_min: int) -> str:
+    """A ``claude usage``-style band: low / medium / high / heavy.
+
+    When a usage cap is set we band by how close spend is to it (``ratio``); with
+    no cap, we fall back to the raw token *rate* so the gauge still reads sensibly.
+    """
+    if ratio is not None:
+        if ratio < 0.40:
+            return "low"
+        if ratio < 0.70:
+            return "medium"
+        if ratio < 0.90:
+            return "high"
+        return "heavy"
+    for threshold, label in _RATE_BANDS:
+        if rate_per_min < threshold:
+            return label
+    return "heavy"
+
 
 class UsageGovernor:
     """Shared, self-throttling budget/concurrency governor.
@@ -89,6 +114,13 @@ class UsageGovernor:
         # Exponential backoff memory (SPEC §6.1).
         self._consecutive_limits = 0
         self._backoff_until = 0.0
+
+        # Dynamic usage shaping: a global rolling-24h token cap and a target
+        # percent of it (e.g. 0.95) that all projects cooperatively stay under.
+        # As spend approaches cap*pct the governor curbs, then pauses — so a run
+        # automatically shapes itself around a usage limit you set.
+        self._global_daily_cap: int | None = None
+        self._usage_limit_pct: float = 1.0
 
         self._mode = ExplorerMode.PAUSED
 
@@ -142,6 +174,27 @@ class UsageGovernor:
             # consecutive-limit memory so we don't back off forever.
             if now >= self._backoff_until:
                 self._consecutive_limits = 0
+
+    def set_policy(
+        self, *, daily_cap_tokens: int | None = None, limit_pct: float | None = None
+    ) -> None:
+        """Set the global usage-shaping policy: a rolling-24h cap and a % target.
+
+        ``daily_cap_tokens`` is the shared "100%" reference; ``limit_pct`` (0.05..1)
+        is the fraction of it the fleet aims to stay under. Passing 0/None for the
+        cap clears it (unbounded). Idempotent and thread-safe.
+        """
+        with self._lock:
+            if daily_cap_tokens is not None:
+                self._global_daily_cap = daily_cap_tokens if daily_cap_tokens > 0 else None
+            if limit_pct is not None:
+                self._usage_limit_pct = max(0.05, min(1.0, float(limit_pct)))
+
+    def _effective_cap(self) -> int | None:
+        """The shaped ceiling = global daily cap × limit%. Caller holds the lock."""
+        if not self._global_daily_cap:
+            return None
+        return int(self._global_daily_cap * self._usage_limit_pct)
 
     def note_rate_limit(self, retry_after: float | None = None) -> None:
         """Record a rate-limit signal (429 / ``retry-after``) and widen backoff.
@@ -228,6 +281,11 @@ class UsageGovernor:
             fracs.append(
                 max(0.0, (budget.daily_cap_tokens - day) / budget.daily_cap_tokens)
             )
+        # Global usage-shaping cap (× limit%): the fleet-wide ceiling the user set.
+        eff = self._effective_cap()
+        if eff:
+            day = self._daily_spent(time.time())
+            fracs.append(max(0.0, (eff - day) / eff))
         if not fracs:
             return 1.0
         return min(fracs)
@@ -263,17 +321,27 @@ class UsageGovernor:
         now = time.time()
         with self._lock:
             self._prune(now)
-            rate = sum(tok for _, tok in self._recent)  # tokens in last 60s ≈ /min
+            rate = int(sum(tok for _, tok in self._recent))  # tokens/60s ≈ /min
             in_backoff = now < self._backoff_until
+            day = self._daily_spent(now)
+            eff = self._effective_cap()
+            ratio = (day / eff) if eff else None
             return {
                 "spent_total": self._spent_total,
-                "daily_spent": self._daily_spent(now),
-                "rate_per_min": int(rate),
+                "daily_spent": day,
+                "rate_per_min": rate,
                 "mode": self._mode.value,
                 "in_backoff": in_backoff,
                 "backoff_remaining_s": max(0.0, self._backoff_until - now) if in_backoff else 0.0,
                 "recent_limits": len(self._limit_hits),
                 "max_concurrency": self._max_concurrency,
+                # Usage-shaping policy + derived gauge fields.
+                "daily_cap": self._global_daily_cap,
+                "limit_pct": self._usage_limit_pct,
+                "effective_cap": eff,
+                "usage_ratio": ratio,  # 0..1+ against the effective cap (None = uncapped)
+                "usage_level": _usage_level(ratio, rate),
+                "projected_24h": rate * 1440,  # tokens/day if the current rate holds
             }
 
     async def gate(self, budget: Budget, spent: int) -> ExplorerMode:

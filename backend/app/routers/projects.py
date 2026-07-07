@@ -32,6 +32,7 @@ from typing import AsyncIterator, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from ..autonomous.schemas import (
     ControlAction,
@@ -61,6 +62,21 @@ def global_usage() -> dict:
     so several concurrent explorations show one honest, cooperating meter.
     """
     return get_governor().snapshot()
+
+
+class UsagePolicyRequest(BaseModel):
+    """Set the fleet-wide usage-shaping policy (SPEC §6)."""
+
+    daily_cap_tokens: Optional[int] = None  # the "100%" reference; 0/None = unbounded
+    limit_pct: Optional[float] = None       # target fraction of the cap, e.g. 0.95
+
+
+@router.post("/usage/policy")
+def set_usage_policy(req: UsagePolicyRequest) -> dict:
+    """Set a dynamic usage limit; the governor auto-shapes spend around it."""
+    gov = get_governor()
+    gov.set_policy(daily_cap_tokens=req.daily_cap_tokens, limit_pct=req.limit_pct)
+    return gov.snapshot()
 
 
 # --------------------------------------------------------------------------- #
