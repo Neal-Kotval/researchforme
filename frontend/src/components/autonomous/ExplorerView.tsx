@@ -13,6 +13,7 @@ import {
   type Budget,
   type CreateProjectRequest,
   type ExplorerEvent,
+  type ExplorerMode,
   type Pace,
   type Project,
   type TreeNode,
@@ -24,7 +25,54 @@ import ExplorationTree from "./ExplorationTree";
 import NodeInspector from "./NodeInspector";
 import RunControls from "./RunControls";
 import UsageMeter from "./UsageMeter";
+import LiveActivity, { type Sample } from "./LiveActivity";
 import ProjectDigest from "./ProjectDigest";
+
+/* -------------------------------------------------------------- live series -- */
+// A time-series of each project's stats, folded from the SSE stream, so the UI
+// can *show the exploration happening* (streaming spend/throughput/frontier
+// graphs) instead of a spinner. Kept small + capped; purely client-side.
+const HISTORY_CAP = 400;
+
+function sampleOf(project: Project, atMs: number): Sample {
+  const s = project.stats;
+  return {
+    t: atMs,
+    tokens: s.tokens_spent,
+    nodes: s.nodes,
+    gaps: s.gaps,
+    stars: s.stars,
+    candidates: s.candidates,
+    frontier: s.frontier_size,
+    maxViability: s.max_viability,
+    mode: s.mode as ExplorerMode,
+  };
+}
+
+function pushSample(history: Sample[], next: Sample): Sample[] {
+  const last = history[history.length - 1];
+  // Collapse near-duplicate frames (same counters within 700ms) so the graph
+  // reflects real work, not SSE chatter — but always keep mode flips.
+  if (
+    last &&
+    last.tokens === next.tokens &&
+    last.nodes === next.nodes &&
+    last.gaps === next.gaps &&
+    last.stars === next.stars &&
+    last.mode === next.mode &&
+    next.t - last.t < 700
+  ) {
+    return history;
+  }
+  const out = history.length >= HISTORY_CAP ? history.slice(history.length - HISTORY_CAP + 1) : history.slice();
+  out.push(next);
+  return out;
+}
+
+function atMs(iso: string): number {
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? Date.now() : t;
+}
 
 /* ------------------------------------------------------------------ store -- */
 // A live, client-side mirror of every project's event-sourced tree. Hydrated
@@ -33,6 +81,7 @@ interface PState {
   project: Project;
   nodes: Record<string, TreeNode>;
   lastSeq: number;
+  history: Sample[];
 }
 interface StoreState {
   byId: Record<string, PState>;
@@ -52,7 +101,9 @@ function reduce(state: StoreState, action: Action): StoreState {
       const byId: Record<string, PState> = {};
       for (const p of action.projects) {
         const prev = state.byId[p.id];
-        byId[p.id] = prev ? { ...prev, project: p } : { project: p, nodes: {}, lastSeq: -1 };
+        byId[p.id] = prev
+          ? { ...prev, project: p }
+          : { project: p, nodes: {}, lastSeq: -1, history: [] };
       }
       return { byId, order };
     }
@@ -60,9 +111,16 @@ function reduce(state: StoreState, action: Action): StoreState {
       const { project, nodes, last_seq } = action.snapshot;
       const map: Record<string, TreeNode> = {};
       for (const n of nodes) map[n.id] = n;
+      const prev = state.byId[project.id];
+      // Preserve any history already gathered, then seed a current point so the
+      // graph has an anchor even before the first live event lands.
+      const history = pushSample(prev?.history ?? [], sampleOf(project, Date.now()));
       return {
         ...state,
-        byId: { ...state.byId, [project.id]: { project, nodes: map, lastSeq: last_seq } },
+        byId: {
+          ...state.byId,
+          [project.id]: { project, nodes: map, lastSeq: last_seq, history },
+        },
       };
     }
     case "event": {
@@ -71,11 +129,20 @@ function reduce(state: StoreState, action: Action): StoreState {
       if (!ps || ev.seq <= ps.lastSeq) return state;
       const nodes = ev.node ? { ...ps.nodes, [ev.node.id]: ev.node } : ps.nodes;
       const project = ev.project ?? ps.project;
+      // Every event that carries fresh project stats becomes a graph sample.
+      const history = ev.project
+        ? pushSample(ps.history, sampleOf(ev.project, atMs(ev.at)))
+        : ps.history;
       return {
         ...state,
         byId: {
           ...state.byId,
-          [ev.project_id]: { project, nodes, lastSeq: Math.max(ps.lastSeq, ev.seq) },
+          [ev.project_id]: {
+            project,
+            nodes,
+            lastSeq: Math.max(ps.lastSeq, ev.seq),
+            history,
+          },
         },
       };
     }
@@ -271,6 +338,8 @@ export default function ExplorerView() {
             </div>
 
             <UsageMeter project={project} allProjects={allProjects} />
+
+            <LiveActivity project={project} history={active!.history} />
 
             <div className="card exp-tree-card">
               <ExplorationTree

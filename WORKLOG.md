@@ -64,3 +64,26 @@ continuous push/sync. Also stopped tracking `frontend/tsconfig.tsbuildinfo` (bui
 Why: Owner explicitly authorized working on main and pushing continuously (overrides the
 prompt's "never touch main" guardrail — they own the repo).
 Verification: `git merge --ff-only` clean; `git push` → 9f7c44f..f03d6dd.
+
+## 2026-07-07 02:10 — Live streaming visualization (owner's #1 steer)   [commit pending]
+What: Built `LiveActivity.tsx` — a streaming-graph panel that *shows the exploration
+happening* instead of a spinner. Folds the existing SSE stats stream into a rolling
+time-series (added `history: Sample[]` to the ExplorerView store, fed on every event) and
+renders, in pure inline SVG on the design tokens:
+- a pulsing status line with live throughput ("21.7 nodes/min · 3.4k tok/min");
+- three streaming KPI sparkline tiles (Tokens / Nodes+queued / Gaps+★);
+- a primary "Cumulative spend" timeline area chart with the frontier depth as a faint
+  backing band and a ● marker each time a new gap lands, plus a pulsing head dot.
+No backend change, no chart lib, no external requests — all driven by data already on the
+stream, so it can't interfere with running explorations.
+Why: Owner asked to "visualize the process ongoing… streaming graphs etc, not just loading
+screens."
+Verification: `tsc --noEmit` clean; `vite build` succeeds. **Real browser (headless
+Chromium via Playwright):** created a fresh exploration and watched it from t=0 — captured
+the live SSE transition (frame 0: 0 tok/1 node → frame 5: 1.1k tok/8 nodes, rate 21.7
+nodes/min, timeline path grew), confirming tiles + chart update live (tokensChanged=true,
+nodesChanged=true). Screenshot: `verification/live-activity/frame-5.png`. Zero uncaught JS
+errors (one benign favicon 404 on the dev server).
+Follow-ups: gap-discovery markers (●) only populate once a run reaches the gap layer; deep
+tool-using pressure tests are ~90s each so structural growth streams first. A global
+persistent usage bar (feature F) is the natural next step.
