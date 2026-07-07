@@ -8,6 +8,8 @@ interface Props {
   project: Project;
   busy?: boolean;
   onControl: (req: ControlRequest) => void;
+  /** Slim inline variant (transport + pace only) for the tab-strip header. */
+  compact?: boolean;
 }
 
 const PACES: { id: Pace; label: string; sub: string }[] = [
@@ -27,7 +29,7 @@ function numOrNull(v: string): number | null {
  * star-threshold slider, and the three-stage model config (reusing ModelPicker;
  * models are fixed at creation, shown read-only here).
  */
-export default function RunControls({ project, busy, onControl }: Props) {
+export default function RunControls({ project, busy, onControl, compact }: Props) {
   const [draft, setDraft] = useState<Budget>(project.budget);
   useEffect(() => setDraft(project.budget), [project.id]); // reset on tab switch
 
@@ -37,6 +39,38 @@ export default function RunControls({ project, busy, onControl }: Props) {
   const dirty = JSON.stringify(draft) !== JSON.stringify(project.budget);
 
   const setPace = (pace: Pace) => onControl({ action: "set_pace", pace });
+
+  // Slim inline variant: just the transport button + a compact pace dial.
+  if (compact) {
+    return (
+      <div className="run-controls compact">
+        {milestone ? (
+          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onControl({ action: "continue_milestone" })}>
+            ▸ Keep going
+          </button>
+        ) : running ? (
+          <button className="btn btn-sm" disabled={busy} onClick={() => onControl({ action: "pause" })}>
+            ❚❚ Pause
+          </button>
+        ) : (
+          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onControl({ action: "resume" })}>
+            ▸ Resume
+          </button>
+        )}
+        <div className="seg-control seg-mini" role="radiogroup" aria-label="Pace">
+          {PACES.map((p) => (
+            <button
+              key={p.id} type="button" role="radio"
+              aria-checked={project.budget.pace === p.id} aria-pressed={project.budget.pace === p.id}
+              className="seg-option" disabled={busy} onClick={() => setPace(p.id)} title={p.sub}
+            >
+              <span className="so-label">{p.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
   const applyBudget = () => onControl({ action: "set_budget", budget: draft });
   const field = (k: keyof Budget, v: number | null) =>
     setDraft((d) => ({ ...d, [k]: v }));

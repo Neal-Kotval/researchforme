@@ -88,6 +88,10 @@ function atMs(iso: string): number {
   return Number.isNaN(t) ? Date.now() : t;
 }
 
+function titleKind(kind: string): string {
+  return kind.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 /* ------------------------------------------------------------------ store -- */
 // A live, client-side mirror of every project's event-sourced tree. Hydrated
 // from the SSE `snapshot` frame, then folded forward from node/project events.
@@ -202,6 +206,7 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [view, setView] = useState<"overview" | "nodes">("nodes");
 
   const orderSig = state.order.join(",");
 
@@ -384,7 +389,49 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
               <UsageMeter project={project} allProjects={allProjects} />
               <LiveActivity project={project} history={active!.history} />
 
-              <div className="exp-body">
+              {/* Tab strip: Overview (digest + controls) vs Nodes (the tree).
+                  Selecting any idea opens a full-width detail page (like the
+                  single-area gap page) with a breadcrumb back to the tree. */}
+              <div className="exp-tabbar">
+                <div className="exp-tabs" role="tablist" aria-label="Exploration views">
+                  <button
+                    role="tab" aria-selected={!selectedNode && view === "overview"}
+                    className={`exp-tab${!selectedNode && view === "overview" ? " active" : ""}`}
+                    onClick={() => { selectNode(null); setView("overview"); }}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    role="tab" aria-selected={!selectedNode && view === "nodes"}
+                    className={`exp-tab${!selectedNode && view === "nodes" ? " active" : ""}`}
+                    onClick={() => { selectNode(null); setView("nodes"); }}
+                  >
+                    Nodes <span className="exp-tab-n">{Object.keys(active!.nodes).length}</span>
+                  </button>
+                  {selectedNode && (
+                    <button role="tab" aria-selected className="exp-tab active idea">
+                      {selectedNode.kind === "gap" || selectedNode.kind === "gap_candidate"
+                        ? "Idea" : titleKind(selectedNode.kind)}
+                    </button>
+                  )}
+                </div>
+                <div className="exp-tab-controls">
+                  <RunControls project={project} busy={busy} onControl={onControl} compact />
+                </div>
+              </div>
+
+              {selectedNode ? (
+                <div className="card exp-detail">
+                  <button className="inspect-back" onClick={() => selectNode(null)}>
+                    ‹ Back to {view === "overview" ? "overview" : "nodes"}
+                  </button>
+                  <NodeInspector
+                    node={selectedNode}
+                    childNodes={selectedChildren}
+                    onSelectChild={selectNode}
+                  />
+                </div>
+              ) : view === "nodes" ? (
                 <div className="card exp-tree-card">
                   <ExplorationTree
                     nodes={active!.nodes}
@@ -393,30 +440,16 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
                     onSelect={selectNode}
                   />
                 </div>
-
-                <aside className="exp-right">
+              ) : (
+                <div className="exp-overview">
+                  <div className="card exp-panel exp-inspect">
+                    <ProjectDigest nodes={active!.nodes} onSelect={selectNode} />
+                  </div>
                   <div className="card exp-panel">
                     <RunControls project={project} busy={busy} onControl={onControl} />
                   </div>
-
-                  <div className="card exp-panel exp-inspect">
-                    {selectedNode ? (
-                      <>
-                        <button className="inspect-back" onClick={() => selectNode(null)}>
-                          ‹ Back to digest
-                        </button>
-                        <NodeInspector
-                          node={selectedNode}
-                          childNodes={selectedChildren}
-                          onSelectChild={selectNode}
-                        />
-                      </>
-                    ) : (
-                      <ProjectDigest nodes={active!.nodes} onSelect={selectNode} />
-                    )}
-                  </div>
-                </aside>
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>
