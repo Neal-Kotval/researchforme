@@ -300,3 +300,21 @@ def test_daily_cap_uses_rolling_window_not_lifetime():
     gov.record_usage(950)
     assert gov._daily_spent(time.time()) == 950
     assert gov.headroom(budget, 0) in {"tight", "none"}
+
+
+def test_governor_snapshot_reports_measured_numbers():
+    """The global usage snapshot exposes real spend/rate/mode for the usage bar."""
+    from app.autonomous.governor import UsageGovernor
+
+    gov = UsageGovernor()
+    snap = gov.snapshot()
+    assert snap["spent_total"] == 0 and snap["rate_per_min"] == 0
+    assert snap["mode"] in {"sprinting", "curbing", "paused"}
+    assert snap["max_concurrency"] >= 1
+    assert snap["in_backoff"] is False
+
+    gov.record_usage(1500)
+    snap = gov.snapshot()
+    assert snap["spent_total"] == 1500
+    assert snap["daily_spent"] == 1500
+    assert snap["rate_per_min"] == 1500  # all within the trailing 60s window

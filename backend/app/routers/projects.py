@@ -41,12 +41,26 @@ from ..autonomous.schemas import (
     Project,
     TreeSnapshot,
 )
+from ..autonomous.governor import get_governor
 from ..autonomous.service import get_service
 from ..autonomous.store import get_store
 
 logger = logging.getLogger("gapfinder.api")
 
 router = APIRouter(tags=["autonomous"])
+
+
+# --------------------------------------------------------------------------- #
+# Global usage (the always-on shared usage bar, SPEC §6/§10.3)                 #
+# --------------------------------------------------------------------------- #
+@router.get("/usage")
+def global_usage() -> dict:
+    """The shared governor's real global snapshot — spend, rate, mode, backoff.
+
+    Drives the persistent global usage bar from measured numbers (not a guess),
+    so several concurrent explorations show one honest, cooperating meter.
+    """
+    return get_governor().snapshot()
 
 
 # --------------------------------------------------------------------------- #
@@ -240,9 +254,22 @@ async def _event_source(
             last_seq = event.seq
             yield _sse(event.model_dump_json())
     finally:
+        # Tear down the subscriber cleanly. The `pending` task is a live
+        # `agen.__anext__()` in flight; we must let its cancellation *settle*
+        # before `aclose()`, otherwise the generator is still "running" and
+        # aclose() raises `RuntimeError: aclose(): asynchronous generator is
+        # already running` (observed on client disconnect). Await the cancelled
+        # task first, then close — guarding both so teardown never raises out.
         if not pending.done():
             pending.cancel()
-        await agen.aclose()
+        try:
+            await pending
+        except (asyncio.CancelledError, Exception):  # noqa: BLE001
+            pass
+        try:
+            await agen.aclose()
+        except Exception:  # noqa: BLE001 - deregistration must never crash the stream
+            pass
 
 
 @router.get("/projects/{pid}/events")

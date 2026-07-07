@@ -26,6 +26,7 @@ import NodeInspector from "./NodeInspector";
 import RunControls from "./RunControls";
 import UsageMeter from "./UsageMeter";
 import LiveActivity, { type Sample } from "./LiveActivity";
+import GlobalUsageBar from "./GlobalUsageBar";
 import ProjectDigest from "./ProjectDigest";
 
 /* -------------------------------------------------------------- live series -- */
@@ -375,6 +376,8 @@ export default function ExplorerView() {
           </aside>
         </div>
       )}
+
+      {state.order.length > 0 && <GlobalUsageBar projects={allProjects} />}
 
       {showNew && (
         <NewExplorationDialog onClose={() => setShowNew(false)} onCreate={onCreate} />

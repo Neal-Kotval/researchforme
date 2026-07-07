@@ -87,3 +87,28 @@ errors (one benign favicon 404 on the dev server).
 Follow-ups: gap-discovery markers (●) only populate once a run reaches the gap layer; deep
 tool-using pressure tests are ~90s each so structural growth streams first. A global
 persistent usage bar (feature F) is the natural next step.
+
+## 2026-07-07 02:45 — Feature F: global usage bar + SSE teardown fix   [commit pending]
+What:
+1. **Global usage bar (SPEC §6/§10.3).** Added `UsageGovernor.snapshot()` (real measured
+   spend/rate/mode/backoff/concurrency), a `GET /api/usage` endpoint, and a persistent
+   `GlobalUsageBar.tsx` that polls it every 2s — a slim always-on strip showing combined
+   24h spend, live token rate, shared cooperating mode, running count, and shared cap.
+   Neutral by default; vermillion only in the rate-limited/backoff state. Driven by real
+   governor numbers, not a client-side guess.
+2. **SSE teardown bug fixed.** `_event_source`'s `finally` called `agen.aclose()` while the
+   in-flight `pending = agen.__anext__()` task was still live, raising
+   `RuntimeError: aclose(): asynchronous generator is already running` on every client
+   disconnect. Now it awaits the cancelled task before closing, guarding both — teardown
+   never raises. (This was spamming the log 3× per disconnect × 18 subscriptions.)
+Why: Make usage first-class and always-visible (owner's visibility steer); stop the SSE
+stream from erroring on disconnect (degrade-don't-crash).
+Verification: `pytest -q` → 10 passed (+1 snapshot test); `ruff` clean; `tsc`/`vite build`
+clean. **Live:** `/api/usage` returns measured numbers; the bar rendered "Sprinting · 1.2k
+tokens today · 0 tok/min · 15 running · shared cap 8×" in headless Chromium (screenshot
+`verification/global-usage-bar/bar.png`), 0 page errors. SSE fix confirmed: **0 `aclose`
+errors** after the fix reload despite the browser opening/closing 18 SSE connections
+(all prior errors predate the reload). Real governor spend observed climbing (0 → 1203).
+Follow-ups: many stale "running" projects from prior sessions clutter the tab bar (dead
+workers, benign) — a boot-time reconciliation to mark orphaned runs as paused would tidy
+the UI; deferred (touches user data).

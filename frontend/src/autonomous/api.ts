@@ -13,6 +13,7 @@ import type {
   ControlAction,
   CreateProjectRequest,
   ExplorerEvent,
+  GlobalUsage,
   Pace,
   Project,
   TreeSnapshot,
@@ -54,6 +55,11 @@ export function createProject(req: CreateProjectRequest): Promise<Project> {
 /** Every project, newest first — feeds the tab bar. */
 export function listProjects(): Promise<Project[]> {
   return request<Project[]>("/api/projects");
+}
+
+/** The shared governor's real global usage snapshot — drives the global bar. */
+export function getUsage(): Promise<GlobalUsage> {
+  return request<GlobalUsage>("/api/usage");
 }
 
 /** One project's metadata + live stats. */

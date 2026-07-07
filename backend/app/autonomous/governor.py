@@ -244,6 +244,31 @@ class UsageGovernor:
         with self._lock:
             return self._mode
 
+    def snapshot(self) -> dict:
+        """A clean, real global usage snapshot for the always-on usage bar (SPEC §6/§10.3).
+
+        Everything here is a *measured* number the governor already tracks — no
+        guessing: lifetime + rolling-24h spend, the current token rate (tokens in
+        the trailing 60s), the shared mode, whether we're in rate-limit backoff and
+        for how long, recent 429s, and the shared concurrency ceiling. The UI bar
+        is driven by this, so several tabs show one honest, cooperating meter.
+        """
+        now = time.time()
+        with self._lock:
+            self._prune(now)
+            rate = sum(tok for _, tok in self._recent)  # tokens in last 60s ≈ /min
+            in_backoff = now < self._backoff_until
+            return {
+                "spent_total": self._spent_total,
+                "daily_spent": self._daily_spent(now),
+                "rate_per_min": int(rate),
+                "mode": self._mode.value,
+                "in_backoff": in_backoff,
+                "backoff_remaining_s": max(0.0, self._backoff_until - now) if in_backoff else 0.0,
+                "recent_limits": len(self._limit_hits),
+                "max_concurrency": self._max_concurrency,
+            }
+
     async def gate(self, budget: Budget, spent: int) -> ExplorerMode:
         """Throttle the frontier loop for one iteration and return the current mode.
 

@@ -936,6 +936,34 @@ input[type="range"]::-moz-range-thumb {
   50% { opacity: 0.35; }
 }
 
+/* ---- global usage bar (always-on, shared governor) ----------------------- */
+.global-usage {
+  position: sticky; bottom: 0; z-index: var(--z-sticky);
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 16px; padding: 9px 15px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-faint);
+}
+.global-usage.alert { border-color: var(--accent); background: var(--accent-tint); }
+.gu-left { display: flex; align-items: center; gap: 8px; flex: none; }
+.gu-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-ghost); }
+.gu-dot.sprinting { background: var(--live); animation: la-pulse 1.5s ease-in-out infinite; }
+.gu-dot.curbing { background: var(--mock); }
+.gu-dot.paused { background: var(--text-ghost); }
+.gu-mode { font-weight: 620; color: var(--text-dim); }
+.global-usage.alert .gu-mode { color: var(--accent-strong); }
+.gu-metrics { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+.gu-metric b { color: var(--text); font-weight: 660; font-variant-numeric: tabular-nums; }
+.gu-rate { color: var(--accent-strong) !important; }
+.gu-sep { color: var(--border-strong); }
+.gu-backoff { color: var(--mock); font-weight: 560; }
+.gu-right { flex: none; }
+.gu-conc { font-size: 11px; color: var(--text-ghost); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .gu-right { display: none; }
+  .global-usage { flex-wrap: wrap; gap: 8px; }
+}
+
 /* ---- digest -------------------------------------------------------------- */
 .digest { padding: 18px; }
 .digest-head { margin-bottom: 14px; }

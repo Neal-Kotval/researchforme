@@ -130,6 +130,18 @@ export interface TreeSnapshot {
   last_seq: number;
 }
 
+/** Shared governor snapshot for the global usage bar (GET /api/usage). */
+export interface GlobalUsage {
+  spent_total: number;
+  daily_spent: number;
+  rate_per_min: number;
+  mode: ExplorerMode;
+  in_backoff: boolean;
+  backoff_remaining_s: number;
+  recent_limits: number;
+  max_concurrency: number;
+}
+
 export interface CreateProjectRequest {
   domain: string;
   sub_segments?: string[];
