@@ -163,6 +163,53 @@ export default function NodeInspector({ node, childNodes = [], onSelectChild }: 
 
       <Markdown className="detail-thesis" text={g.thesis} />
 
+      {/* company concept — the standalone business, not a feature */}
+      {g.company && (
+        <div className="detail-block company-block">
+          <h4>
+            The company
+            <span className={`company-badge ${g.company.standalone ? "yes" : "no"}`}>
+              {g.company.standalone ? "Standalone company" : "Risk: just a feature"}
+            </span>
+          </h4>
+          {g.company.product && (
+            <div className="company-product">{g.company.product}</div>
+          )}
+          <div className="kv-grid">
+            {g.company.icp && (
+              <div className="kv">
+                <div className="kv-k">Who it's for</div>
+                <div className="kv-v">{g.company.icp}</div>
+              </div>
+            )}
+            {g.company.business_model && (
+              <div className="kv accent">
+                <div className="kv-k">Business model</div>
+                <div className="kv-v">{g.company.business_model}</div>
+              </div>
+            )}
+            {g.company.expansion_path && (
+              <div className="kv">
+                <div className="kv-k">Wedge → platform</div>
+                <div className="kv-v">{g.company.expansion_path}</div>
+              </div>
+            )}
+            {g.company.moat && (
+              <div className="kv">
+                <div className="kv-k">Moat</div>
+                <div className="kv-v">{g.company.moat}</div>
+              </div>
+            )}
+            {g.company.standalone_reason && (
+              <div className={`kv ${g.company.standalone ? "" : "warn"}`}>
+                <div className="kv-k">Company, not a feature?</div>
+                <div className="kv-v">{g.company.standalone_reason}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* base scores */}
       <div className="detail-scorebar">
         {SCORE_KEYS.map((k) => (

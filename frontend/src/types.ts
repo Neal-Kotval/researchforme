@@ -49,9 +49,21 @@ export interface Competitor {
   weakness: string;
 }
 
+/** The company-shaped framing of a gap: the standalone business you'd build. */
+export interface CompanyConcept {
+  product: string;
+  icp: string;
+  business_model: string;
+  expansion_path: string;
+  moat: string;
+  standalone: boolean;
+  standalone_reason: string;
+}
+
 export interface Gap {
   title: string;
   thesis: string;
+  company?: CompanyConcept | null;
   scores: Scores;
   evidence: Evidence[];
   competitors: Competitor[];

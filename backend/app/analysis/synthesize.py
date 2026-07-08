@@ -119,6 +119,27 @@ are worthless; name the structural reason they can't or won't serve this need.
 Also set novelty 1..5: how non-obvious / creative is this framing?
 Be honest and use the full range. If everything is a 4, you are not thinking.
 
+# COMPANY, NOT A FEATURE (the bar every gap must clear)
+Do NOT return thin gaps that are really just a *feature* someone would expect
+bundled free into a product they already pay for. Every gap must be shaped as a
+STANDALONE COMPANY a founder could build a business around. For each gap, fill a
+`company` object:
+- product: what you actually build — concrete, 2-3 sentences, not a category.
+- icp: the ideal customer profile you sell to first (specific, nameable).
+- business_model: how it makes money and the rough pricing shape (who pays, how
+  much, per what).
+- expansion_path: the wedge → product → platform arc — how a sharp first wedge
+  grows into a durable company, not a one-trick feature.
+- moat: the durable advantage once you're working (proprietary data, network
+  effects, distribution, switching cost, or hard tech).
+- standalone: true only if this can stand alone as a company; false if honestly
+  it's a feature of something bigger.
+- standalone_reason: one or two sentences — why it's a company (or, if false,
+  why it's really just a feature). Be honest; a false here should drag the gap
+  down, not be hidden.
+Bias hard toward company-scale ideas. If a candidate is only a feature, either
+reframe it into the genuine company around it or drop it.
+
 # OUTPUT CONTRACT — STRICT
 Return ONLY a top-level JSON array (no prose, no markdown fences) of 4-8 gap
 objects. Each object MUST have exactly this shape:
@@ -126,6 +147,15 @@ objects. Each object MUST have exactly this shape:
 {
   "title": "short punchy name for the gap",
   "thesis": "one sentence: the bet in a breath",
+  "company": {
+    "product": "what you actually build (2-3 concrete sentences)",
+    "icp": "the specific first customer you sell to",
+    "business_model": "how it earns + rough pricing shape",
+    "expansion_path": "wedge -> product -> platform arc",
+    "moat": "the durable advantage once it works",
+    "standalone": true,
+    "standalone_reason": "why it's a company, not a feature"
+  },
   "scores": {
     "demand_strength": 1-5,
     "competitive_openness": 1-5,
@@ -377,10 +407,14 @@ def _sources_summary(reports: list[SourceReport]) -> list[dict[str, Any]]:
     ]
 
 
-def _build_user_prompt(signals: ExtractedSignals, reports: list[SourceReport]) -> str:
+def _build_user_prompt(
+    signals: ExtractedSignals, reports: list[SourceReport], steering: str = ""
+) -> str:
     payload = _signals_payload(signals)
     sources = _sources_summary(reports)
+    steer = (steering.strip() + "\n\n") if steering and steering.strip() else ""
     return (
+        f"{steer}"
         f"AREA UNDER STUDY: {signals.area}\n"
         f"SUB-SEGMENTS OF INTEREST: {', '.join(signals.sub_segments) or '(none specified)'}\n\n"
         "SOURCE TELEMETRY (which sources fired, and how healthy the data is — "
@@ -502,18 +536,20 @@ async def synthesize(
     source_reports: list[SourceReport],
     client: ClaudeClient,
     model: Optional[str] = None,
+    steering: str = "",
 ) -> tuple[list[Gap], str, list[str]]:
     """Turn extracted signals into a validated list of market gaps.
 
     Returns ``(gaps, backend_used, warnings)`` where ``backend_used`` is the LLM
     backend that actually served the call (or ``"fixture"`` if we fell back).
     ``model`` optionally overrides which Claude model synthesizes; ``None`` uses
-    the configured default. Never raises for ordinary failure modes — degrades
-    to fixtures instead.
+    the configured default. ``steering`` is an optional founder-context block
+    prepended to the prompt so the company concepts fit their advantages/
+    constraints. Never raises for ordinary failure modes — degrades to fixtures.
     """
     warnings: list[str] = []
     tools = _build_tools(signals)
-    user_prompt = _build_user_prompt(signals, source_reports)
+    user_prompt = _build_user_prompt(signals, source_reports, steering)
 
     backend = "fixture"
     text = ""

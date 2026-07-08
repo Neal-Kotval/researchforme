@@ -151,10 +151,28 @@ class ProjectStats(BaseModel):
     stop_reason: Optional[str] = None
 
 
+class SteeringContext(BaseModel):
+    """Rich founder context that steers every LLM step of an exploration.
+
+    All fields optional: an empty ``SteeringContext`` renders to nothing and the
+    run behaves exactly as before. ``brief`` is the big free-paste box; the lists
+    are the structured fields; ``research`` holds pasted prior research that a
+    run can be seeded from (bulk-paste intake).
+    """
+
+    brief: str = Field(default="", max_length=8000)
+    advantages: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    avoid: list[str] = Field(default_factory=list)
+    time_horizon: str = ""
+    research: str = Field(default="", max_length=20000)
+
+
 class Project(BaseModel):
     id: str
     domain: str
     sub_segments: list[str] = Field(default_factory=list)
+    steering: SteeringContext = Field(default_factory=SteeringContext)
     # Mixed-model policy: cheap model for decomposition, strong for pressure-test.
     decompose_model: str = "claude-haiku-4-5-20251001"
     synth_model: str = "claude-opus-4-8"
@@ -209,6 +227,7 @@ class CreateProjectRequest(BaseModel):
     synth_model: Optional[str] = None
     pressure_model: Optional[str] = None
     intake: dict[str, str] = Field(default_factory=dict)  # preflight answers
+    steering: Optional[SteeringContext] = None            # rich founder context
     autostart: bool = True
 
 
@@ -221,10 +240,26 @@ class IntakeQuestion(BaseModel):
 
 class IntakeRequest(BaseModel):
     domain: str = Field(min_length=2, max_length=200)
+    brief: str = Field(default="", max_length=8000)  # optional context to sharpen Qs
 
 
 class IntakeResponse(BaseModel):
     questions: list[IntakeQuestion] = Field(default_factory=list)
+
+
+class SortResearchRequest(BaseModel):
+    """A raw wall of the founder's own research to be sorted into a job."""
+
+    text: str = Field(min_length=1, max_length=20000)
+
+
+class SortedResearch(BaseModel):
+    """A research paste sorted into a ready-to-launch exploration job."""
+
+    domain: str = ""
+    sub_segments: list[str] = Field(default_factory=list)
+    brief: str = ""
+    research: str = ""  # the original paste, preserved verbatim for steering
 
 
 class ControlAction(str, Enum):

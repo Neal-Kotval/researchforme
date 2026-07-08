@@ -38,7 +38,7 @@ from ..analysis.synthesize import _extract_json_array, synthesize
 from ..llm.client import ClaudeClient
 from ..schemas import Gap, SourceReport, SourceStatus
 from ..sources.registry import get_sources
-from .intake import intake_context_block
+from .intake import steering_context_block
 from .schemas import Node, NodeKind, Project
 
 
@@ -197,10 +197,10 @@ def kind_is_structural(kind: NodeKind | str) -> bool:
 def root_node(project: Project) -> Node:
     """Build the DOMAIN root node for a project, priority pre-computed."""
     scope = scope_area(project.domain, project.sub_segments)
-    intake_block = intake_context_block(project.intake)
+    steer_block = steering_context_block(project)
     rationale = f"Root domain exploration of '{project.domain}'."
-    if intake_block:
-        rationale += "\n" + intake_block
+    if steer_block:
+        rationale += "\n" + steer_block
     node = make_node(
         project.id,
         None,
@@ -247,9 +247,9 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
     lines = [f"ROOT DOMAIN: {project.domain}"]
     if project.sub_segments:
         lines.append(f"SUB-SEGMENTS OF INTEREST: {', '.join(project.sub_segments)}")
-    intake_block = intake_context_block(project.intake)
-    if intake_block:
-        lines.append(intake_block)
+    steer_block = steering_context_block(project)
+    if steer_block:
+        lines.append(steer_block)
     lines.append(f"NODE TO DECOMPOSE ({node.kind.value}): {node.title}")
     if node.rationale:
         lines.append(f"WHY THIS BRANCH MIGHT MATTER: {node.rationale}")
@@ -477,7 +477,10 @@ async def expand_segment(
         scope = scope_area(node.title, project.sub_segments)
         fetched, reports = await _fetch_all(node.title, scope)
         signals = extract_signals(node.title, scope, fetched)
-        gaps, _backend, _warnings = await synthesize(signals, reports, client, model=model)
+        steering = steering_context_block(project)
+        gaps, _backend, _warnings = await synthesize(
+            signals, reports, client, model=model, steering=steering
+        )
     except Exception:  # noqa: BLE001 - degrade to no children, never crash the loop.
         return []
 

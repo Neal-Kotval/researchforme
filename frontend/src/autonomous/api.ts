@@ -18,6 +18,7 @@ import type {
   UsagePolicy,
   Pace,
   Project,
+  SortedResearch,
   TreeSnapshot,
 } from "./types";
 
@@ -45,12 +46,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Generate preflight intake questions for a domain (steers the exploration). */
-export function getIntake(domain: string): Promise<{ questions: IntakeQuestion[] }> {
+/** Generate preflight intake questions for a domain (steers the exploration).
+ *  An optional brief lets the questions build on context already supplied. */
+export function getIntake(
+  domain: string,
+  brief = "",
+): Promise<{ questions: IntakeQuestion[] }> {
   return request<{ questions: IntakeQuestion[] }>("/api/projects/intake", {
     method: "POST",
     headers: JSON_HEADERS,
-    body: JSON.stringify({ domain }),
+    body: JSON.stringify({ domain, brief }),
+  });
+}
+
+/** Sort a raw wall of the founder's own research into a launchable job. */
+export function sortResearch(text: string): Promise<SortedResearch> {
+  return request<SortedResearch>("/api/projects/sort-research", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ text }),
   });
 }
 

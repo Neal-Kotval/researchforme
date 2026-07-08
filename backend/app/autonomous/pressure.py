@@ -96,6 +96,20 @@ LENSES: list[dict] = [
             "invites a fatal fast-follow, verdict=kills."
         ),
     },
+    {
+        "key": "just_a_feature",
+        "prompt": (
+            "JUST A FEATURE, NOT A COMPANY. Try to prove this is merely a *feature* "
+            "— not a standalone business: it has no room to expand past a single "
+            "capability, no independent business model, and is the kind of thing a "
+            "user would reasonably expect bundled FREE into a product they already "
+            "pay for. Attack the `company` framing directly: is the product a real "
+            "company or a thin add-on? Is the expansion_path (wedge→product→"
+            "platform) credible or hand-waved? If it can only ever be a feature of "
+            "someone else's product, verdict=kills; if it's a company but a thin "
+            "one with a shaky path to scale, verdict=weakens."
+        ),
+    },
 ]
 
 # Selection priority (distinct from the canonical display order above). The
@@ -103,6 +117,7 @@ LENSES: list[dict] = [
 # often kill a bad gap; each higher rigor is a superset.
 _LENS_PRIORITY: tuple[str, ...] = (
     "demand_mirage",
+    "just_a_feature",
     "empty_for_a_reason",
     "why_now_fragility",
     "incumbent_countermove",
@@ -112,7 +127,7 @@ _LENS_PRIORITY: tuple[str, ...] = (
 _LENS_BY_KEY: dict[str, dict] = {lens["key"]: lens for lens in LENSES}
 
 # How many lenses each rigor level runs.
-_RIGOR_COUNT: dict[str, int] = {"light": 2, "standard": 3, "deep": 5}
+_RIGOR_COUNT: dict[str, int] = {"light": 3, "standard": 4, "deep": 6}
 
 _VALID_VERDICTS = frozenset({"survives", "weakens", "kills"})
 
@@ -185,6 +200,7 @@ def _gap_payload(gap: Gap) -> dict[str, Any]:
         "empty_reason": gap.empty_reason,
         "sub_segment": gap.sub_segment,
         "novelty": gap.novelty,
+        "company": gap.company.model_dump() if gap.company else None,
         "scores": gap.scores.model_dump(),
         "competitors": [
             {

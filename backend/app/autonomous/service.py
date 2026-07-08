@@ -68,6 +68,7 @@ from .schemas import (
     Project,
     ProjectStats,
     ProjectStatus,
+    SteeringContext,
 )
 from .store import TreeStore, get_store
 
@@ -197,6 +198,7 @@ class ExplorerService:
             sub_segments=list(req.sub_segments or []),
             budget=budget,
             intake=dict(req.intake or {}),
+            steering=req.steering or SteeringContext(),
             status=ProjectStatus.RUNNING if req.autostart else ProjectStatus.PAUSED,
             stats=ProjectStats(nodes=1, frontier_size=1, mode=ExplorerMode.PAUSED),
         )

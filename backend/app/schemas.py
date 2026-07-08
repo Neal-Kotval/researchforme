@@ -142,12 +142,31 @@ class Competitor(BaseModel):
     weakness: str                    # the blind spot that leaves the gap open
 
 
+class CompanyConcept(BaseModel):
+    """The company-shaped framing of a gap: the standalone business you'd build.
+
+    Optional on ``Gap`` so historical data (and any degrade-to-no-LLM path) still
+    loads; when present it turns a thin "market gap" into a coherent company —
+    what you build, who for, how it earns, the wedge→platform arc, its moat, and
+    an explicit verdict on whether this is a *company* rather than a *feature*.
+    """
+
+    product: str = ""                # what you actually build (2-3 sentences)
+    icp: str = ""                    # ideal customer profile — who it's for
+    business_model: str = ""         # how it makes money + rough pricing shape
+    expansion_path: str = ""         # wedge → product → platform arc
+    moat: str = ""                   # durable defensibility
+    standalone: bool = True          # is this a company, not just a feature?
+    standalone_reason: str = ""      # why it stands alone (or why it's thin)
+
+
 class Gap(BaseModel):
     """One candidate market gap. This is what the LLM must return per item."""
 
     title: str
     thesis: str                      # one-line
     scores: Scores
+    company: Optional[CompanyConcept] = None  # company-shaped framing (optional)
     evidence: list[Evidence] = Field(default_factory=list)
     competitors: list[Competitor] = Field(default_factory=list, max_length=8)
     wedge: str                       # the sharp initial entry point

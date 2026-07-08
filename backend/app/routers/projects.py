@@ -42,6 +42,8 @@ from ..autonomous.schemas import (
     IntakeRequest,
     IntakeResponse,
     Project,
+    SortResearchRequest,
+    SortedResearch,
     TreeSnapshot,
 )
 from ..autonomous.governor import get_governor
@@ -96,8 +98,24 @@ async def project_intake(req: IntakeRequest) -> IntakeResponse:
     from ..llm.client import get_client
 
     model = get_settings().llm_model
-    questions = await generate_intake_questions(req.domain, get_client(), model)
+    questions = await generate_intake_questions(req.domain, get_client(), model, brief=req.brief)
     return IntakeResponse(questions=questions)
+
+
+@router.post("/projects/sort-research", response_model=SortedResearch)
+async def sort_research_route(req: SortResearchRequest) -> SortedResearch:
+    """Sort a raw wall of the founder's own research into a launchable job.
+
+    Infers a domain, concrete sub-segments, and a tight brief from the paste, and
+    preserves the original text as steering ``research``. Never fails hard —
+    degrades to preserving the paste with an empty domain (SPEC bulk-paste).
+    """
+    from ..autonomous.intake import sort_research
+    from ..config import get_settings
+    from ..llm.client import get_client
+
+    model = get_settings().llm_model
+    return await sort_research(req.text, get_client(), model)
 
 
 @router.post("/projects", response_model=Project)

@@ -6,6 +6,7 @@ import {
   deleteProject,
   getIntake,
   listProjects,
+  sortResearch,
   subscribeEvents,
   type ControlRequest,
 } from "../../autonomous/api";
@@ -534,10 +535,25 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Rich steering context — a founder brief + structured fields + pasted research.
+  const [brief, setBrief] = useState("");
+  const [advantages, setAdvantages] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [avoid, setAvoid] = useState("");
+  const [timeHorizon, setTimeHorizon] = useState("");
+  const [research, setResearch] = useState("");
+  const [showSteering, setShowSteering] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sortText, setSortText] = useState("");
+  const [sorting, setSorting] = useState(false);
+
   // Preflight intake: generated clarifying questions that steer the exploration.
   const [questions, setQuestions] = useState<IntakeQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [intakeLoading, setIntakeLoading] = useState(false);
+
+  const lines = (s: string) =>
+    s.split("\n").map((x) => x.trim()).filter(Boolean);
 
   const refineWithQuestions = async () => {
     if (domain.trim().length < 2) {
@@ -547,12 +563,34 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
     setIntakeLoading(true);
     setError(null);
     try {
-      const { questions: qs } = await getIntake(domain.trim());
+      const { questions: qs } = await getIntake(domain.trim(), brief.trim());
       setQuestions(qs);
     } catch (e) {
       setError(errMsg(e, "Could not load intake questions."));
     } finally {
       setIntakeLoading(false);
+    }
+  };
+
+  // Bulk-paste: sort a wall of the founder's own research into a launchable job.
+  const sortPastedResearch = async () => {
+    if (sortText.trim().length < 1) return;
+    setSorting(true);
+    setError(null);
+    try {
+      const sorted = await sortResearch(sortText.trim());
+      if (sorted.domain) setDomain(sorted.domain);
+      if (sorted.sub_segments?.length) {
+        setSegs((prev) => Array.from(new Set([...prev, ...sorted.sub_segments])));
+      }
+      if (sorted.brief) setBrief(sorted.brief);
+      setResearch(sorted.research || sortText.trim());
+      setShowSteering(true);
+      setSortOpen(false);
+    } catch (e) {
+      setError(errMsg(e, "Could not sort that research."));
+    } finally {
+      setSorting(false);
     }
   };
 
@@ -584,6 +622,14 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
       const intake = Object.fromEntries(
         Object.entries(answers).filter(([, v]) => v && v.trim())
       );
+      const steering = {
+        brief: brief.trim(),
+        advantages: lines(advantages),
+        constraints: lines(constraints),
+        avoid: lines(avoid),
+        time_horizon: timeHorizon.trim(),
+        research: research.trim(),
+      };
       await onCreate({
         domain: domain.trim(),
         sub_segments: segs,
@@ -592,6 +638,7 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
         synth_model: synth,
         pressure_model: pressure,
         intake,
+        steering,
         autostart,
       });
     } catch (e) {
@@ -626,6 +673,96 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
             onChange={(e) => setDomain(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
           />
+
+          {/* bulk-paste: sort a wall of your own research into a launchable job */}
+          <div className="nd-steer-toggles">
+            <button
+              type="button"
+              className="nd-refine"
+              onClick={() => setSortOpen((v) => !v)}
+            >
+              {sortOpen ? "× Close research paste" : "⤵ Paste my research"}
+            </button>
+            <button
+              type="button"
+              className="nd-refine ghost"
+              onClick={() => setShowSteering((v) => !v)}
+            >
+              {showSteering ? "× Hide steering" : "✎ Add context & steering"}
+            </button>
+          </div>
+
+          {sortOpen && (
+            <div className="nd-sort">
+              <label className="field-label">
+                Paste research <span className="nd-opt">(notes, links, theses — anything)</span>
+              </label>
+              <textarea
+                className="nd-textarea"
+                rows={6}
+                placeholder="Paste your own research here. I'll sort it into a domain, sub-segments, and a brief you can review before launching."
+                value={sortText}
+                onChange={(e) => setSortText(e.target.value)}
+              />
+              <button
+                type="button"
+                className="nd-sort-go"
+                onClick={sortPastedResearch}
+                disabled={sorting || sortText.trim().length < 1}
+              >
+                {sorting ? "Sorting…" : "↯ Sort into a job"}
+              </button>
+            </div>
+          )}
+
+          {/* rich steering — a founder brief + structured fields */}
+          {showSteering && (
+            <div className="nd-steer">
+              <label className="field-label">
+                Founder brief <span className="nd-opt">(your background, thesis, angle — weighted heavily)</span>
+              </label>
+              <textarea
+                className="nd-textarea"
+                rows={4}
+                placeholder="Who you are, what you already believe about this space, assets you can bring, the wedge you're drawn to…"
+                value={brief}
+                onChange={(e) => setBrief(e.target.value)}
+              />
+              <div className="nd-row">
+                <div className="nd-col">
+                  <label className="field-label">Unfair advantages <span className="nd-opt">(one per line)</span></label>
+                  <textarea className="nd-textarea sm" rows={3} value={advantages}
+                    placeholder={"deep payments expertise\nan audience of 20k devs"}
+                    onChange={(e) => setAdvantages(e.target.value)} />
+                </div>
+                <div className="nd-col">
+                  <label className="field-label">Hard constraints <span className="nd-opt">(one per line)</span></label>
+                  <textarea className="nd-textarea sm" rows={3} value={constraints}
+                    placeholder={"solo-founder feasible only\nno heavy capital"}
+                    onChange={(e) => setConstraints(e.target.value)} />
+                </div>
+              </div>
+              <div className="nd-row">
+                <div className="nd-col">
+                  <label className="field-label">Avoid <span className="nd-opt">(one per line)</span></label>
+                  <textarea className="nd-textarea sm" rows={2} value={avoid}
+                    placeholder={"crypto\nregulated healthcare"}
+                    onChange={(e) => setAvoid(e.target.value)} />
+                </div>
+                <div className="nd-col">
+                  <label className="field-label">Time horizon</label>
+                  <input className="nd-q-free" value={timeHorizon}
+                    placeholder="e.g. nights & weekends for now"
+                    onChange={(e) => setTimeHorizon(e.target.value)} />
+                </div>
+              </div>
+              {research.trim() && (
+                <div className="nd-research-note">
+                  ↯ {research.trim().length.toLocaleString()} chars of your research attached — it steers every step.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* preflight intake — clarifying questions that steer the exploration */}
           <div className="nd-intake">

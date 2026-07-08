@@ -103,6 +103,7 @@ export interface Project {
   status: ProjectStatus;
   budget: Budget;
   stats: ProjectStats;
+  steering?: SteeringContext;
   created_at: string;
   updated_at: string;
 }
@@ -157,6 +158,16 @@ export interface UsagePolicy {
   limit_pct?: number;
 }
 
+/** Rich founder context that steers every LLM step of an exploration. */
+export interface SteeringContext {
+  brief?: string;
+  advantages?: string[];
+  constraints?: string[];
+  avoid?: string[];
+  time_horizon?: string;
+  research?: string;
+}
+
 export interface CreateProjectRequest {
   domain: string;
   sub_segments?: string[];
@@ -165,12 +176,21 @@ export interface CreateProjectRequest {
   synth_model?: string;
   pressure_model?: string;
   intake?: Record<string, string>;
+  steering?: SteeringContext;
   autostart?: boolean;
 }
 
 export interface IntakeQuestion {
   question: string;
   suggestions: string[];
+}
+
+/** A raw research paste sorted into a ready-to-launch job (POST /projects/sort-research). */
+export interface SortedResearch {
+  domain: string;
+  sub_segments: string[];
+  brief: string;
+  research: string;
 }
 
 export type ControlAction =
