@@ -7,6 +7,7 @@ interface Props {
   projects: Project[];
   onOpen: (pid: string) => void;
   onNew: () => void;
+  onQuickNew: () => void;
 }
 
 const LEVEL_WORD: Record<UsageLevel, string> = {
@@ -24,7 +25,7 @@ function fmt(n: number): string {
  * ratio toward the limit, live rate, projected 24h spend) plus a card for every
  * ongoing exploration — the "glance and dive in" landing.
  */
-export default function HomeDashboard({ projects, onOpen, onNew }: Props) {
+export default function HomeDashboard({ projects, onOpen, onNew, onQuickNew }: Props) {
   const [usage, setUsage] = useState<GlobalUsage | null>(null);
   const timer = useRef<number | null>(null);
 
@@ -58,7 +59,10 @@ export default function HomeDashboard({ projects, onOpen, onNew }: Props) {
           <div className="eyebrow">Autonomous mode</div>
           <h2>Your explorations</h2>
         </div>
-        <button className="btn btn-primary" onClick={onNew}>＋ New exploration</button>
+        <div className="home-head-actions">
+          <button className="btn" onClick={onQuickNew}>⚡ Quick scan</button>
+          <button className="btn btn-primary" onClick={onNew}>＋ New exploration</button>
+        </div>
       </div>
 
       {/* usage gauge */}

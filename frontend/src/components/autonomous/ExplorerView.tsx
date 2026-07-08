@@ -35,6 +35,18 @@ import HomeDashboard from "./HomeDashboard";
 import ProjectDigest from "./ProjectDigest";
 import type { Route } from "../../hooks/useHashRoute";
 
+/* -------------------------------------------------------------------- depth -- */
+// "Quick scan" is the folded-in single-area analysis: a fast, shallow pass that
+// lands in the same tree/idea UI. Standard/Deep widen the budget. The preset
+// only *seeds* the budget fields — they stay editable.
+export type Depth = "quick" | "standard" | "deep";
+
+const DEPTH_PRESETS: Record<Depth, Pick<Budget, "max_nodes" | "max_tokens" | "pace">> = {
+  quick:    { max_nodes: 40,   max_tokens: 150_000, pace: "sprint" },
+  standard: { max_nodes: 400,  max_tokens: null,    pace: "balanced" },
+  deep:     { max_nodes: 1200, max_tokens: null,    pace: "balanced" },
+};
+
 /* -------------------------------------------------------------- live series -- */
 // A time-series of each project's stats, folded from the SSE stream, so the UI
 // can *show the exploration happening* (streaming spend/throughput/frontier
@@ -217,6 +229,11 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
   const [state, dispatch] = useReducer(reduce, { byId: {}, order: [] });
   const [loaded, setLoaded] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [newDepth, setNewDepth] = useState<Depth>("standard");
+  const openNew = useCallback((depth: Depth) => {
+    setNewDepth(depth);
+    setShowNew(true);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "nodes">("nodes");
@@ -269,8 +286,8 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
 
   // ⌘K: open the new-exploration dialog (ignore the initial 0).
   useEffect(() => {
-    if (newExplorationSignal && newExplorationSignal > 0) setShowNew(true);
-  }, [newExplorationSignal]);
+    if (newExplorationSignal && newExplorationSignal > 0) openNew("standard");
+  }, [newExplorationSignal, openNew]);
 
   // A URL that points at a project we don't have (deleted, or a bad deep link)
   // falls back home — but only once the list has actually loaded, so a valid
@@ -372,7 +389,7 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
           projects={allProjects}
           activeId={activeId}
           onSelect={navProject}
-          onNew={() => setShowNew(true)}
+          onNew={() => openNew("standard")}
           onDelete={onDelete}
           onHome={navHome}
         />
@@ -382,7 +399,8 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
             <HomeDashboard
               projects={allProjects}
               onOpen={navProject}
-              onNew={() => setShowNew(true)}
+              onNew={() => openNew("standard")}
+              onQuickNew={() => openNew("quick")}
             />
           ) : (
             <>
@@ -512,7 +530,7 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
       {state.order.length > 0 && <GlobalUsageBar projects={allProjects} />}
 
       {showNew && (
-        <NewExplorationDialog onClose={() => setShowNew(false)} onCreate={onCreate} />
+        <NewExplorationDialog initialDepth={newDepth} onClose={() => setShowNew(false)} onCreate={onCreate} />
       )}
     </div>
   );
@@ -520,18 +538,26 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
 
 /* =================================================== New exploration dialog == */
 interface DialogProps {
+  initialDepth: Depth;
   onClose: () => void;
   onCreate: (req: CreateProjectRequest) => Promise<void>;
 }
 
-function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
+function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) {
   const [domain, setDomain] = useState("");
   const [segs, setSegs] = useState<string[]>([]);
   const [segText, setSegText] = useState("");
   const [decompose, setDecompose] = useState("claude-haiku-4-5-20251001");
   const [synth, setSynth] = useState("claude-opus-4-8");
   const [pressure, setPressure] = useState("claude-opus-4-8");
-  const [budget, setBudget] = useState<Budget>({ ...DEFAULT_BUDGET });
+  const [depth, setDepth] = useState<Depth>(initialDepth);
+  const [budget, setBudget] = useState<Budget>({ ...DEFAULT_BUDGET, ...DEPTH_PRESETS[initialDepth] });
+
+  // Selecting a depth re-seeds the budget preset (fields stay editable after).
+  const applyDepth = (d: Depth) => {
+    setDepth(d);
+    setBudget((b) => ({ ...b, ...DEPTH_PRESETS[d] }));
+  };
   const [autostart, setAutostart] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -664,6 +690,31 @@ function NewExplorationDialog({ onClose, onCreate }: DialogProps) {
         </div>
 
         <div className="nd-body">
+          <label className="field-label">Depth</label>
+          <div className="seg-control" role="radiogroup" aria-label="Depth">
+            {(["quick", "standard", "deep"] as Depth[]).map((d) => (
+              <button
+                key={d}
+                type="button"
+                role="radio"
+                aria-checked={depth === d}
+                aria-pressed={depth === d}
+                className="seg-option"
+                onClick={() => applyDepth(d)}
+              >
+                <span className="so-label" style={{ textTransform: "capitalize" }}>
+                  {d === "quick" ? "Quick scan" : d}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="nd-refine-hint" style={{ marginBottom: 6 }}>
+            {depth === "quick"
+              ? "A fast, shallow pass — great for a first read on a domain."
+              : depth === "deep"
+              ? "A long, wide exploration. Budget caps below still apply."
+              : "A balanced run. Tune the budget below if you like."}
+          </div>
           <label className="field-label">
             Domain <span className="req">*</span>
           </label>
