@@ -1,77 +1,133 @@
 /* ============================================================================
    Design tokens — Market Gap Finder
-   The single source of truth for color, type, space, radius, elevation, motion.
-   Components and index.css consume these via var(--token); nothing hardcodes a
-   raw value. See DESIGN.md for the rationale and usage rules.
-
-   Aesthetic: CNC / blueprint. Cool-grey machined surfaces, near-black ink,
-   hairline slate rules, sharp corners. One steel-blue accent (blueprint blue)
-   reserved for primary actions, selection, links, the live state, and the
-   headline metric. Data reads as a grey→blue→navy density ramp.
+   Langfuse-style: clean dev-tool. Light-first (white + zinc neutrals, near-black
+   ink), with a dark theme via [data-theme="dark"]. One reserved emerald accent.
+   Inter (self-hosted). Normal rounded corners. Single source of truth; nothing
+   hardcodes a raw value — components consume var(--token).
    ========================================================================== */
 
-:root {
-  /* ---- color · surfaces (cool slate-neutral, near-zero chroma) ---------- */
-  --bg: #f4f5f6;          /* app canvas — cool machined paper */
-  --surface: #ffffff;     /* cards, drawer, primary content */
-  --surface-2: #eef0f2;   /* table header, insets, secondary panels */
-  --surface-3: #e4e7ea;   /* chips, tracks, tertiary fills */
-  --surface-hover: #eaedf0;
+:root, :root[data-theme="light"] {
+  /* ---- surfaces (white + cool zinc neutrals) ---------------------------- */
+  --bg: #fafafa;          /* app canvas — zinc-50 */
+  --surface: #ffffff;     /* cards, panels, drawer */
+  --surface-2: #f4f4f5;   /* insets, table header, secondary panels — zinc-100 */
+  --surface-3: #e9e9ec;   /* chips, tracks, tertiary fills */
+  --surface-hover: #f4f4f5;
 
-  /* ---- color · lines & elevation (borders carry structure, not shadows) - */
-  --border: #d3d7dd;        /* cool hairline for crisp, machined edges */
-  --border-strong: #a9afb8;
-  --ring: rgba(53, 104, 196, 0.48);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 38, 0.06);
-  --shadow-md: 0 1px 2px rgba(15, 23, 38, 0.06), 0 2px 4px rgba(15, 23, 38, 0.05);
-  --shadow-lg: 0 20px 46px -20px rgba(15, 23, 38, 0.30);
+  /* ---- lines & elevation ------------------------------------------------ */
+  --border: #e4e4e7;        /* zinc-200 hairline */
+  --border-strong: #d4d4d8; /* zinc-300 */
+  --ring: rgba(22, 163, 74, 0.45);   /* emerald focus ring */
+  --shadow-sm: 0 1px 2px rgba(9, 9, 11, 0.05);
+  --shadow-md: 0 1px 3px rgba(9, 9, 11, 0.08), 0 1px 2px rgba(9, 9, 11, 0.04);
+  --shadow-lg: 0 12px 32px -12px rgba(9, 9, 11, 0.22);
 
-  /* ---- color · ink (cool near-black; all body clears 4.5:1 on --surface) - */
-  --text: #0d1017;        /* cool near-black, ~18:1 — primary */
-  --text-dim: #363b44;    /* ~10:1 — secondary body */
-  --text-faint: #5b616b;  /* ~6.4:1 — labels, captions */
-  --text-ghost: #878d97;  /* decorative only, never body copy */
+  /* ---- ink (zinc; body clears 4.5:1 on --surface) ----------------------- */
+  --text: #18181b;        /* zinc-900 — primary */
+  --text-dim: #3f3f46;    /* zinc-700 — secondary body */
+  --text-faint: #52525b;  /* zinc-600 — labels, captions (≥4.5:1) */
+  --text-ghost: #a1a1aa;  /* zinc-400 — decorative only */
   --text-on-accent: #ffffff;
 
-  /* ---- color · accent (blueprint / steel blue) -------------------------- */
-  --accent: #3568c4;
-  --accent-bright: #4278d8;   /* hover — lifted steel */
-  --accent-strong: #2b5aa0;   /* inline/link text on light (≥4.5:1) */
-  --accent-tint: #e8eef8;     /* selected row, soft fills */
-  --accent-tint-2: #cddbf0;   /* soft borders */
+  /* ---- accent (Langfuse emerald) ---------------------------------------- */
+  --accent: #16a34a;          /* green-600 */
+  --accent-bright: #22c55e;   /* green-500 — hover */
+  --accent-strong: #15803d;   /* green-700 — inline/link text (≥4.5:1) */
+  --accent-tint: #ecfdf3;     /* selected row, soft fills */
+  --accent-tint-2: #bbf7d0;   /* soft borders */
 
-  /* ---- color · semantic states (live=blue · danger=one muted red) ------- */
-  --live: #2b5aa0;         --live-tint: #e8eef8;   /* live / sprinting / high */
-  --mock: #5b6472;         --mock-tint: #e9ebee;   /* curbing / medium — slate */
-  --unavailable: #b23b30;  --unavailable-tint: #f6e7e5; /* the one danger hue */
-  --empty: #878d97;        --empty-tint: #ebedf0;
+  /* ---- primary action (Langfuse uses near-black primary buttons) -------- */
+  --primary: #18181b;         /* zinc-900 */
+  --primary-hover: #27272a;   /* zinc-800 */
+  --primary-fg: #fafafa;
 
-  /* ---- color · data ramp (cool grey → steel blue → navy; denser = better) */
-  --ramp-0: #667281;   /* low — cool slate grey */
-  --ramp-1: #4f6690;   /* steel grey-blue */
-  --ramp-2: #3568c4;   /* the blueprint blue */
-  --ramp-3: #2b4a86;   /* deep blue */
-  --ramp-4: #12233f;   /* near-navy / near-black */
-  --data-neutral: #55606f;  /* single-hue score bars / sparklines — cool slate */
+  /* ---- semantic states -------------------------------------------------- */
+  --live: #16a34a;         --live-tint: #ecfdf3;   /* live / sprinting / good */
+  --mock: #ca8a04;         --mock-tint: #fefce8;   /* curbing / medium — amber */
+  --unavailable: #dc2626;  --unavailable-tint: #fef2f2; /* danger / error */
+  --empty: #a1a1aa;        --empty-tint: #f4f4f5;
 
-  /* ---- source brand hues → monochrome cool graphite (badges/icons only) - */
-  --src-reddit: #2f3540;      --src-reddit-tint: #e9ebee;
-  --src-arxiv: #2f3540;       --src-arxiv-tint: #e9ebee;
-  --src-hn: #2f3540;          --src-hn-tint: #e9ebee;
-  --src-github: #2f3540;      --src-github-tint: #e9ebee;
-  --src-newsletter: #2f3540;  --src-newsletter-tint: #e9ebee;
+  /* ---- data ramp (neutral zinc → emerald; denser = stronger) ------------ */
+  --ramp-0: #d4d4d8;   /* low — zinc-300 */
+  --ramp-1: #86efac;   /* green-300 */
+  --ramp-2: #4ade80;   /* green-400 */
+  --ramp-3: #22c55e;   /* green-500 */
+  --ramp-4: #15803d;   /* high — green-700 */
+  --data-neutral: #71717a;  /* single-hue bars / sparklines — zinc-500 */
 
-  /* ---- typography (technical: geometric sans + strong mono readouts) ---- */
-  --font: "Space Grotesk", "IBM Plex Sans", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "JetBrains Mono", Menlo,
-    "Fira Code", monospace;
+  /* ---- source badge hues (kept muted/neutral) --------------------------- */
+  --src-reddit: #52525b;      --src-reddit-tint: #f4f4f5;
+  --src-arxiv: #52525b;       --src-arxiv-tint: #f4f4f5;
+  --src-hn: #52525b;          --src-hn-tint: #f4f4f5;
+  --src-github: #52525b;      --src-github-tint: #f4f4f5;
+  --src-newsletter: #52525b;  --src-newsletter-tint: #f4f4f5;
+
+  color-scheme: light;
+}
+
+/* ---- dark theme (Langfuse dark: near-black zinc) ------------------------ */
+:root[data-theme="dark"] {
+  --bg: #09090b;          /* zinc-950 */
+  --surface: #131316;     /* raised panel */
+  --surface-2: #1c1c1f;   /* insets */
+  --surface-3: #27272a;   /* chips, tracks — zinc-800 */
+  --surface-hover: #1c1c1f;
+
+  --border: #27272a;        /* zinc-800 */
+  --border-strong: #3f3f46; /* zinc-700 */
+  --ring: rgba(34, 197, 94, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+
+  --text: #fafafa;        /* zinc-50 */
+  --text-dim: #d4d4d8;    /* zinc-300 */
+  --text-faint: #a1a1aa;  /* zinc-400 */
+  --text-ghost: #71717a;  /* zinc-500 */
+  --text-on-accent: #ffffff;
+
+  --accent: #22c55e;          /* brighter on dark */
+  --accent-bright: #4ade80;
+  --accent-strong: #4ade80;   /* links on dark need to be light */
+  --accent-tint: #14311f;
+  --accent-tint-2: #1c5533;
+
+  --primary: #fafafa;         /* light primary button on dark */
+  --primary-hover: #e4e4e7;
+  --primary-fg: #18181b;
+
+  --live: #22c55e;         --live-tint: #14311f;
+  --mock: #eab308;         --mock-tint: #3a2f0a;
+  --unavailable: #ef4444;  --unavailable-tint: #3a1414;
+  --empty: #71717a;        --empty-tint: #1c1c1f;
+
+  --ramp-0: #3f3f46;
+  --ramp-1: #166534;
+  --ramp-2: #16a34a;
+  --ramp-3: #22c55e;
+  --ramp-4: #4ade80;
+  --data-neutral: #a1a1aa;
+
+  --src-reddit: #a1a1aa;      --src-reddit-tint: #1c1c1f;
+  --src-arxiv: #a1a1aa;       --src-arxiv-tint: #1c1c1f;
+  --src-hn: #a1a1aa;          --src-hn-tint: #1c1c1f;
+  --src-github: #a1a1aa;      --src-github-tint: #1c1c1f;
+  --src-newsletter: #a1a1aa;  --src-newsletter-tint: #1c1c1f;
+
+  color-scheme: dark;
+}
+
+:root {
+  /* ---- typography (Inter, self-hosted; mono only for code-like values) -- */
+  --font: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 680;
 
-  /* type scale (fixed rem, product-grade — ratio ~1.2) */
+  /* type scale (~1.2 ratio) */
   --fs-xs: 11px;
   --fs-sm: 12.5px;
   --fs-base: 13.5px;
@@ -79,22 +135,17 @@
   --fs-lg: 19px;
   --fs-xl: 22px;
 
-  /* ---- spacing scale (4px base) ----------------------------------------- */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-8: 32px;
+  /* ---- spacing (4px base) ----------------------------------------------- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
 
-  /* ---- radius (geometric: sharp, near-square) --------------------------- */
-  --r-xs: 1px;
-  --r-sm: 2px;
-  --r-md: 3px;
-  --r-lg: 4px;
-  --r-xl: 6px;
-  --r-pill: 2px;  /* squared — machined, not rounded */
+  /* ---- radius (normal, soft — Langfuse/shadcn) -------------------------- */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-pill: 999px;
 
   /* ---- motion ----------------------------------------------------------- */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -104,10 +155,8 @@
   /* ---- layout ----------------------------------------------------------- */
   --maxw: 1320px;
 
-  /* ---- z-index (semantic scale) ----------------------------------------- */
+  /* ---- z-index ---------------------------------------------------------- */
   --z-sticky: 40;
   --z-scrim: 60;
   --z-drawer: 61;
-
-  color-scheme: light;
 }

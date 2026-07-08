@@ -24,6 +24,7 @@ import {
 import ModelPicker from "../ModelPicker";
 import ExplorationSidebar from "./ExplorationSidebar";
 import ExplorationTree from "./ExplorationTree";
+import GraphCanvas from "./GraphCanvas";
 import NodeInspector from "./NodeInspector";
 import RunControls from "./RunControls";
 import UsageMeter from "./UsageMeter";
@@ -93,6 +94,12 @@ function atMs(iso: string): number {
 
 function titleKind(kind: string): string {
   return kind.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function fmtTok(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return `${n}`;
 }
 
 /* ------------------------------------------------------------------ store -- */
@@ -210,6 +217,7 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "nodes">("nodes");
+  const [treeMode, setTreeMode] = useState<"canvas" | "list">("canvas");
 
   const orderSig = state.order.join(",");
 
@@ -389,10 +397,18 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
                     <span className="exp-subseg">{project.sub_segments.join(" · ")}</span>
                   )}
                 </div>
+                {/* slim always-visible live status (the heavy graphs live in Overview) */}
+                <div className="exp-statstrip">
+                  <span className={`ss-mode ${project.stats.mode}`}>
+                    <span className="ss-dot" />{project.stats.mode}
+                  </span>
+                  <span className="ss-stat"><b>{project.stats.nodes}</b> nodes</span>
+                  <span className="ss-stat"><b>{project.stats.gaps}</b> gaps</span>
+                  {project.stats.stars > 0 && <span className="ss-stat star"><b>{project.stats.stars}</b>★</span>}
+                  <span className="ss-stat"><b>{project.stats.max_viability}</b> top</span>
+                  <span className="ss-stat dim">{fmtTok(project.stats.tokens_spent)} tok</span>
+                </div>
               </div>
-
-              <UsageMeter project={project} allProjects={allProjects} />
-              <LiveActivity project={project} history={active!.history} />
 
               {/* Tab strip: Overview (digest + controls) vs Nodes (the tree).
                   Selecting any idea opens a full-width detail page (like the
@@ -437,23 +453,48 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
                   />
                 </div>
               ) : view === "nodes" ? (
-                <div className="card exp-tree-card">
-                  <ExplorationTree
-                    nodes={active!.nodes}
-                    rootId={rootId}
-                    selectedId={selectedId}
-                    onSelect={selectNode}
-                  />
+                <div className="card exp-canvas-card">
+                  {treeMode === "canvas" ? (
+                    <GraphCanvas
+                      nodes={active!.nodes}
+                      rootId={rootId}
+                      selectedId={selectedId}
+                      onSelect={selectNode}
+                    />
+                  ) : (
+                    <ExplorationTree
+                      nodes={active!.nodes}
+                      rootId={rootId}
+                      selectedId={selectedId}
+                      onSelect={selectNode}
+                    />
+                  )}
+                  <div className="canvas-viewswitch">
+                    <button
+                      className={treeMode === "canvas" ? "on" : ""}
+                      onClick={() => setTreeMode("canvas")}
+                      title="Infinite canvas"
+                    >⛶ Canvas</button>
+                    <button
+                      className={treeMode === "list" ? "on" : ""}
+                      onClick={() => setTreeMode("list")}
+                      title="Indented list"
+                    >☰ List</button>
+                  </div>
                 </div>
               ) : (
-                <div className="exp-overview">
-                  <div className="card exp-panel exp-inspect">
-                    <ProjectDigest nodes={active!.nodes} onSelect={selectNode} />
+                <>
+                  <UsageMeter project={project} allProjects={allProjects} />
+                  <LiveActivity project={project} history={active!.history} />
+                  <div className="exp-overview">
+                    <div className="card exp-panel exp-inspect">
+                      <ProjectDigest nodes={active!.nodes} onSelect={selectNode} />
+                    </div>
+                    <div className="card exp-panel">
+                      <RunControls project={project} busy={busy} onControl={onControl} />
+                    </div>
                   </div>
-                  <div className="card exp-panel">
-                    <RunControls project={project} busy={busy} onControl={onControl} />
-                  </div>
-                </div>
+                </>
               )}
             </>
           )}

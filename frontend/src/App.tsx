@@ -39,6 +39,15 @@ export default function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [reweighting, setReweighting] = useState(false);
 
+  // Theme (light default, dark toggle) — persisted; applied to <html data-theme>.
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () => (document.documentElement.getAttribute("data-theme") as "light" | "dark") || "light"
+  );
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("mgf-theme", theme);
+  }, [theme]);
+
   // ⌘K command palette + the signals it uses to drive the autonomous view.
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [focusProjectId, setFocusProjectId] = useState<string | null>(null);
@@ -215,6 +224,14 @@ export default function App() {
             </button>
           </div>
           <div className="topbar-spacer" />
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+            title={theme === "light" ? "Switch to dark" : "Switch to light"}
+            aria-label="Toggle theme"
+          >
+            {theme === "light" ? "◐" : "◑"}
+          </button>
           {mode === "single" && report && (
             <div className="meta-row">
               <span className={`meta-pill ${report.cache_hit ? "hit" : "miss"}`}>
