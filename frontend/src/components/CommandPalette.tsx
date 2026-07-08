@@ -3,8 +3,6 @@ import { listProjects } from "../autonomous/api";
 import type { Project } from "../autonomous/types";
 
 export interface PaletteCtx {
-  mode: "single" | "autonomous";
-  setMode: (m: "single" | "autonomous") => void;
   jumpProject: (pid: string) => void;
   newExploration: () => void;
 }
@@ -47,8 +45,6 @@ export default function CommandPalette({
   const commands = useMemo<Cmd[]>(() => {
     const base: Cmd[] = [
       { id: "new", label: "New exploration", hint: "autonomous", icon: "＋", run: ctx.newExploration },
-      { id: "single", label: "Single-area search", hint: "mode", icon: "◎", run: () => ctx.setMode("single") },
-      { id: "auto", label: "Autonomous explorer", hint: "mode", icon: "✦", run: () => ctx.setMode("autonomous") },
     ];
     const projCmds: Cmd[] = projects.map((p) => ({
       id: `p:${p.id}`,

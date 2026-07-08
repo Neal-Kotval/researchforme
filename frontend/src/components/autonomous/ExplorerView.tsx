@@ -33,6 +33,7 @@ import LiveActivity, { type Sample } from "./LiveActivity";
 import GlobalUsageBar from "./GlobalUsageBar";
 import HomeDashboard from "./HomeDashboard";
 import ProjectDigest from "./ProjectDigest";
+import type { Route } from "../../hooks/useHashRoute";
 
 /* -------------------------------------------------------------- live series -- */
 // A time-series of each project's stats, folded from the SSE stream, so the UI
@@ -204,24 +205,26 @@ function errMsg(e: unknown, fallback: string): string {
  * stays live.
  */
 interface ExplorerViewProps {
-  /** ⌘K "jump to exploration" — focus this project when it changes. */
-  focusProjectId?: string | null;
+  route: Route;
+  navHome: () => void;
+  navProject: (projectId: string) => void;
+  navNode: (projectId: string, nodeId: string) => void;
   /** ⌘K "new exploration" — open the new-exploration dialog when this bumps. */
   newExplorationSignal?: number;
-  /** App-shell mode nav (rendered at the top of the sidebar). */
-  mode?: "single" | "autonomous";
-  setMode?: (m: "single" | "autonomous") => void;
 }
 
-export default function ExplorerView({ focusProjectId, newExplorationSignal, mode, setMode }: ExplorerViewProps = {}) {
+export default function ExplorerView({ route, navHome, navProject, navNode, newExplorationSignal }: ExplorerViewProps) {
   const [state, dispatch] = useReducer(reduce, { byId: {}, order: [] });
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [selByProject, setSelByProject] = useState<Record<string, string | null>>({});
+  const [loaded, setLoaded] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "nodes">("nodes");
   const [treeMode, setTreeMode] = useState<"canvas" | "list">("canvas");
+
+  // Navigation is derived from the URL — never held as separate state.
+  const activeId = route.view === "exploration" ? route.projectId : null;
+  const selectedId = route.view === "exploration" ? route.nodeId : null;
 
   const orderSig = state.order.join(",");
 
@@ -231,6 +234,8 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
       dispatch({ type: "setProjects", projects: ps });
     } catch (e) {
       setErr(errMsg(e, "Could not load explorations."));
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -257,36 +262,23 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
     return () => unsub();
   }, [activeId]);
 
-  // Opening a project always lands on the Nodes/tree with no stale idea selected
-  // (a lingering per-project selection used to dump you straight into a full-page
-  // idea detail). Clear the selection and reset the tab on every project switch.
+  // Opening a project always lands on the Nodes tab. Selection lives in the URL.
   useEffect(() => {
-    if (activeId) {
-      setSelByProject((prev) => (prev[activeId] ? { ...prev, [activeId]: null } : prev));
-      setView("nodes");
-    }
+    if (activeId) setView("nodes");
   }, [activeId]);
-
-  // ⌘K: jump to a specific exploration (refresh first if we don't have it yet).
-  useEffect(() => {
-    if (!focusProjectId) return;
-    setActiveId(focusProjectId);
-    if (!state.byId[focusProjectId]) refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusProjectId]);
 
   // ⌘K: open the new-exploration dialog (ignore the initial 0).
   useEffect(() => {
     if (newExplorationSignal && newExplorationSignal > 0) setShowNew(true);
   }, [newExplorationSignal]);
 
-  // Default to the Home dashboard (activeId === null); only clear a selection
-  // that points at a now-deleted project. Never auto-jump into a project, so the
-  // landing surface is the "glance at everything" home.
+  // A URL that points at a project we don't have (deleted, or a bad deep link)
+  // falls back home — but only once the list has actually loaded, so a valid
+  // deep link isn't bounced before its project arrives.
   useEffect(() => {
-    if (activeId && !state.byId[activeId]) setActiveId(null);
+    if (loaded && activeId && !state.byId[activeId]) navHome();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderSig]);
+  }, [orderSig, loaded, activeId]);
 
   const active = activeId ? state.byId[activeId] : null;
   const allProjects = useMemo(
@@ -294,13 +286,13 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
     [state]
   );
 
-  const selectedId = activeId ? selByProject[activeId] ?? null : null;
   const selectNode = useCallback(
     (id: string | null) => {
       if (!activeId) return;
-      setSelByProject((prev) => ({ ...prev, [activeId]: id }));
+      if (id) navNode(activeId, id);
+      else navProject(activeId);
     },
-    [activeId]
+    [activeId, navNode, navProject]
   );
 
   const selectedNode = active && selectedId ? active.nodes[selectedId] ?? null : null;
@@ -337,10 +329,10 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
     async (req: CreateProjectRequest) => {
       const p = await createProject(req);
       await refresh();
-      setActiveId(p.id);
+      navProject(p.id);
       setShowNew(false);
     },
-    [refresh]
+    [refresh, navProject]
   );
 
   // Delete by id (the sidebar row asks for confirmation inline — no blocking
@@ -351,13 +343,13 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
       try {
         await deleteProject(id);
         dispatch({ type: "removeProject", id });
-        setActiveId((cur) => (cur === id ? state.order.find((x) => x !== id) ?? null : cur));
+        if (activeId === id) navHome();
       } catch (e) {
         setErr(errMsg(e, "Could not delete the exploration."));
         refresh();
       }
     },
-    [state.order, refresh]
+    [activeId, navHome, refresh]
   );
 
   /* ------------------------------------------------------------------ view -- */
@@ -379,23 +371,42 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
         <ExplorationSidebar
           projects={allProjects}
           activeId={activeId}
-          onSelect={setActiveId}
+          onSelect={navProject}
           onNew={() => setShowNew(true)}
           onDelete={onDelete}
-          onHome={() => setActiveId(null)}
-          mode={mode}
-          setMode={setMode}
+          onHome={navHome}
         />
 
         <div className="exp-main">
           {!project ? (
             <HomeDashboard
               projects={allProjects}
-              onOpen={setActiveId}
+              onOpen={navProject}
               onNew={() => setShowNew(true)}
             />
           ) : (
             <>
+              <nav className="exp-crumbs" aria-label="Breadcrumb">
+                <button className="crumb" onClick={navHome}>Dashboard</button>
+                <span className="crumb-sep" aria-hidden>›</span>
+                <button
+                  className={`crumb${!selectedNode ? " current" : ""}`}
+                  onClick={() => activeId && navProject(activeId)}
+                  aria-current={!selectedNode ? "page" : undefined}
+                >
+                  {project.domain}
+                </button>
+                {selectedNode && (
+                  <>
+                    <span className="crumb-sep" aria-hidden>›</span>
+                    <span className="crumb current" aria-current="page">
+                      {selectedNode.kind === "gap" || selectedNode.kind === "gap_candidate"
+                        ? "Idea" : titleKind(selectedNode.kind)}
+                    </span>
+                  </>
+                )}
+              </nav>
+
               <div className="exp-topline">
                 <div className="exp-title">
                   <h2>{project.domain}</h2>
@@ -435,12 +446,6 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
                   >
                     Nodes <span className="exp-tab-n">{Object.keys(active!.nodes).length}</span>
                   </button>
-                  {selectedNode && (
-                    <button role="tab" aria-selected className="exp-tab active idea">
-                      {selectedNode.kind === "gap" || selectedNode.kind === "gap_candidate"
-                        ? "Idea" : titleKind(selectedNode.kind)}
-                    </button>
-                  )}
                 </div>
                 <div className="exp-tab-controls">
                   <RunControls project={project} busy={busy} onControl={onControl} compact />
@@ -449,9 +454,6 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal, mod
 
               {selectedNode ? (
                 <div className="card exp-detail">
-                  <button className="inspect-back" onClick={() => selectNode(null)}>
-                    ‹ Back to {view === "overview" ? "overview" : "nodes"}
-                  </button>
                   <NodeInspector
                     node={selectedNode}
                     childNodes={selectedChildren}

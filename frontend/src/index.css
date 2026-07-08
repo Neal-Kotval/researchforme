@@ -1447,3 +1447,28 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .single-side-controls .btn { justify-content: center; }
 .single-main { min-width: 0; overflow-y: auto; max-height: 100vh; padding: 0 28px 60px; }
 .single-main .hero { padding-top: 40px; }
+
+/* Exploration breadcrumb — the single authoritative "where am I / go back". */
+.exp-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.exp-crumbs .crumb {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.exp-crumbs .crumb:hover { color: var(--text); }
+.exp-crumbs .crumb.current {
+  color: var(--text);
+  font-weight: 500;
+  cursor: default;
+}
+.exp-crumbs .crumb-sep { color: var(--text-faint); opacity: 0.6; }
