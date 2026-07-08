@@ -570,25 +570,6 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
    stars / selection / CTAs. Neutral→vermillion ramp carries viability.
    ========================================================================== */
 
-/* ---- topbar mode switch -------------------------------------------------- */
-.mode-switch {
-  display: inline-flex; gap: 2px; padding: 2px; flex: none;
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
-}
-.ms-option {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 13px; border-radius: var(--r-sm);
-  font-size: 12.5px; font-weight: 560; color: var(--text-faint);
-  border: 1px solid transparent; transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
-  white-space: nowrap;
-}
-.ms-option:hover { color: var(--text); }
-.ms-option.active {
-  background: var(--surface); color: var(--text);
-  box-shadow: var(--shadow-sm); border-color: var(--border);
-}
-.ms-spark { color: var(--accent); font-size: 11px; }
-
 .explorer-shell { max-width: 1560px; padding-bottom: 0; }
 
 /* ---- app shell: sidebar | scrolling main, with a pinned global bar -------- */
@@ -1301,7 +1282,6 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 }
 @media (max-width: 640px) {
   .nd-row, .nd-budget { grid-template-columns: 1fr; }
-  .mode-switch .ms-option { padding: 6px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1411,42 +1391,14 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .explorer { height: 100vh; padding-top: 0; }
 .exp-shell { border-top: none; margin-top: 0; grid-template-columns: 244px minmax(0, 1fr); }
 
-/* sidebar header: brand + mode nav (shared) */
-.sidenav { display: flex; flex-direction: column; gap: 3px; padding: 0 4px 4px; }
-.sidenav-brand { display: flex; align-items: center; gap: 9px; padding: 14px 8px 12px; }
-.sidenav-brand .brand-mark {
-  width: 26px; height: 26px; border-radius: var(--r-sm); flex: none;
-  background: var(--primary); color: var(--primary-fg); display: grid; place-items: center;
-}
-.sidenav-brand .brand-mark svg { width: 15px; height: 15px; }
-.sidenav-brand .brand-name { font-size: 14px; font-weight: 620; letter-spacing: -0.01em; }
-.sidenav-nav { display: flex; flex-direction: column; gap: 1px; }
-.sidenav-item {
-  display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px;
-  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-dim); text-align: left;
-}
-.sidenav-item:hover { background: var(--surface-2); color: var(--text); }
-.sidenav-item.active { background: var(--surface-3); color: var(--text); font-weight: 560; }
-.sidenav-item .sni-ico { width: 16px; text-align: center; color: var(--text-faint); font-size: 12px; }
-.sidenav-item.active .sni-ico { color: var(--accent-strong); }
-
 /* section label between nav and list */
 .es-sec-label {
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--text-ghost); padding: 12px 10px 6px;
 }
 
-/* the explorations sidebar now sits under the shared SideNav */
 .exp-sidebar { padding-top: 8px; }
 .exp-sidebar .es-head { padding: 0 6px; }
-
-/* single-area shell */
-.single-shell { display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100vh; }
-.single-sidebar { border-right: 1px solid var(--border); padding: 0 10px 16px; display: flex; flex-direction: column; }
-.single-side-controls { display: flex; flex-direction: column; gap: 8px; padding: 0 4px; }
-.single-side-controls .btn { justify-content: center; }
-.single-main { min-width: 0; overflow-y: auto; max-height: 100vh; padding: 0 28px 60px; }
-.single-main .hero { padding-top: 40px; }
 
 /* Exploration breadcrumb — the single authoritative "where am I / go back". */
 .exp-crumbs {

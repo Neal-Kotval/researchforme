@@ -17,8 +17,8 @@ interface Cmd {
 
 /**
  * ⌘K command palette — the fast way around the app. Fuzzy-filter over quick
- * actions (new exploration, switch modes) and every past exploration (jump
- * straight to its tree). Arrow keys + Enter, Esc to close. Design-system styled.
+ * actions (new exploration) and every past exploration (jump straight to its
+ * tree). Arrow keys + Enter, Esc to close. Design-system styled.
  */
 export default function CommandPalette({
   open, onClose, ctx,
