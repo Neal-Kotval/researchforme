@@ -207,9 +207,12 @@ interface ExplorerViewProps {
   focusProjectId?: string | null;
   /** ⌘K "new exploration" — open the new-exploration dialog when this bumps. */
   newExplorationSignal?: number;
+  /** App-shell mode nav (rendered at the top of the sidebar). */
+  mode?: "single" | "autonomous";
+  setMode?: (m: "single" | "autonomous") => void;
 }
 
-export default function ExplorerView({ focusProjectId, newExplorationSignal }: ExplorerViewProps = {}) {
+export default function ExplorerView({ focusProjectId, newExplorationSignal, mode, setMode }: ExplorerViewProps = {}) {
   const [state, dispatch] = useReducer(reduce, { byId: {}, order: [] });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selByProject, setSelByProject] = useState<Record<string, string | null>>({});
@@ -379,6 +382,8 @@ export default function ExplorerView({ focusProjectId, newExplorationSignal }: E
           onNew={() => setShowNew(true)}
           onDelete={onDelete}
           onHome={() => setActiveId(null)}
+          mode={mode}
+          setMode={setMode}
         />
 
         <div className="exp-main">

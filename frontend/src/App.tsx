@@ -18,6 +18,7 @@ import WeightControls from "./components/WeightControls";
 import ModelPicker from "./components/ModelPicker";
 import ExplorerView from "./components/autonomous/ExplorerView";
 import CommandPalette from "./components/CommandPalette";
+import SideNav from "./components/SideNav";
 
 type Phase = "idle" | "loading" | "ready" | "error";
 type Mode = "single" | "autonomous";
@@ -38,15 +39,6 @@ export default function App() {
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [reweighting, setReweighting] = useState(false);
-
-  // Theme (light default, dark toggle) — persisted; applied to <html data-theme>.
-  const [theme, setTheme] = useState<"light" | "dark">(
-    () => (document.documentElement.getAttribute("data-theme") as "light" | "dark") || "light"
-  );
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("mgf-theme", theme);
-  }, [theme]);
 
   // ⌘K command palette + the signals it uses to drive the autonomous view.
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -186,87 +178,31 @@ export default function App() {
   /* ------------------------------------------------------------------ view -- */
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand">
-            <div className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m10.065 12.493-6.18 1.318a.934.934 0 0 1-1.108-.702l-.537-2.15a1.07 1.07 0 0 1 .691-1.265l13.504-4.44" />
-                <path d="m13.56 11.747 4.332-.924" />
-                <path d="m16 21-3.105-6.21" />
-                <path d="M16.485 5.94a2 2 0 0 1 1.455-2.425l1.09-.272a1 1 0 0 1 1.212.727l1.515 6.06a1 1 0 0 1-.727 1.213l-1.09.272a2 2 0 0 1-2.425-1.455z" />
-                <path d="m6.158 8.633 1.114 4.456" />
-                <path d="m8 21 3.105-6.21" />
-                <circle cx="12" cy="13" r="2" />
-              </svg>
-            </div>
-            <div>
-              <div className="brand-name">Market Gap Finder</div>
-              <div className="brand-sub">Signal-driven opportunity discovery</div>
-            </div>
-          </div>
-          <div className="mode-switch" role="tablist" aria-label="Mode">
-            <button
-              role="tab"
-              aria-selected={mode === "single"}
-              className={`ms-option${mode === "single" ? " active" : ""}`}
-              onClick={() => setMode("single")}
-            >
-              Single area
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === "autonomous"}
-              className={`ms-option${mode === "autonomous" ? " active" : ""}`}
-              onClick={() => setMode("autonomous")}
-            >
-              <span className="ms-spark">✦</span> Autonomous
-            </button>
-          </div>
-          <div className="topbar-spacer" />
-          <button
-            className="theme-toggle"
-            onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
-            title={theme === "light" ? "Switch to dark" : "Switch to light"}
-            aria-label="Toggle theme"
-          >
-            {theme === "light" ? "◐" : "◑"}
-          </button>
-          {mode === "single" && report && (
-            <div className="meta-row">
-              <span className={`meta-pill ${report.cache_hit ? "hit" : "miss"}`}>
-                <span className="dot" />
-                {report.cache_hit ? "cache hit" : "fresh fetch"}
-              </span>
-              <span className="meta-pill" title={report.model || undefined}>
-                <span className="dot" /> {report.model ? modelLabel(report.model) : "—"}
-                <b style={{ fontWeight: 500, color: "var(--text-faint)" }}>· {report.llm_mode}</b>
-              </span>
-              {genLabel && <span className="meta-pill">{genLabel}</span>}
-            </div>
-          )}
-          {mode === "single" && query && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      {mode === "autonomous" && (
+        <ExplorerView
+          focusProjectId={focusProjectId}
+          newExplorationSignal={newExplorationSignal}
+          mode={mode}
+          setMode={setMode}
+        />
+      )}
+
+      {mode === "single" && (
+      <div className="app-shell single-shell">
+        <aside className="single-sidebar">
+          <SideNav mode={mode} setMode={setMode} />
+          {query && (
+            <div className="single-side-controls">
+              <div className="es-sec-label">This search</div>
               <ModelPicker value={model} onChange={setModel} compact disabled={phase === "loading"} />
               <button className="btn btn-ghost btn-sm" onClick={onRerun} disabled={phase === "loading"} title="Re-run with this model and a fresh fetch">
                 ↻ Re-run
               </button>
-              <button className="btn btn-sm" onClick={onNewSearch}>
-                New search
-              </button>
+              <button className="btn btn-sm" onClick={onNewSearch}>＋ New search</button>
             </div>
           )}
-        </div>
-      </header>
-
-      {mode === "autonomous" && (
-        <main className="shell explorer-shell">
-          <ExplorerView focusProjectId={focusProjectId} newExplorationSignal={newExplorationSignal} />
-        </main>
-      )}
-
-      {mode === "single" && (
-      <main className="shell">
+        </aside>
+      <main className="single-main">
         {phase === "idle" && (
           <AreaInput onSubmit={onSubmit} loading={false} model={model} onModelChange={setModel} />
         )}
@@ -409,6 +345,7 @@ export default function App() {
           Market Gap Finder · signals from Reddit, Hacker News, arXiv, GitHub &amp; tech newsletters · gaps are hypotheses, not advice.
         </div>
       </main>
+      </div>
       )}
 
       {mode === "single" && (

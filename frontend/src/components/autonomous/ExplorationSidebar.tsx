@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Project } from "../../autonomous/types";
 import { statusMeta } from "./ProjectTabs";
+import SideNav from "../SideNav";
 
 interface Props {
   projects: Project[];
@@ -9,6 +10,8 @@ interface Props {
   onNew: () => void;
   onDelete: (id: string) => void;
   onHome: () => void;
+  mode?: "single" | "autonomous";
+  setMode?: (m: "single" | "autonomous") => void;
 }
 
 function fmtTokens(n: number): string {
@@ -31,7 +34,7 @@ function rank(p: Project): number {
  * point of "come back to many explorations".
  */
 export default function ExplorationSidebar({
-  projects, activeId, onSelect, onNew, onDelete, onHome,
+  projects, activeId, onSelect, onNew, onDelete, onHome, mode, setMode,
 }: Props) {
   const [q, setQ] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -54,6 +57,8 @@ export default function ExplorationSidebar({
 
   return (
     <aside className="exp-sidebar" aria-label="Explorations">
+      {mode && setMode && <SideNav mode={mode} setMode={setMode} />}
+      <div className="es-sec-label">Explorations</div>
       <div className="es-head">
         <button
           className={`es-home${activeId === null ? " active" : ""}`}

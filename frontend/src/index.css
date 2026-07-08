@@ -23,7 +23,7 @@ body {
   line-height: 1.5;
 }
 
-h1, h2, h3, h4 { margin: 0; font-weight: 680; letter-spacing: -0.02em; line-height: 1.2; text-wrap: balance; color: var(--text); }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.011em; line-height: 1.22; text-wrap: balance; color: var(--text); }
 p { margin: 0; }
 a { color: var(--accent-strong); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -57,8 +57,8 @@ button {
 /* ---------------------------------------------------------- top bar ------ */
 .topbar {
   position: sticky; top: 0; z-index: var(--z-sticky);
-  background: rgba(250, 249, 247, 0.82);
-  backdrop-filter: saturate(1.4) blur(10px);
+  background: rgba(237, 237, 232, 0.85);
+  backdrop-filter: saturate(1.3) blur(10px);
   border-bottom: 1px solid var(--border);
 }
 .topbar-inner {
@@ -634,10 +634,10 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .es-home-ico { font-size: 14px; }
 .es-new {
   display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
-  padding: 9px 12px; border-radius: var(--r-md); background: var(--accent); color: var(--text-on-accent);
-  font-size: 13px; font-weight: 620; transition: background var(--dur-fast) ease;
+  padding: 9px 12px; border-radius: var(--r-sm); background: var(--primary); color: var(--primary-fg);
+  font-size: 13px; font-weight: 560; transition: background var(--dur-fast) ease;
 }
-.es-new:hover { background: var(--accent-strong); }
+.es-new:hover { background: var(--primary-hover); }
 .es-new-plus { font-size: 14px; }
 .es-search { position: relative; flex: none; display: flex; align-items: center; }
 .es-search-ico { position: absolute; left: 10px; color: var(--text-ghost); font-size: 14px; pointer-events: none; }
@@ -1357,3 +1357,49 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 
 /* On the Nodes tab, let the canvas fill the viewport height (no thin slice). */
 .exp-canvas-card { height: calc(100vh - 250px); min-height: 460px; }
+
+/* ============================================================================
+   App shell — persistent left sidebar, no topbar (Langfuse app layout)
+   ========================================================================== */
+.app { min-height: 100vh; }
+/* The explorer view IS the shell now; make it fill the viewport height. */
+.explorer-shell { max-width: none; padding: 0; }
+.explorer { height: 100vh; padding-top: 0; }
+.exp-shell { border-top: none; margin-top: 0; grid-template-columns: 244px minmax(0, 1fr); }
+
+/* sidebar header: brand + mode nav (shared) */
+.sidenav { display: flex; flex-direction: column; gap: 3px; padding: 0 4px 4px; }
+.sidenav-brand { display: flex; align-items: center; gap: 9px; padding: 14px 8px 12px; }
+.sidenav-brand .brand-mark {
+  width: 26px; height: 26px; border-radius: var(--r-sm); flex: none;
+  background: var(--primary); color: var(--primary-fg); display: grid; place-items: center;
+}
+.sidenav-brand .brand-mark svg { width: 15px; height: 15px; }
+.sidenav-brand .brand-name { font-size: 14px; font-weight: 620; letter-spacing: -0.01em; }
+.sidenav-nav { display: flex; flex-direction: column; gap: 1px; }
+.sidenav-item {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px;
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-dim); text-align: left;
+}
+.sidenav-item:hover { background: var(--surface-2); color: var(--text); }
+.sidenav-item.active { background: var(--surface-3); color: var(--text); font-weight: 560; }
+.sidenav-item .sni-ico { width: 16px; text-align: center; color: var(--text-faint); font-size: 12px; }
+.sidenav-item.active .sni-ico { color: var(--accent-strong); }
+
+/* section label between nav and list */
+.es-sec-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-ghost); padding: 12px 10px 6px;
+}
+
+/* the explorations sidebar now sits under the shared SideNav */
+.exp-sidebar { padding-top: 8px; }
+.exp-sidebar .es-head { padding: 0 6px; }
+
+/* single-area shell */
+.single-shell { display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100vh; }
+.single-sidebar { border-right: 1px solid var(--border); padding: 0 10px 16px; display: flex; flex-direction: column; }
+.single-side-controls { display: flex; flex-direction: column; gap: 8px; padding: 0 4px; }
+.single-side-controls .btn { justify-content: center; }
+.single-main { min-width: 0; overflow-y: auto; max-height: 100vh; padding: 0 28px 60px; }
+.single-main .hero { padding-top: 40px; }
