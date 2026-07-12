@@ -1,8 +1,12 @@
 # DESIGN.md — Market Gap Finder design system
 
-Minimal, informative, light. Off-white canvas, white surfaces, near-black ink,
-hairline neutral borders, generous whitespace. **One vermillion accent**, spent
-only where it means something. Data stays neutral so the accent keeps its meaning.
+Synced to the "Gap Finder — Platform (light)" design handoff. Near-white
+warm-green-grey canvas with a dotted grid, white surfaces, near-black ink,
+hairline borders, generous whitespace. **One green accent used as a
+highlighter** — a fill behind dark text (chips, pills, the live tag), never
+colored text on white; the rare accent text/dot/sparkline use is "accent-ink"
+(near-black). Charcoal primary buttons with kbd badges. Inter Tight carries
+the UI; JetBrains Mono carries every number, ID, and metadata line.
 Aesthetic reference: Langfuse / Linear calm.
 
 All values live as **design tokens** in `frontend/src/tokens.css` (a single `:root`).
@@ -11,52 +15,55 @@ color, radius, or shadow. Change the system by changing tokens.
 
 ## Color
 
-### Surfaces (warm-neutral, near-zero chroma — deliberately not "cream")
+### Surfaces (warm-green-grey neutrals, near-white)
 | Token | Value | Use |
 |---|---|---|
-| `--bg` | `#faf9f7` | app canvas |
+| `--bg` | `#f6f7f5` | app canvas (dotted grid dots ride `--border`) |
 | `--surface` | `#ffffff` | cards, drawer, primary content |
-| `--surface-2` | `#f6f5f2` | table header, insets, secondary panels |
-| `--surface-3` | `#efede8` | chips, tracks, tertiary fills |
+| `--surface-side` | `#fbfcfb` | the fixed platform sidebar |
+| `--surface-2` | `#f5f7f4` | table header, insets, command blocks |
+| `--surface-3` | `#eef1ee` | chips, tracks, tertiary fills |
 
 ### Ink (every body value clears 4.5:1 on `--surface`)
-| Token | Value | Contrast | Use |
-|---|---|---|---|
-| `--text` | `#1c1b19` | ~15:1 | primary text, headings |
-| `--text-dim` | `#52504a` | ~8:1 | secondary body |
-| `--text-faint` | `#6f6d66` | ~5.3:1 | labels, captions |
-| `--text-ghost` | `#9a978f` | — | decorative only, **never body copy** |
-
-### Accent — vermillion
 | Token | Value | Use |
 |---|---|---|
-| `--accent` | `#e34a2f` | top pick, primary buttons, selection, composite bar, brand mark |
-| `--accent-bright` | `#f2542d` | hover |
-| `--accent-strong` | `#bb3a20` | inline/link text on light (keeps 4.5:1) |
-| `--accent-tint` / `--accent-tint-2` | `#fbeae5` / `#f6d8ce` | selected-row fill, soft borders |
+| `--text` | `#1c1e1b` | primary text, headings |
+| `--text-dim` | `#5b5e54` | secondary body |
+| `--text-faint` | `#8a8d81` | labels, captions |
+| `--text-ghost` | `#9ea196` | decorative only, **never body copy** |
 
-**Accent budget:** the vermillion covers well under 10% of any screen. It is not
-decoration. If you're reaching for it to "add color", stop — use neutral.
+### Accent — green highlighter
+| Token | Value | Use |
+|---|---|---|
+| `--accent` / `--highlight` | `#54b56a` | highlighter fills behind dark text: live tag, agent-live pill, sprinting, selection, meters |
+| `--highlight-border` | `#2f9550` | hairline on highlighter chips/pills |
+| `--accent-strong` | `#26261f` | "accent-ink" — the rare accent **text**/dot/sparkline is near-black, never green text |
+| `--accent-tint` / `--highlight-tint` | `#e9f4ec` / `#eaf4ec` | selected rows, the Compare lead-row wash |
+
+**Accent rule (handoff, hard):** the green is only ever a fill behind dark
+text. If you're reaching for green text on white, use accent-ink instead.
 
 ### Semantic states
 `--live` (green), `--mock` (amber), `--unavailable` (red), `--empty` (gray), each with
 a matching `-tint`. Used only on source badges, evidence dots, and warnings.
 
-### Data ramp (the one sequential color moment: the 2×2 map)
-`--ramp-0 … --ramp-4` run neutral → vermillion and encode trend tailwind (1–5). Score
-bars in the table use a single `--data-neutral`; width already encodes magnitude, so
-color there would be noise. The map's top pick overrides its ramp color with `--accent`.
+### Data ramp
+`--ramp-0 … --ramp-4` run warm grey → accent green; a viability chip's fill weight
+matches earned trust (memo §2). Score bars use a single `--data-neutral`; width
+already encodes magnitude, so color there would be noise.
 
 ## Typography
-One family: **Inter** (`--font`), system fallbacks. Fixed rem-ish scale (`--fs-xs`…
-`--fs-xl`), ratio ~1.2 — product density, not brand drama. Weights carry hierarchy
-(`--fw-regular`…`--fw-bold` 680). Headings `letter-spacing: -0.02em`, `text-wrap:
-balance`. Tabular numerals on all scores/metrics. No display font, no all-caps body,
-no gradient text.
+**Inter Tight** (`--font`) carries the UI; **JetBrains Mono** (`--mono`) carries
+every number, ID, count, timestamp, and command. Fixed scale (`--fs-xs`…`--fs-xl`).
+Weights carry hierarchy (`--fw-regular`…`--fw-bold` 680). Headings
+`letter-spacing: -0.01 to -0.02em`. Uppercase micro-labels 9.5–11px/600 with
+`.04–.08em` tracking. Tabular numerals on all scores/metrics. No gradient text.
 
 ## Space, radius, elevation
 - Spacing on a 4px base (`--sp-1`…`--sp-8`).
-- Radius is tight and product-grade (`--r-xs` 5 → `--r-xl` 16).
+- Radius per the handoff: cards/buttons 7–8px (`--r-lg`/`--r-xl`), chips/badges
+  3–4px (`--r-xs`/`--r-sm`). The Explore run summary is intentionally radius 0
+  with 9×9px crop-mark corner ticks.
 - **Borders carry structure, not shadows.** Shadows (`--shadow-sm/md/lg`) are barely
   there — a hairline `--border` defines most edges. `--shadow-lg` is reserved for the
   drawer and the input card.

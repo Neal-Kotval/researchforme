@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { getUsage, listProjects } from "../../autonomous/api";
+import { getUsage } from "../../autonomous/api";
 import type { GlobalUsage, Project } from "../../autonomous/types";
 import type { Route } from "../../hooks/useHashRoute";
 
@@ -8,6 +8,7 @@ export type PlatformView = "home" | "explore" | "pressure" | "compare" | "assist
 
 export function routeToPlatformView(route: Route): PlatformView {
   switch (route.view) {
+    case "explore":
     case "exploration": return "explore";
     case "pressure": return "pressure";
     case "compare": return "compare";
@@ -23,8 +24,6 @@ const VIEW_META: Record<PlatformView, { title: string; sub: string }> = {
   compare: { title: "Compare", sub: "Weigh the survivors by fit × viability. Every score carries its provenance." },
   assistant: { title: "Assistant", sub: "Drive the whole platform in plain language, through its tool layer." },
 };
-
-const RUNNING = new Set(["running"]);
 
 function fmtTok(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -60,9 +59,9 @@ function LogoMark() {
 
 interface Props {
   route: Route;
-  /** Explore nav: jump to the most recent active run, else home (to start one). */
-  onExplore: (latestActivePid: string | null) => void;
-  onNav: (view: "home" | "pressure" | "compare" | "assistant") => void;
+  /** The App-level projects poll — drives the LIVE tag and agent-live pill. */
+  projects: Project[];
+  onNav: (view: "home" | "explore" | "pressure" | "compare" | "assistant") => void;
   onNewExploration: () => void;
   children: ReactNode;
 }
@@ -72,33 +71,21 @@ interface Props {
  * FLOW / WORKSPACE nav + usage meter, a per-view top bar with the "agent live"
  * pill and the two global actions, and the dotted-grid content region.
  */
-export default function PlatformShell({ route, onExplore, onNav, onNewExploration, children }: Props) {
+export default function PlatformShell({ route, projects, onNav, onNewExploration, children }: Props) {
   const view = routeToPlatformView(route);
   const meta = VIEW_META[view];
 
-  // Lightweight polls: is anything running (LIVE tag / agent-live pill), and
-  // the shared governor snapshot for the usage meter. Cheap local endpoints.
-  const [projects, setProjects] = useState<Project[]>([]);
+  // The shared governor snapshot for the sidebar usage meter.
   const [usage, setUsage] = useState<GlobalUsage | null>(null);
   useEffect(() => {
     let alive = true;
-    const tick = () => {
-      listProjects().then((p) => alive && setProjects(p)).catch(() => {});
-      getUsage().then((u) => alive && setUsage(u)).catch(() => {});
-    };
+    const tick = () => getUsage().then((u) => alive && setUsage(u)).catch(() => {});
     tick();
-    const id = window.setInterval(tick, 12_000);
+    const id = window.setInterval(tick, 15_000);
     return () => { alive = false; window.clearInterval(id); };
   }, []);
 
-  const running = useMemo(() => projects.filter((p) => RUNNING.has(p.status)), [projects]);
-  const latestActive = useMemo(() => {
-    const act = projects
-      .filter((p) => ["running", "paused", "usage_paused", "milestone_paused"].includes(p.status))
-      .sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""));
-    return act[0]?.id ?? null;
-  }, [projects]);
-
+  const anyRunning = useMemo(() => projects.some((p) => p.status === "running"), [projects]);
   const ratio = usage?.usage_ratio;
   const pct = ratio != null ? Math.min(100, Math.round(ratio * 100)) : null;
 
@@ -106,10 +93,14 @@ export default function PlatformShell({ route, onExplore, onNav, onNewExploratio
     key: PlatformView,
     label: string,
     icon: ReactNode,
-    go: () => void,
     extra?: ReactNode
   ) => (
-    <button className={`pf-nav-item${view === key ? " active" : ""}`} onClick={go} title={label}>
+    <button
+      className={`pf-nav-item${view === key ? " active" : ""}`}
+      onClick={() => onNav(key)}
+      title={label}
+      aria-current={view === key ? "page" : undefined}
+    >
       {icon}
       <span className="pf-txt">{label}</span>
       {extra}
@@ -129,17 +120,16 @@ export default function PlatformShell({ route, onExplore, onNav, onNewExploratio
 
         <div className="pf-navlabel">Flow</div>
         <nav className="pf-nav">
-          {navItem("home", "Home", <IconHome />, () => onNav("home"))}
-          {navItem("explore", "Explore", <IconExplore />, () => onExplore(latestActive),
-            running.length > 0 ? <span className="pf-nav-live">live</span> : undefined)}
-          {navItem("pressure", "Pressure-test", <IconShield />, () => onNav("pressure"))}
-          {navItem("compare", "Compare", <IconBars />, () => onNav("compare"))}
+          {navItem("home", "Home", <IconHome />)}
+          {navItem("explore", "Explore", <IconExplore />,
+            anyRunning ? <span className="pf-nav-live">live</span> : undefined)}
+          {navItem("pressure", "Pressure-test", <IconShield />)}
+          {navItem("compare", "Compare", <IconBars />)}
         </nav>
 
         <div className="pf-navlabel">Workspace</div>
         <nav className="pf-nav">
-          {navItem("assistant", "Assistant", <IconChat />, () => onNav("assistant"),
-            <span className="pf-kbd">/</span>)}
+          {navItem("assistant", "Assistant", <IconChat />, <span className="pf-kbd">/</span>)}
         </nav>
 
         <div className="pf-side-spacer" />
@@ -176,7 +166,7 @@ export default function PlatformShell({ route, onExplore, onNav, onNewExploratio
           <div style={{ minWidth: 0 }}>
             <div className="pf-topbar-titlerow">
               <h1>{meta.title}</h1>
-              {running.length > 0 && (
+              {anyRunning && (
                 <span className="pf-live-pill">
                   <span className="pf-dot pulse" />agent live
                 </span>

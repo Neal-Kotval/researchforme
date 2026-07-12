@@ -26,12 +26,13 @@ describe("parseHash", () => {
     expect(parseHash("#/garbage/here")).toEqual({ view: "home" });
   });
   it("parses the flat platform views", () => {
+    expect(parseHash("#/explore")).toEqual({ view: "explore" });
     expect(parseHash("#/pressure-test")).toEqual({ view: "pressure" });
     expect(parseHash("#/compare")).toEqual({ view: "compare" });
     expect(parseHash("#/assistant")).toEqual({ view: "assistant" });
   });
   it("round-trips the flat platform views", () => {
-    for (const r of [{ view: "pressure" }, { view: "compare" }, { view: "assistant" }] as Route[]) {
+    for (const r of [{ view: "explore" }, { view: "pressure" }, { view: "compare" }, { view: "assistant" }] as Route[]) {
       expect(parseHash(routeToHash(r))).toEqual(r);
     }
   });

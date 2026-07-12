@@ -6,7 +6,10 @@
    ========================================================================== */
 
 @import "./tokens.css";
-/* Inter, self-hosted (bundled by Vite) — no render-blocking network fetch. */
+/* Fonts, self-hosted (bundled by Vite) — no render-blocking network fetch.
+   Inter Tight carries the UI; JetBrains Mono carries every number/ID/meta. */
+@import "@fontsource-variable/inter-tight/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
 @import "@fontsource-variable/inter/index.css";
 
 /* ---------------------------------------------------------------- reset --- */
@@ -57,7 +60,7 @@ button {
 /* ---------------------------------------------------------- top bar ------ */
 .topbar {
   position: sticky; top: 0; z-index: var(--z-sticky);
-  background: rgba(237, 237, 232, 0.85);
+  background: rgba(246, 247, 245, 0.85);
   backdrop-filter: saturate(1.3) blur(10px);
   border-bottom: 1px solid var(--border);
 }
@@ -92,7 +95,7 @@ button {
 /* generic buttons */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-radius: var(--r-sm);
+  padding: 8px 14px; border-radius: var(--r-lg);
   font-size: 13.5px; font-weight: 550; letter-spacing: -0.01em;
   border: 1px solid var(--border-strong);
   background: var(--surface); color: var(--text);
@@ -827,13 +830,14 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .viab-chip {
   display: inline-flex; align-items: center; gap: 3px; justify-content: center;
   min-width: 27px; padding: 2px 6px; border-radius: var(--r-sm);
-  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
-  color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); flex: none;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--highlight-ink);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); flex: none;
 }
-.viab-chip.star { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 0 1.5px var(--accent); }
-.viab-chip .vc-star { font-size: 9px; text-shadow: none; }
-.viab-chip.pending { background: var(--surface-3) !important; color: var(--text-faint); text-shadow: none; font-weight: 600; }
+.viab-chip.star { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 1.5px var(--highlight-border); }
+.viab-chip .vc-star { font-size: 9px; }
+.viab-chip.pending { background: var(--surface-3) !important; color: var(--text-faint); font-weight: 600; }
 /* Aggregate (avg-of-sub-ideas) chip on macro/structural rows — lighter + outlined
    so it reads as a rollup, not a leaf gap's own score. Same 0..100 ramp/scale. */
 .viab-chip.avg {
@@ -848,9 +852,9 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 /* provisional (medium confidence): outlined numeral — transparent fill, the  */
 /* ramp color moves to border + text.                                         */
 .viab-chip.trust-provisional {
-  background: transparent; color: var(--chip-ramp, var(--data-neutral));
-  border: 1px solid var(--chip-ramp, var(--data-neutral));
-  text-shadow: none; box-shadow: none; font-weight: 640;
+  background: transparent; color: var(--accent-strong);
+  border: 1px solid color-mix(in srgb, var(--chip-ramp, var(--data-neutral)) 70%, var(--border-strong));
+  box-shadow: none; font-weight: 640;
 }
 .viab-chip.trust-provisional .vc-star { color: inherit; }
 /* unverified (low confidence OR light rigor): dashed, desaturated toward the
@@ -871,8 +875,9 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   display: inline-flex; align-items: baseline; gap: 3px; justify-content: center;
   min-width: 27px; padding: 2px 6px; border-radius: var(--r-sm);
   font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
   color: var(--fit-strong); background: var(--fit-tint);
-  border: 1px solid var(--fit); flex: none;
+  border: 1px solid color-mix(in srgb, var(--fit) 25%, transparent); flex: none;
 }
 .fit-chip small {
   font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
@@ -1131,14 +1136,14 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
   box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-faint);
 }
-.global-usage.alert { border-color: var(--accent); background: var(--accent-tint); }
+.global-usage.alert { border-color: var(--warn); background: var(--warn-tint); }
 .gu-left { display: flex; align-items: center; gap: 8px; flex: none; }
 .gu-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-ghost); }
 .gu-dot.sprinting { background: var(--live); animation: la-pulse 1.5s ease-in-out infinite; }
 .gu-dot.curbing { background: var(--warn); }
 .gu-dot.paused { background: var(--text-ghost); }
 .gu-mode { font-weight: 620; color: var(--text-dim); }
-.global-usage.alert .gu-mode { color: var(--accent-strong); }
+.global-usage.alert .gu-mode { color: var(--warn); }
 .gu-metrics { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
 .gu-metric b { color: var(--text); font-weight: 660; font-variant-numeric: tabular-nums; }
 .gu-rate { color: var(--accent-strong) !important; }
@@ -1164,7 +1169,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .gu-gauge-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--live); transition: width var(--dur-mid) ease, background var(--dur-mid) ease; }
 .global-usage.lvl-medium .gu-gauge-fill { background: var(--data-neutral); }
 .global-usage.lvl-high .gu-gauge-fill { background: var(--warn); }
-.global-usage.lvl-heavy .gu-gauge-fill { background: var(--accent); }
+.global-usage.lvl-heavy .gu-gauge-fill { background: var(--unavailable); }
 .gu-gauge-pct { position: relative; z-index: 1; margin: 0 auto; font-size: 10px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
 .gu-limit-btn {
@@ -1287,7 +1292,8 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .scout-sig:hover .sig-title { color: var(--accent-strong); text-decoration: underline; }
 .scout-sig .sig-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .src-chip {
-  flex: none; display: inline-flex; font-size: 10px; font-weight: 600; padding: 1px 6px;
+  flex: none; display: inline-flex; font-family: var(--mono); font-size: 10px;
+  font-weight: 600; padding: 1px 6px;
   border-radius: var(--r-sm); color: var(--src-reddit); background: var(--src-reddit-tint);
   border: 1px solid var(--border-strong); text-transform: capitalize;
 }

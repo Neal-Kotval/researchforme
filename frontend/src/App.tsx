@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
+import { createProject } from "./autonomous/api";
+import type { CreateProjectRequest, ScoutCandidate } from "./autonomous/types";
 import { useHashRoute } from "./hooks/useHashRoute";
-import ExplorerView from "./components/autonomous/ExplorerView";
+import { useProjects } from "./hooks/useProjects";
 import CommandPalette from "./components/CommandPalette";
+import ExplorerView from "./components/autonomous/ExplorerView";
+import NewExplorationDialog, { type DialogPrefill } from "./components/autonomous/NewExplorationDialog";
 import PlatformShell from "./components/platform/PlatformShell";
+import HomeView from "./components/platform/HomeView";
+import ExploreView from "./components/platform/ExploreView";
 import PressureTestView from "./components/platform/PressureTestView";
 import CompareView from "./components/platform/CompareView";
 import AssistantView from "./components/platform/AssistantView";
@@ -21,21 +27,24 @@ function typingInField(): boolean {
 
 export default function App() {
   const { route, navHome, navProject, navNode, navView } = useHashRoute();
+  const { projects, refresh } = useProjects();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [newExplorationSignal, setNewExplorationSignal] = useState(0);
 
-  // The explorer engine (project store + SSE streams) stays mounted across all
-  // views; the flat platform screens render beside it and it simply hides.
-  const flatView =
-    route.view === "pressure" || route.view === "compare" || route.view === "assistant"
-      ? route.view
-      : null;
-
-  // "New exploration" opens the drawer inside the explorer — surface it first.
-  const newExploration = useCallback(() => {
-    if (window.location.hash !== "#/" && !window.location.hash.startsWith("#/e/")) navHome();
-    setNewExplorationSignal((n) => n + 1);
-  }, [navHome]);
+  // The one New-exploration drawer, owned here so every screen launches the
+  // same component (topbar button, N, ⌘K, scout prefills, empty-state CTAs).
+  const [dialog, setDialog] = useState<{ prefill: DialogPrefill | null } | null>(null);
+  const openNew = useCallback(() => setDialog({ prefill: null }), []);
+  const openScoutPrefill = useCallback((c: ScoutCandidate) => {
+    setDialog({
+      prefill: { domain: c.domain, segs: c.suggested_sub_segments, brief: c.rationale },
+    });
+  }, []);
+  const onCreate = async (req: CreateProjectRequest) => {
+    const p = await createProject(req);
+    setDialog(null);
+    await refresh();
+    navProject(p.id);
+  };
 
   // ⌘K palette; bare N = new exploration; bare / = assistant (design handoff).
   useEffect(() => {
@@ -45,10 +54,10 @@ export default function App() {
         setPaletteOpen((v) => !v);
         return;
       }
-      if (e.metaKey || e.ctrlKey || e.altKey || typingInField() || paletteOpen) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || typingInField() || paletteOpen || dialog) return;
       if (e.key.toLowerCase() === "n") {
         e.preventDefault();
-        newExploration();
+        openNew();
       } else if (e.key === "/") {
         e.preventDefault();
         navView("assistant");
@@ -56,50 +65,66 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newExploration, navView, paletteOpen]);
+  }, [openNew, navView, paletteOpen, dialog]);
 
   return (
     <>
-      <PlatformShell
-        route={route}
-        onNav={navView}
-        onExplore={(latestActivePid) =>
-          latestActivePid ? navProject(latestActivePid) : navHome()
-        }
-        onNewExploration={newExploration}
-      >
-        <main className={`pf-content${flatView ? " hidden" : ""}`}>
-          <div className={`shell explorer-shell${route.view === "home" ? " on-home" : ""}`}>
-            <ExplorerView
-              route={route}
-              navHome={navHome}
-              navProject={navProject}
-              navNode={navNode}
-              newExplorationSignal={newExplorationSignal}
+      <PlatformShell route={route} projects={projects} onNav={navView} onNewExploration={openNew}>
+        <main className="pf-content">
+          {route.view === "home" && (
+            <HomeView
+              projects={projects}
+              onOpenProject={navProject}
+              onOpenNode={navNode}
+              onNewExploration={openNew}
+              onExploreCandidate={openScoutPrefill}
             />
-          </div>
+          )}
+          {route.view === "explore" && (
+            <ExploreView
+              projects={projects}
+              onOpenProject={navProject}
+              onOpenNode={navNode}
+              onNewExploration={openNew}
+            />
+          )}
+          {route.view === "exploration" && (
+            <div className="shell explorer-shell">
+              <ExplorerView
+                route={route}
+                navHome={navHome}
+                navProject={navProject}
+                navNode={navNode}
+              />
+            </div>
+          )}
+          {route.view === "pressure" && (
+            <PressureTestView onOpenNode={navNode} onNewExploration={openNew} />
+          )}
+          {route.view === "compare" && (
+            <CompareView onOpenNode={navNode} onNewExploration={openNew} />
+          )}
+          {route.view === "assistant" && (
+            <AssistantView onNav={navView} onNewExploration={openNew} />
+          )}
         </main>
-        {flatView && (
-          <main className="pf-content">
-            {flatView === "pressure" && (
-              <PressureTestView onOpenNode={navNode} onNewExploration={newExploration} />
-            )}
-            {flatView === "compare" && (
-              <CompareView onOpenNode={navNode} onNewExploration={newExploration} />
-            )}
-            {flatView === "assistant" && (
-              <AssistantView onNav={navView} onNewExploration={newExploration} />
-            )}
-          </main>
-        )}
       </PlatformShell>
+
+      {dialog && (
+        <NewExplorationDialog
+          initialDepth="standard"
+          prefill={dialog.prefill}
+          onClose={() => setDialog(null)}
+          onCreate={onCreate}
+        />
+      )}
 
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         ctx={{
           jumpProject: (pid) => navProject(pid),
-          newExploration,
+          newExploration: openNew,
         }}
       />
     </>

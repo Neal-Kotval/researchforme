@@ -1,89 +1,95 @@
 /* ============================================================================
    Design tokens — Market Gap Finder
-   Matched to langfuse.com: warm paper canvas, warm near-black ink, BLACK primary
-   buttons, BLUE links/accent (#1863dc), a chartreuse highlight, sharp small radii,
-   hairline warm-grey rules, Inter. Light only. Single source of truth.
+   Synced to the "Gap Finder — Platform (light)" design handoff: near-white
+   warm-green-grey canvas, near-black ink, charcoal primary buttons, a single
+   GREEN accent used as a highlighter (fills behind dark text — never colored
+   text; "accent-ink" near-black covers the rare text/dot/sparkline use),
+   hairline borders, 8px cards, Inter Tight UI + JetBrains Mono metadata.
+   Light only. Single source of truth.
    ========================================================================== */
 
 :root {
-  /* ---- surfaces (warm paper — the Langfuse signature) ------------------- */
-  --bg: #edede8;          /* warm paper canvas */
-  --surface: #ffffff;     /* white cards pop on the warm paper */
-  --surface-2: #f6f6f3;   /* insets, table header, secondary panels */
-  --surface-3: #ececE6;   /* chips, tracks, tertiary fills */
-  --surface-hover: #f3f3ef;
+  /* ---- surfaces (near-white, warm-green-grey neutrals) ------------------- */
+  --bg: #f6f7f5;          /* app canvas (dotted-grid dots ride --border) */
+  --surface: #ffffff;     /* cards / primary content */
+  --surface-side: #fbfcfb;/* the fixed sidebar */
+  --surface-2: #f5f7f4;   /* insets, table header, command blocks */
+  --surface-3: #eef1ee;   /* chips, tracks, tertiary fills */
+  --surface-hover: #f0f1ee; /* nav-active / hover fills */
 
-  /* ---- lines & elevation (borders carry structure) ---------------------- */
-  --border: #deded7;        /* warm hairline */
-  --border-strong: #cfcfc9;
-  --ring: rgba(24, 99, 220, 0.45);   /* blue focus ring */
-  --shadow-sm: 0 1px 2px rgba(34, 34, 32, 0.06);
-  --shadow-md: 0 1px 2px rgba(34, 34, 32, 0.06), 0 2px 5px rgba(34, 34, 32, 0.05);
-  --shadow-lg: 0 14px 36px -14px rgba(34, 34, 32, 0.24);
+  /* ---- lines & elevation (borders carry structure; shadows ~none) ------- */
+  --border: #e5e8e2;        /* hairline */
+  --border-strong: #d6d9d3;
+  --ring: rgba(31, 31, 26, 0.35);   /* ink focus ring — no colored chrome */
+  --shadow-sm: 0 1px 2px rgba(31, 31, 26, 0.05);
+  --shadow-md: 0 1px 2px rgba(31, 31, 26, 0.05), 0 2px 5px rgba(31, 31, 26, 0.04);
+  --shadow-lg: 0 14px 36px -14px rgba(31, 31, 26, 0.22);
 
-  /* ---- ink (warm near-black; body clears 4.5:1 on --surface) ------------ */
-  --text: #222220;        /* warm near-black — primary */
-  --text-dim: #3d3d38;    /* secondary body */
-  --text-faint: #6b6b62;  /* labels, captions (≥4.5:1) */
-  --text-ghost: #a7a7a0;  /* decorative only */
+  /* ---- ink (body values clear 4.5:1 on --surface) ------------------------ */
+  --text: #1c1e1b;        /* primary text, headings */
+  --text-dim: #5b5e54;    /* secondary body */
+  --text-faint: #8a8d81;  /* labels, captions */
+  --text-ghost: #9ea196;  /* decorative only */
   --text-on-accent: #ffffff;
 
-  /* ---- accent (Langfuse BLUE — links, active, focus, selection) --------- */
-  --accent: #1863dc;
-  --accent-bright: #2f74e6;   /* hover */
-  --accent-strong: #1550b8;   /* inline/link text on light (≥4.5:1) */
-  --accent-tint: #e8eefb;     /* selected row, soft fills */
-  --accent-tint-2: #c5d8f5;   /* soft borders */
+  /* ---- accent (GREEN highlighter — fills behind dark text) -------------- */
+  /* --accent-strong is the "accent-ink": the rare text/hover use is near-   */
+  /* black, never green text on white (handoff hard rule).                   */
+  --accent: #54b56a;          /* the highlighter fill */
+  --accent-bright: #63c077;   /* hover fill */
+  --accent-strong: #26261f;   /* accent-ink — text / dots / sparklines */
+  --accent-tint: #e9f4ec;     /* selected row, soft fills */
+  --accent-tint-2: #c9e5d2;   /* soft borders */
 
-  /* ---- primary action (Langfuse BLACK buttons) -------------------------- */
-  --primary: #1a1a18;
-  --primary-hover: #33332e;
+  /* ---- primary action (charcoal buttons, white text) -------------------- */
+  --primary: #1c1c1a;
+  --primary-hover: #34342e;
   --primary-fg: #ffffff;
 
-  /* ---- highlight (chartreuse marker — reserved, sparing) ---------------- */
-  --highlight: #fbff7a;
-  --highlight-ink: #222220;
-  --highlight-border: #d7dd45;  /* hairline on highlighter chips/pills */
-  --highlight-tint: #f7fbe0;    /* lead-row wash (Compare) */
+  /* ---- highlight (marker chips/pills: dark text on the green fill) ------ */
+  --highlight: #54b56a;
+  --highlight-ink: #1f1f1a;
+  --highlight-border: #2f9550;  /* hairline on highlighter chips/pills */
+  --highlight-tint: #eaf4ec;    /* lead-row wash (Compare) */
 
-  /* ---- semantic states -------------------------------------------------- */
-  --live: #1863dc;         --live-tint: #e8eefb;   /* live / sprinting — blue */
-  --warn: #b7791f;         --warn-tint: #fbf3e2;   /* caution states ONLY: curbing pace, medium confidence, weakens verdicts */
-  --unavailable: #c8402f;  --unavailable-tint: #fbeae6; /* danger / error */
-  --empty: #a7a7a0;        --empty-tint: #f0f0eb;
+  /* ---- semantic states --------------------------------------------------- */
+  --live: #2f9550;         --live-tint: #e9f4ec;             /* live / sprinting */
+  --warn: #a9701a;         --warn-tint: rgba(224, 169, 74, 0.12); /* curbing, weakens, medium confidence */
+  --unavailable: #c8352f;  --unavailable-tint: rgba(242, 100, 95, 0.1); /* kills / danger */
+  --empty: #9ea196;        --empty-tint: #eef1ee;
 
   /* ---- provenance (reserved — memo §2) ----------------------------------- */
   /* Amber means exactly one thing: "this data is canned/fixture, not live". */
   --mock: #9a6b00;         --mock-tint: #f6eed7;
 
-  /* ---- founder fit (reserved — memo §1) ---------------------------------- */
-  /* Vermillion means exactly one thing: the founder — fit score, steering-
-     derived markers, "for you". Blue stays the market; never mix the two. */
-  --fit: #d24317;
-  --fit-strong: #b03410;
-  --fit-tint: #fbe9e2;
+  /* ---- founder fit (memo §1, restyled to the handoff's neutral chip) ----- */
+  /* Fit is the founder's number — a quiet warm-neutral chip, distinct from   */
+  /* the market's viability ramp but no longer a loud second accent.          */
+  --fit: #6f6a52;
+  --fit-strong: #57533f;
+  --fit-tint: #f2f2ee;
 
-  /* ---- data ramp (warm grey → blue; denser = stronger) ------------------ */
-  --ramp-0: #cfcfc9;   /* low — warm grey */
-  --ramp-1: #a9c3ee;   /* pale blue */
-  --ramp-2: #6f9fe4;   /* mid blue */
-  --ramp-3: #1863dc;   /* the Langfuse blue */
-  --ramp-4: #1145a0;   /* high — deep blue */
-  --data-neutral: #6b6b62;  /* single-hue bars / sparklines — warm grey */
+  /* ---- data ramp (warm grey → accent green; denser = stronger) ----------- */
+  --ramp-0: #cfd2ca;   /* low — warm grey */
+  --ramp-1: #b2d4bb;
+  --ramp-2: #83c093;
+  --ramp-3: #54b56a;   /* the accent green */
+  --ramp-4: #2f9550;   /* high — deep green */
+  --data-neutral: #6f6f66;  /* single-hue bars / sparklines — warm grey */
 
-  /* ---- source badge hues (muted warm graphite) -------------------------- */
-  --src-reddit: #4a4a44;      --src-reddit-tint: #f0f0eb;
-  --src-arxiv: #4a4a44;       --src-arxiv-tint: #f0f0eb;
-  --src-hn: #4a4a44;          --src-hn-tint: #f0f0eb;
-  --src-github: #4a4a44;      --src-github-tint: #f0f0eb;
-  --src-newsletter: #4a4a44;  --src-newsletter-tint: #f0f0eb;
+  /* ---- source badge hues (muted warm graphite) --------------------------- */
+  --src-reddit: #5b5e54;      --src-reddit-tint: #eef1ee;
+  --src-arxiv: #5b5e54;       --src-arxiv-tint: #eef1ee;
+  --src-hn: #5b5e54;          --src-hn-tint: #eef1ee;
+  --src-github: #5b5e54;      --src-github-tint: #eef1ee;
+  --src-newsletter: #5b5e54;  --src-newsletter-tint: #eef1ee;
 
   color-scheme: light;
 
-  /* ---- typography (Inter; display headings via weight, not a 2nd face) -- */
-  --font: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  /* ---- typography (Inter Tight UI · JetBrains Mono metadata/numbers) ---- */
+  --font: "Inter Tight Variable", "Inter Variable", "Inter", ui-sans-serif,
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
@@ -101,13 +107,13 @@
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
 
-  /* ---- radius (sharp / small — Langfuse ~2px) --------------------------- */
-  --r-xs: 2px;
-  --r-sm: 3px;
-  --r-md: 4px;
-  --r-lg: 6px;
+  /* ---- radius (handoff: cards/buttons 7–8px, chips/badges 3–4px) -------- */
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
   --r-xl: 8px;
-  --r-pill: 3px;
+  --r-pill: 6px;
 
   /* ---- motion ----------------------------------------------------------- */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

@@ -3,12 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 export type Route =
   | { view: "home" }
   | { view: "exploration"; projectId: string; nodeId: string | null }
+  | { view: "explore" }
   | { view: "pressure" }
   | { view: "compare" }
   | { view: "assistant" };
 
 /** Flat-view hash segments (platform screens without params). */
 const FLAT_VIEWS: Record<string, Route> = {
+  explore: { view: "explore" },
   "pressure-test": { view: "pressure" },
   compare: { view: "compare" },
   assistant: { view: "assistant" },
@@ -35,6 +37,7 @@ export function parseHash(hash: string): Route {
 /** Format a Route back into a hash string. */
 export function routeToHash(route: Route): string {
   if (route.view === "home") return "#/";
+  if (route.view === "explore") return "#/explore";
   if (route.view === "pressure") return "#/pressure-test";
   if (route.view === "compare") return "#/compare";
   if (route.view === "assistant") return "#/assistant";
@@ -66,9 +69,12 @@ export function useHashRoute() {
   const navNode = useCallback((projectId: string, nodeId: string) => {
     window.location.hash = routeToHash({ view: "exploration", projectId, nodeId });
   }, []);
-  const navView = useCallback((view: "home" | "pressure" | "compare" | "assistant") => {
-    window.location.hash = routeToHash({ view } as Route);
-  }, []);
+  const navView = useCallback(
+    (view: "home" | "explore" | "pressure" | "compare" | "assistant") => {
+      window.location.hash = routeToHash({ view } as Route);
+    },
+    []
+  );
 
   return { route, navHome, navProject, navNode, navView };
 }
