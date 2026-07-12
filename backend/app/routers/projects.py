@@ -42,6 +42,8 @@ from ..autonomous.schemas import (
     IntakeRequest,
     IntakeResponse,
     Project,
+    ScoutRequest,
+    ScoutResponse,
     SortResearchRequest,
     SortedResearch,
     TreeSnapshot,
@@ -100,6 +102,21 @@ async def project_intake(req: IntakeRequest) -> IntakeResponse:
     model = get_settings().llm_model
     questions = await generate_intake_questions(req.domain, get_client(), model, brief=req.brief)
     return IntakeResponse(questions=questions)
+
+
+@router.post("/projects/scout", response_model=ScoutResponse)
+async def scout_projects(req: ScoutRequest) -> ScoutResponse:
+    """Propose candidate domains from what is trending right now (Scout mode).
+
+    Domainless discovery: one cheap wide pass over all source adapters + one
+    cheap-model (decompose-tier) LLM call. Never fails hard — degrades to
+    deterministic token-cluster candidates flagged ``degraded`` — so the
+    suggested-spaces panel always returns something useful (STRATEGY Phase 1 §5).
+    """
+    from ..autonomous.scout import DECOMPOSE_MODEL, scout_spaces
+    from ..llm.client import get_client
+
+    return await scout_spaces(req.brief, req.avoid, get_client(), DECOMPOSE_MODEL)
 
 
 @router.post("/projects/sort-research", response_model=SortedResearch)

@@ -17,7 +17,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from ..schemas import Evidence, Gap
+from ..schemas import Evidence, Gap, SourceReport
 
 
 def _now() -> datetime:
@@ -260,6 +260,40 @@ class SortedResearch(BaseModel):
     sub_segments: list[str] = Field(default_factory=list)
     brief: str = ""
     research: str = ""  # the original paste, preserved verbatim for steering
+
+
+class ScoutRequest(BaseModel):
+    """Ask the engine to propose ownable spaces from what is hot right now."""
+
+    brief: str = Field(default="", max_length=8000)   # optional founder context
+    avoid: list[str] = Field(default_factory=list)    # spaces to exclude
+
+
+class ScoutSignal(BaseModel):
+    """One trending item that triggered a scout candidate — always from the
+    supplied input set (grounding discipline: never LLM-invented)."""
+
+    source: str
+    title: str
+    url: str
+
+
+class ScoutCandidate(BaseModel):
+    """A candidate DOMAIN shaped like an ownable space, with its trigger signals."""
+
+    domain: str
+    rationale: str
+    signals: list[ScoutSignal] = Field(default_factory=list)
+    suggested_sub_segments: list[str] = Field(default_factory=list)
+    degraded: bool = False  # True when produced by the deterministic fallback
+
+
+class ScoutResponse(BaseModel):
+    """Stateless scout result: candidates + per-source telemetry. Not persisted."""
+
+    candidates: list[ScoutCandidate] = Field(default_factory=list)
+    sources: list[SourceReport] = Field(default_factory=list)
+    generated_at: datetime = Field(default_factory=_now)
 
 
 class ControlAction(str, Enum):
