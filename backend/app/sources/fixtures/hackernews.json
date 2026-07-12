@@ -1,8 +1,8 @@
 {
-  "_comment": "Realistic mock Hacker News corpus for the Market Gap Finder, used when the keyless Algolia API is unreachable/blocked. Ten hits in Algolia's search shape (objectID, title/story_title, story_text/comment_text, points, num_comments, author, created_at[_i], _tags). Mix of Ask HN pain, Show HN launches, and high-point stories. item?id= URLs, points and dates look real but point at plausible-shaped IDs.",
+  "_comment": "Realistic mock Hacker News corpus for the Market Gap Finder, used when the keyless Algolia API is unreachable/blocked. Ten hits in Algolia's search shape (objectID, title/story_title, story_text/comment_text, points, num_comments, author, created_at[_i], _tags). Mix of Ask HN pain, Show HN launches, and high-point stories. objectIDs are deliberately out-of-range (99xxxxxxxx) and external URLs use reserved example.org hosts so nothing here resolves to a real page.",
   "hits": [
     {
-      "objectID": "40218841",
+      "objectID": "9900000001",
       "title": "Ask HN: Why is there still no good self-hosted invoicing tool for freelancers?",
       "story_text": "Every option is either a bloated ERP or a $40/mo SaaS that locks my client data behind a login. I just want to self-host something that sends an invoice, chases it politely, and reconciles Stripe payouts. I've tried 6 tools this year and each one is missing exactly one thing I need. Would gladly pay a one-time license.",
       "url": null,
@@ -11,10 +11,10 @@
       "num_comments": 271,
       "created_at": "2026-05-14T15:22:00.000Z",
       "created_at_i": 1778159320,
-      "_tags": ["ask_hn", "story", "author_solobuilder", "story_40218841"]
+      "_tags": ["ask_hn", "story", "author_solobuilder", "story_9900000001"]
     },
     {
-      "objectID": "40197233",
+      "objectID": "9900000002",
       "title": "Ask HN: How do you monitor cost of a fleet of LLM agents in production?",
       "story_text": "We run ~30 background agents and our Anthropic + OpenAI bill jumped 4x last month with no visibility into which agent or which prompt is burning tokens. Datadog LLM obs is enterprise-priced and Helicone doesn't break down by agent role. Is everyone just eating this blind? I'd pay real money for per-agent, per-tool token attribution.",
       "url": null,
@@ -23,46 +23,46 @@
       "num_comments": 188,
       "created_at": "2026-04-29T09:41:00.000Z",
       "created_at_i": 1777801260,
-      "_tags": ["ask_hn", "story", "author_mlops_anna", "story_40197233"]
+      "_tags": ["ask_hn", "story", "author_mlops_anna", "story_9900000002"]
     },
     {
-      "objectID": "40251190",
+      "objectID": "9900000003",
       "title": "Show HN: Ledgerly – open-source sales-tax filing for tiny multi-state sellers",
       "story_text": "I got tired of losing a weekend every quarter reconciling sales tax across 14 states, so I built Ledgerly. It ingests Shopify/Stripe payouts, computes nexus, and files the small-seller returns automatically. Free for under $50k GMV, $19/mo above. Looking for feedback on the nexus edge cases.",
-      "url": "https://ledgerly.dev",
+      "url": "https://ledgerly.example.org",
       "author": "taxweekend",
       "points": 611,
       "num_comments": 204,
       "created_at": "2026-06-02T13:05:00.000Z",
       "created_at_i": 1780405500,
-      "_tags": ["show_hn", "story", "author_taxweekend", "story_40251190"]
+      "_tags": ["show_hn", "story", "author_taxweekend", "story_9900000003"]
     },
     {
-      "objectID": "40263877",
+      "objectID": "9900000004",
       "title": "Show HN: Cascade – per-agent token cost attribution for LLM apps",
       "story_text": "After seeing a dozen Ask HN threads about surprise LLM bills, I built Cascade. Drop-in proxy that tags every call with agent/tool/user and gives you a cost waterfall. Self-hostable, no data leaves your infra. Would love to know what breakdowns you actually need.",
-      "url": "https://github.com/cascade-obs/cascade",
+      "url": "https://github.example.org/cascade-obs/cascade",
       "author": "obs_dev",
       "points": 428,
       "num_comments": 133,
       "created_at": "2026-06-18T17:48:00.000Z",
       "created_at_i": 1781804880,
-      "_tags": ["show_hn", "story", "author_obs_dev", "story_40263877"]
+      "_tags": ["show_hn", "story", "author_obs_dev", "story_9900000004"]
     },
     {
-      "objectID": "40155002",
+      "objectID": "9900000005",
       "title": "The hidden cost of onboarding: why SMB software churns in the first week",
       "story_text": null,
-      "url": "https://firstweekchurn.substack.com/p/the-hidden-cost-of-onboarding",
+      "url": "https://firstweekchurn.example.org/p/the-hidden-cost-of-onboarding",
       "author": "growthlog",
       "points": 738,
       "num_comments": 312,
       "created_at": "2026-03-31T11:20:00.000Z",
       "created_at_i": 1774955760,
-      "_tags": ["story", "author_growthlog", "story_40155002"]
+      "_tags": ["story", "author_growthlog", "story_9900000005"]
     },
     {
-      "objectID": "40182946",
+      "objectID": "9900000006",
       "title": "Ask HN: Is there a tool that turns customer support tickets into a roadmap?",
       "story_text": "We get ~800 tickets a month and I'm sure the top 10 feature requests are buried in there, but nobody has time to read them all. Intercom's AI summaries are vague and don't cluster by underlying need. I want something that reads the tickets, clusters the real pain, and hands PMs a ranked list. Does this exist or do I have to build it?",
       "url": null,
@@ -71,34 +71,34 @@
       "num_comments": 141,
       "created_at": "2026-04-19T08:12:00.000Z",
       "created_at_i": 1776874320,
-      "_tags": ["ask_hn", "story", "author_pm_in_the_weeds", "story_40182946"]
+      "_tags": ["ask_hn", "story", "author_pm_in_the_weeds", "story_9900000006"]
     },
     {
-      "objectID": "40240515",
+      "objectID": "9900000007",
       "title": "Show HN: Threadloom – cluster your support inbox into a ranked feature roadmap",
       "story_text": "Feeds off Zendesk/Intercom, clusters tickets by underlying job-to-be-done (not keywords), and gives PMs a weekly ranked list with representative quotes. Built it after burning out reading tickets by hand. Free tier up to 500 tickets/mo.",
-      "url": "https://threadloom.io",
+      "url": "https://threadloom.example.org",
       "author": "clustered",
       "points": 344,
       "num_comments": 97,
       "created_at": "2026-05-27T16:33:00.000Z",
       "created_at_i": 1779899580,
-      "_tags": ["show_hn", "story", "author_clustered", "story_40240515"]
+      "_tags": ["show_hn", "story", "author_clustered", "story_9900000007"]
     },
     {
-      "objectID": "40130788",
+      "objectID": "9900000008",
       "title": "On-device inference is finally good enough to kill a lot of cloud AI SaaS",
       "story_text": null,
-      "url": "https://simonwillison.net/2026/Mar/12/on-device-inference/",
+      "url": "https://weblog.example.org/2026/Mar/12/on-device-inference/",
       "author": "quantized",
       "points": 902,
       "num_comments": 419,
       "created_at": "2026-03-12T14:55:00.000Z",
       "created_at_i": 1773327300,
-      "_tags": ["story", "author_quantized", "story_40130788"]
+      "_tags": ["story", "author_quantized", "story_9900000008"]
     },
     {
-      "objectID": "40209663",
+      "objectID": "9900000009",
       "title": "Ask HN: Freelancers – how do you handle late-paying clients without nagging?",
       "story_text": "About half my invoices go 30-60 days past due and I hate chasing. Every AR tool I find is built for agencies with dozens of clients and priced accordingly. I just want polite escalating reminders and a one-click payment-plan link for solo consultants. What are people actually using?",
       "url": null,
@@ -107,19 +107,19 @@
       "num_comments": 176,
       "created_at": "2026-05-07T10:07:00.000Z",
       "created_at_i": 1778551620,
-      "_tags": ["ask_hn", "story", "author_consult_solo", "story_40209663"]
+      "_tags": ["ask_hn", "story", "author_consult_solo", "story_9900000009"]
     },
     {
-      "objectID": "40276104",
+      "objectID": "9900000010",
       "title": "Show HN: Nudge – gentle automated AR reminders built for solo freelancers",
       "story_text": "Connects to Stripe/FreshBooks, sends escalating-but-polite reminders on your schedule, and drops in a payment-plan link if a client goes 45+ days late. No agency bloat, $9/mo flat. Feedback on the reminder cadence welcome.",
-      "url": "https://getnudge.app",
+      "url": "https://getnudge.example.org",
       "author": "nudgemaker",
       "points": 267,
       "num_comments": 88,
       "created_at": "2026-06-24T12:19:00.000Z",
       "created_at_i": 1782303540,
-      "_tags": ["show_hn", "story", "author_nudgemaker", "story_40276104"]
+      "_tags": ["show_hn", "story", "author_nudgemaker", "story_9900000010"]
     }
   ]
 }

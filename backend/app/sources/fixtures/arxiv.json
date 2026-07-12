@@ -1,92 +1,92 @@
 [
   {
-    "id": "2503.14891",
+    "id": "0000.00001",
     "title": "Small Language Models as On-Device Retrieval Agents for Private Knowledge Work",
     "abstract": "We present a 1.3B-parameter model distilled for agentic retrieval that runs entirely on consumer laptops. By coupling a compact reranker with speculative tool-calling, the system answers multi-hop questions over local document stores at 4x lower latency than API baselines while keeping all data on-device. Human evaluation on 12 knowledge-worker tasks shows a 31% preference gain over cloud RAG for privacy-sensitive workflows.",
     "categories": ["cs.CL", "cs.AI", "cs.IR"],
     "authors": ["Lena Ortega", "Priya Raman", "Daniel Whitfield"],
     "published": "2025-03-19T00:00:00Z",
-    "link": "https://arxiv.org/abs/2503.14891"
+    "link": "https://arxiv.org/abs/0000.00001"
   },
   {
-    "id": "2502.09033",
+    "id": "0000.00002",
     "title": "Structured Extraction from Noisy Invoices with Vision-Language Models",
     "abstract": "Small-business bookkeeping still relies on brittle OCR templates. We fine-tune an open vision-language model on 40k synthetically corrupted invoices and show robust key-value extraction under skew, stamps, and handwriting. The approach reaches 96.2% field-level accuracy without per-vendor templates, suggesting template-free document automation is now feasible for long-tail SMB formats.",
     "categories": ["cs.CV", "cs.CL", "cs.AI"],
     "authors": ["Marco Bianchi", "Yuki Tanaka", "Grace Okoye"],
     "published": "2025-02-13T00:00:00Z",
-    "link": "https://arxiv.org/abs/2502.09033"
+    "link": "https://arxiv.org/abs/0000.00002"
   },
   {
-    "id": "2501.07742",
+    "id": "0000.00003",
     "title": "Continuous Personalization of Assistants via Lightweight Preference Adapters",
     "abstract": "Users abandon assistants that forget their preferences. We introduce per-user LoRA adapters trained online from thumbs-up/down signals, updated in under 200ms on a single GPU. Across a 6-week deployment the adapters cut repeated-correction rate by 44%, hinting that durable personal memory can ship without retraining base models.",
     "categories": ["cs.LG", "cs.CL", "cs.HC"],
     "authors": ["Sofia Alvarez", "Wei Chen", "Tomas Novak"],
     "published": "2025-01-14T00:00:00Z",
-    "link": "https://arxiv.org/abs/2501.07742"
+    "link": "https://arxiv.org/abs/0000.00003"
   },
   {
-    "id": "2412.15588",
+    "id": "0000.00004",
     "title": "Verifiable Tool Use: Certifying Agent Actions Before Execution",
     "abstract": "Autonomous agents that call external tools risk irreversible mistakes. We propose a pre-execution certificate that formally bounds the side effects of a proposed action against a user policy. On a suite of booking, payment, and email tasks the certifier blocks 98% of policy-violating actions with a 3% false-positive rate, a step toward trustworthy consumer agents.",
     "categories": ["cs.AI", "cs.LO", "cs.CR"],
     "authors": ["Hannah Weiss", "Rohan Mehta", "Isabel Fournier"],
     "published": "2024-12-20T00:00:00Z",
-    "link": "https://arxiv.org/abs/2412.15588"
+    "link": "https://arxiv.org/abs/0000.00004"
   },
   {
-    "id": "2411.10204",
+    "id": "0000.00005",
     "title": "Nowcasting Regional Rents from Heterogeneous Web Listings",
     "abstract": "Official rent indices lag by months. Using a de-biased ensemble over scraped listings we produce weekly rent nowcasts for 380 metros, validated against later official releases with a mean absolute error of 0.4 percentage points. The method exposes affordability shocks roughly nine weeks before published statistics.",
     "categories": ["econ.EM", "stat.AP", "cs.LG"],
     "authors": ["Aditya Kapoor", "Emma Larsson", "Carlos Mendes"],
     "published": "2024-11-15T00:00:00Z",
-    "link": "https://arxiv.org/abs/2411.10204"
+    "link": "https://arxiv.org/abs/0000.00005"
   },
   {
-    "id": "2410.08817",
+    "id": "0000.00006",
     "title": "Real-Time Speech Translation for Low-Resource Language Pairs on Edge Devices",
     "abstract": "We compress a cascaded speech-translation pipeline to run at conversational latency on a mobile SoC, covering 14 low-resource pairs neglected by commercial apps. A shared phoneme bottleneck lets us add a new language with two hours of audio, opening real-time translation to diaspora and travel niches ignored by incumbents.",
     "categories": ["cs.CL", "eess.AS", "cs.SD"],
     "authors": ["Nadia Rahman", "Kenji Sato", "Olivia Brandt"],
     "published": "2024-10-11T00:00:00Z",
-    "link": "https://arxiv.org/abs/2410.08817"
+    "link": "https://arxiv.org/abs/0000.00006"
   },
   {
-    "id": "2409.12630",
+    "id": "0000.00007",
     "title": "Synthetic Longitudinal Health Records for Privacy-Preserving Digital Therapeutics",
     "abstract": "Startups building digital therapeutics lack longitudinal training data. We generate clinically coherent synthetic patient trajectories with a diffusion model conditioned on care guidelines, passing an expert Turing test 58% of the time. Downstream adherence-prediction models trained purely on synthetic data transfer to real cohorts within 3% AUROC.",
     "categories": ["cs.LG", "q-bio.QM", "stat.ML"],
     "authors": ["Julian Ross", "Meera Sundaram", "Anke Fischer"],
     "published": "2024-09-19T00:00:00Z",
-    "link": "https://arxiv.org/abs/2409.12630"
+    "link": "https://arxiv.org/abs/0000.00007"
   },
   {
-    "id": "2408.04471",
+    "id": "0000.00008",
     "title": "Agentic Spreadsheets: Natural-Language Formulas with Provenance",
     "abstract": "Spreadsheets remain the world's most-used programming environment yet resist natural-language editing. We embed a planner that turns prose intents into audited formula chains with cell-level provenance, letting non-programmers build models they can trust. In a study of 60 analysts task completion time dropped 37% versus manual formula authoring.",
     "categories": ["cs.HC", "cs.AI", "cs.SE"],
     "authors": ["Rachel Kim", "Fabio Costa", "Ingrid Solberg"],
     "published": "2024-08-08T00:00:00Z",
-    "link": "https://arxiv.org/abs/2408.04471"
+    "link": "https://arxiv.org/abs/0000.00008"
   },
   {
-    "id": "2407.09912",
+    "id": "0000.00009",
     "title": "Cheap Retrieval-Augmented Fine-Tuning for Domain-Specific Compliance Q&A",
     "abstract": "Regulated SMBs cannot afford bespoke compliance counsel. We show that retrieval-augmented fine-tuning on a 3B model over public regulatory corpora yields answers rated adequate by attorneys in 82% of audited questions, at under two cents per query, indicating a viable price point for self-serve compliance copilots.",
     "categories": ["cs.CL", "cs.AI", "cs.CY"],
     "authors": ["Samuel Adeyemi", "Lucia Romano", "Hiro Yamamoto"],
     "published": "2024-07-14T00:00:00Z",
-    "link": "https://arxiv.org/abs/2407.09912"
+    "link": "https://arxiv.org/abs/0000.00009"
   },
   {
-    "id": "2406.03288",
+    "id": "0000.00010",
     "title": "Energy-Aware Scheduling for On-Prem LLM Inference in Small Data Centers",
     "abstract": "Mid-market firms increasingly self-host models but overspend on power. Our scheduler co-optimizes batching and DVFS against real-time electricity prices, cutting inference energy cost by 28% with negligible latency impact. The result lowers the total cost of owning private inference for teams unwilling to send data to cloud APIs.",
     "categories": ["cs.DC", "cs.LG", "eess.SY"],
     "authors": ["Nora Haddad", "Viktor Petrov", "Amara Diallo"],
     "published": "2024-06-05T00:00:00Z",
-    "link": "https://arxiv.org/abs/2406.03288"
+    "link": "https://arxiv.org/abs/0000.00010"
   }
 ]
