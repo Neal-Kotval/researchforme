@@ -87,22 +87,26 @@ _CORROBORATION_RIGORS = frozenset({"standard", "deep"})
 
 def corroboration_tools_for(
     segment: Node, gap_sub_segment: str, project: Project, rigor: str
-) -> Optional[list[ToolSpec]]:
-    """Live ``search_*`` tools for a pressure test, or ``None`` when not warranted.
+) -> tuple[Optional[list[ToolSpec]], dict[str, bool]]:
+    """Live ``search_*`` tools for a pressure test, plus their shared url_sink.
 
     Wires the SPEC §5 corroboration seam: at ``standard``/``deep`` rigor the red
     team gets fresh-evidence tools scoped to the segment being explored (so a
     lens can actually verify "is the demand real?" against live Reddit/HN/etc).
-    At ``light`` rigor — the governor's curbing mode — it returns ``None`` so the
-    test stays cheap and tool-free. Pure/deterministic, so it's unit-testable
-    without an event loop.
+    At ``light`` rigor — the governor's curbing mode — the tools are ``None`` so
+    the test stays cheap and tool-free. The returned ``url_sink`` collects every
+    tool-fetched URL -> whether its source ran LIVE, so ``pressure_test`` can
+    stamp true per-source provenance on the evidence a lens cites (fixture data
+    must never masquerade as live corroboration). Pure/deterministic, so it's
+    unit-testable without an event loop.
     """
+    url_sink: dict[str, bool] = {}
     if (rigor or "").strip().lower() not in _CORROBORATION_RIGORS:
-        return None
+        return None, url_sink
     # Scope: the specific segment title is the sharpest "area"; carry the gap's
     # sub-segment (and the project's) so fetches stay on-target.
     subs = [s for s in (gap_sub_segment, *project.sub_segments) if s]
-    return build_corroboration_tools(segment.title, subs)
+    return build_corroboration_tools(segment.title, subs, url_sink=url_sink), url_sink
 
 
 # --------------------------------------------------------------------------- #
@@ -520,7 +524,7 @@ class ExplorerService:
                 # Wire the live-corroboration seam (SPEC §5): at standard/deep
                 # rigor the red team can pull fresh evidence from real sources to
                 # verify a kill or rescue; light rigor stays tool-free and cheap.
-                tools = corroboration_tools_for(
+                tools, url_sink = corroboration_tools_for(
                     node, child.gap.sub_segment, project, rigor
                 )
                 test = await pressure_test(
@@ -530,6 +534,7 @@ class ExplorerService:
                     project.pressure_model,
                     rigor,
                     tools=tools,
+                    url_sink=url_sink,
                 )
                 viability, confidence = score_viability(child.gap, test)
 

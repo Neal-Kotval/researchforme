@@ -38,7 +38,10 @@ import json
 from typing import Any, Optional
 
 from ..analysis.rank import composite_score
-from ..analysis.synthesize import _extract_json_array  # robust JSON-array parser
+from ..analysis.synthesize import (  # robust JSON-array parser + URL canonicalizer
+    _extract_json_array,
+    _norm_url,
+)
 from ..llm.client import ClaudeClient, ToolSpec
 from ..schemas import Evidence, Gap, Weights
 from .schemas import Confidence, LensVerdict, PressureTest, TestRigor
@@ -267,8 +270,15 @@ def _select_lenses(rigor: TestRigor) -> list[dict]:
 # --------------------------------------------------------------------------- #
 # Robust verdict parsing.                                                      #
 # --------------------------------------------------------------------------- #
-def _parse_evidence(raw: Any) -> list[Evidence]:
-    """Validate each evidence object with ``Evidence(**obj)``; drop invalid ones."""
+def _parse_evidence(raw: Any, known_urls: dict[str, bool]) -> list[Evidence]:
+    """Validate each evidence object with ``Evidence(**obj)``; drop invalid ones.
+
+    Every kept item is stamped with its TRUE provenance from ``known_urls``
+    (normalized url -> was its source LIVE when fetched?): a URL the red team
+    pulled from a mock/degraded adapter — or one it never fetched at all — is
+    ``live=False``. The model's own (schema-default ``live=True``) claim is
+    never trusted, so fixture corroboration can't masquerade as live evidence.
+    """
     out: list[Evidence] = []
     if not isinstance(raw, list):
         return out
@@ -276,17 +286,23 @@ def _parse_evidence(raw: Any) -> list[Evidence]:
         if not isinstance(obj, dict):
             continue
         try:
-            out.append(Evidence(**obj))
+            ev = Evidence(**obj)
         except Exception:  # noqa: BLE001 - pydantic ValidationError et al.
             continue
+        ev.live = known_urls.get(_norm_url(ev.url), False)
+        out.append(ev)
     return out
 
 
-def _parse_verdicts(raw: list, selected_keys: set[str]) -> dict[str, LensVerdict]:
+def _parse_verdicts(
+    raw: list, selected_keys: set[str], known_urls: dict[str, bool]
+) -> dict[str, LensVerdict]:
     """Fold the model's JSON array into ``{lens_key: LensVerdict}``.
 
     Only verdicts whose ``lens`` matches a selected key are kept; unknown verdict
     strings degrade to the neutral ``"weakens"`` rather than being dropped.
+    ``known_urls`` carries the per-URL live/mock provenance for the evidence
+    stamp (see ``_parse_evidence``).
     """
     by_key: dict[str, LensVerdict] = {}
     for obj in raw:
@@ -303,7 +319,7 @@ def _parse_verdicts(raw: list, selected_keys: set[str]) -> dict[str, LensVerdict
             lens=key,
             verdict=verdict,  # type: ignore[arg-type]
             argument=argument,
-            evidence=_parse_evidence(obj.get("evidence")),
+            evidence=_parse_evidence(obj.get("evidence"), known_urls),
         )
     return by_key
 
@@ -437,12 +453,17 @@ async def pressure_test(
     model: str,
     rigor: str,
     tools: Optional[list[ToolSpec]] = None,
+    url_sink: Optional[dict[str, bool]] = None,
 ) -> PressureTest:
     """Attack ``gap`` from the rigor-appropriate lenses → a ``PressureTest``.
 
     ``rigor`` picks the subset (``deep`` = 6, ``standard`` = 4, ``light`` = 3).
     ``tools`` are the optional ``search_*`` corroboration tools (as built by
-    ``synthesize._build_tools``) so a lens can pull fresh evidence.
+    ``synthesize._build_tools``) so a lens can pull fresh evidence. ``url_sink``
+    is the dict those tools record fetches into (normalized url -> source ran
+    LIVE?); the handlers mutate it mid-call, and it is read back afterwards so
+    every cited evidence item carries its true per-source live/mock provenance
+    (fixture corroboration must never be stamped live).
 
     NEVER raises. On any failure — the LLM call erroring, empty output, or output
     from which not a single usable verdict parses — it degrades to a *neutral
@@ -469,8 +490,20 @@ async def pressure_test(
         except Exception:  # noqa: BLE001 - resilient: fall through to the neutral test
             text = ""
 
+        # The grounding/provenance map: the gap's own evidence (already stamped
+        # by the synthesis grounding gate) plus every URL the corroboration
+        # tools fetched during THIS call. Read after complete() — the tool
+        # handlers populate ``url_sink`` mid-call.
+        known_urls: dict[str, bool] = {}
+        for ev in gap.evidence:
+            key = _norm_url(ev.url)
+            if key:
+                known_urls[key] = known_urls.get(key, False) or ev.live
+        for url, is_live in (url_sink or {}).items():
+            known_urls[url] = known_urls.get(url, False) or is_live
+
         raw = _extract_json_array(text) if text else None
-        by_key = _parse_verdicts(raw, selected_keys) if raw else {}
+        by_key = _parse_verdicts(raw, selected_keys, known_urls) if raw else {}
 
         # No usable verdicts at all -> honest neutral (light) fallback.
         if not by_key:

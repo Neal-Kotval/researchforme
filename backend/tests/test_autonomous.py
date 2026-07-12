@@ -199,13 +199,17 @@ def test_pressure_corroboration_tools_gated_by_rigor():
     project = SimpleNamespace(sub_segments=["TinyML"])
 
     # Governor curbing rigor -> no tools (cheap, tool-free per SPEC §5).
-    assert corroboration_tools_for(segment, "battery sensors", project, "light") is None
+    tools, sink = corroboration_tools_for(segment, "battery sensors", project, "light")
+    assert tools is None
+    assert sink == {}
 
     # Ample headroom -> real corroboration tools, one per source, scoped to the
-    # segment title + the gap/project sub-segments.
+    # segment title + the gap/project sub-segments, sharing a url_sink so the
+    # pressure test can stamp true per-source provenance on tool-fetched evidence.
     for rigor in ("standard", "deep"):
-        tools = corroboration_tools_for(segment, "battery sensors", project, rigor)
+        tools, sink = corroboration_tools_for(segment, "battery sensors", project, rigor)
         assert tools is not None, f"{rigor} rigor must arm corroboration tools"
+        assert sink == {}
         assert {t.name for t in tools} == {
             "search_reddit",
             "search_arxiv",
@@ -236,6 +240,97 @@ async def test_pressure_test_forwards_tools_to_client():
     )
     assert captured["tools"] is sentinel, "tools must reach client.complete unchanged"
     assert test.test_rigor == "light"
+
+
+@pytest.mark.asyncio
+async def test_pressure_tool_fetched_evidence_carries_mock_provenance(monkeypatch):
+    """Corroboration evidence fetched from a MOCK-mode source must be live=False.
+
+    Regression for the benchmark finding: tool-fetched evidence was stamped
+    live unconditionally, so fixture URLs (Reddit mock, arXiv degraded) showed
+    up in lens evidence marked live. The fetch-time SourceStatus now threads
+    through the shared url_sink into the parsed verdicts.
+    """
+    import json as _json
+
+    from types import SimpleNamespace
+
+    from app.autonomous.engine import make_node
+    from app.autonomous.pressure import pressure_test
+    from app.autonomous.schemas import NodeKind
+    from app.autonomous.service import corroboration_tools_for
+    from app.schemas import RawItem, SourceName, SourceReport, SourceStatus
+    from app.sources import registry
+    from app.sources.base import FetchResult
+
+    mock_url = "https://www.reddit.com/r/x/comments/9/mock_hit/"
+    live_url = "https://news.ycombinator.com/item?id=41000001"
+
+    class FakeSource:
+        def __init__(self, name, url, status):
+            self._name, self._url, self._status = name, url, status
+
+        def fetch(self, area, keywords, sub_segments):  # noqa: ANN001
+            return FetchResult(
+                items=[RawItem(source=self._name, id="t1", title="hit",
+                               url=self._url, weight=1.0)],
+                report=SourceReport(name=self._name, status=self._status),
+            )
+
+    fakes = {
+        SourceName.REDDIT: FakeSource(SourceName.REDDIT, mock_url, SourceStatus.MOCK),
+        SourceName.HACKERNEWS: FakeSource(
+            SourceName.HACKERNEWS, live_url, SourceStatus.LIVE
+        ),
+    }
+    monkeypatch.setattr(registry, "get_source", lambda name: fakes.get(name))
+
+    segment = make_node("proj", None, NodeKind.SEGMENT, "tiny inference", keywords=["a"])
+    project = SimpleNamespace(sub_segments=[])
+    tools, sink = corroboration_tools_for(segment, "battery sensors", project, "deep")
+    assert tools is not None
+
+    verdicts = [
+        {
+            "lens": "demand_mirage",
+            "verdict": "kills",
+            "argument": "mock corroboration says the pain is canned",
+            "evidence": [
+                {"source": "reddit", "url": mock_url, "quote": "canned pain"}
+            ],
+        },
+        {
+            "lens": "why_now_fragility",
+            "verdict": "survives",
+            "argument": "the shift is real",
+            "evidence": [
+                {"source": "hackernews", "url": live_url, "quote": "real shift"},
+                {"source": "newsletter", "url": "https://n.example/made-up",
+                 "quote": "never fetched"},
+            ],
+        },
+    ]
+
+    class _FakeClient:
+        async def complete(self, prompt, **kwargs):  # noqa: ANN001
+            # Simulate the red team corroborating via its tools mid-call.
+            by_name = {t.name: t for t in kwargs["tools"]}
+            await by_name["search_reddit"].handler({"query": "pain"})
+            await by_name["search_hackernews"].handler({"query": "shift"})
+            return SimpleNamespace(text=_json.dumps(verdicts))
+
+    test = await pressure_test(
+        _tiny_gap(), "ctx", _FakeClient(), "claude-opus-4-8", "deep",
+        tools=tools, url_sink=sink,
+    )
+    by_lens = {lv.lens: lv for lv in test.lenses}
+
+    # Fetched from a MOCK-mode source -> the true provenance is live=False.
+    assert by_lens["demand_mirage"].evidence[0].live is False
+    # Fetched from a LIVE source -> live=True survives the round trip.
+    assert by_lens["why_now_fragility"].evidence[0].live is True
+    # A URL never seen in the gap or any tool fetch can't launder live credit.
+    assert by_lens["why_now_fragility"].evidence[1].live is False
 
 
 # --------------------------------------------------------------------------- #
