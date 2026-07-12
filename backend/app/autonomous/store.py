@@ -200,6 +200,30 @@ class TreeStore:
         out.sort(key=lambda pair: pair[0].created_at)
         return out
 
+    def scored_gaps(self) -> list[tuple[Node, Optional[str]]]:
+        """Cross-project scored gap nodes — the H1 portfolio dataset.
+
+        Pure store-level SQL over ``ap_nodes`` (no LLM): every node that has
+        been promoted to ``kind == "gap"`` (pressure-tested + scored), each
+        paired with its project's domain (None if the project row is gone).
+        Unparseable rows are skipped — degrade, don't crash.
+        """
+        with self._lock, self._conn() as conn:
+            rows = conn.execute(
+                """SELECT n.value, json_extract(p.value, '$.domain')
+                   FROM ap_nodes n
+                   LEFT JOIN ap_projects p ON p.id = n.project_id
+                   WHERE json_extract(n.value, '$.kind') = 'gap'"""
+            ).fetchall()
+        out: list[tuple[Node, Optional[str]]] = []
+        for value, domain in rows:
+            try:
+                out.append((Node.model_validate(json.loads(value)), domain))
+            except Exception:  # noqa: BLE001 - one bad row must not sink the list.
+                continue
+        out.sort(key=lambda pair: pair[0].created_at)
+        return out
+
     def triaged_nodes(self) -> list[tuple[Node, Optional[str]]]:
         """Cross-project nodes carrying a triage verdict — the H3 distill corpus.
 

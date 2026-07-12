@@ -192,14 +192,17 @@ class ExplorerService:
     # ================================================================== #
     # Lifecycle: create / start                                          #
     # ================================================================== #
-    def create(self, req: CreateProjectRequest) -> Project:
+    def create(
+        self, req: CreateProjectRequest, *, parent_project_id: Optional[str] = None
+    ) -> Project:
         """Build a project + its DOMAIN root, persist both, and (maybe) start.
 
         Emits ``project_created`` and the root's ``node_added`` so a client that
         subscribes immediately sees a live, one-node tree. When
         ``req.autostart`` is set (the default) the worker task is spawned right
         away; otherwise the project rests in :attr:`ProjectStatus.PAUSED` until a
-        ``resume`` control lands.
+        ``resume`` control lands. ``parent_project_id`` records re-run lineage
+        (C3) so the new run can later be diffed against its parent.
         """
         project_id = uuid.uuid4().hex
         budget = req.budget or Budget()
@@ -212,6 +215,7 @@ class ExplorerService:
             steering=req.steering or SteeringContext(),
             status=ProjectStatus.RUNNING if req.autostart else ProjectStatus.PAUSED,
             stats=ProjectStats(nodes=1, frontier_size=1, mode=ExplorerMode.PAUSED),
+            parent_project_id=parent_project_id,
         )
         # Per-stage model policy (SPEC §13.4): cheap decompose, strong synth/test.
         if req.decompose_model:
@@ -231,6 +235,31 @@ class ExplorerService:
 
         if req.autostart:
             self.start(project_id)
+        return project
+
+    def rerun(self, project_id: str, autostart: bool = False) -> Project:
+        """Clone a project into a fresh run linked back to its parent (C3).
+
+        The new project copies the parent's domain, sub-segments, steering,
+        intake, budget, and per-stage model policy, records
+        ``parent_project_id``, and starts only when ``autostart`` asks it to
+        (default False — a re-run never spends tokens unbidden). Raises
+        ``KeyError`` for an unknown parent.
+        """
+        parent = self._get_or_raise(project_id)
+        req = CreateProjectRequest(
+            domain=parent.domain,
+            sub_segments=list(parent.sub_segments),
+            budget=parent.budget.model_copy(deep=True),
+            decompose_model=parent.decompose_model,
+            synth_model=parent.synth_model,
+            pressure_model=parent.pressure_model,
+            intake=dict(parent.intake),
+            steering=parent.steering.model_copy(deep=True),
+            autostart=autostart,
+        )
+        project = self.create(req, parent_project_id=parent.id)
+        self._log(project.id, f"Re-run of project {parent.id} ('{parent.domain}').")
         return project
 
     def start(self, project_id: str) -> None:
@@ -405,6 +434,66 @@ class ExplorerService:
         node = self._owned_node(project_id, node_id)
         node.watched = watched
         return self._touch_node(project_id, node)
+
+    # ------------------------------------------------------------------ #
+    # Idle-headroom scavenger (Phase 3 C4) — manual, opt-in only          #
+    # ------------------------------------------------------------------ #
+    def continue_deepening(self, project_id: str) -> Project:
+        """Deepen an exhausted run beneath its unexpanded starred branches (C4).
+
+        Valid ONLY when every contract condition holds — the project opted in
+        (``Budget.allow_idle_deepening``), it is terminal-exhausted, the
+        governor reports ample headroom, and :func:`scavenger_candidates`
+        found unexpanded starred gaps. Otherwise raises ``ValueError`` with
+        the honest reason (the router's 409). When valid it queues one
+        deepening SEGMENT under each candidate, resumes the run, and starts
+        the worker — a manual button, never an automatic trigger.
+        """
+        from .scavenger import deepening_ineligible_reason, scavenger_candidates
+
+        project = self._get_or_raise(project_id)
+        candidates = scavenger_candidates(self.store, project_id)
+        headroom = self.governor.headroom(project.budget, project.stats.tokens_spent)
+        reason = deepening_ineligible_reason(project, headroom, candidates)
+        if reason is not None:
+            raise ValueError(reason)
+
+        from .engine import make_node, node_priority
+
+        queued = 0
+        for gap in candidates:
+            child = make_node(
+                project_id,
+                gap,
+                NodeKind.SEGMENT,
+                gap.title,
+                rationale=f"Idle-headroom deepening beneath starred gap '{gap.title}'.",
+                keywords=list(gap.keywords),
+                depth=gap.depth + 1,
+            )
+            if self.store.get_node(child.id) is not None:
+                continue  # already deepened (content-hash ids dedup for free)
+            child.priority = node_priority(child, gap)
+            self._save_node(child, EventType.NODE_ADDED)
+            gap.child_ids = [*gap.child_ids, child.id]
+            self._save_node(gap, EventType.NODE_UPDATED)
+            queued += 1
+
+        def fn(p: Project) -> None:
+            p.status = ProjectStatus.RUNNING
+            p.stats.stop_reason = None
+            p.stats.next_resume_at = None
+            p.stats.nodes += queued
+            p.stats.frontier_size += queued
+
+        updated = self._mutate(project_id, fn)
+        self._require(updated, project_id)
+        self.start(project_id)
+        self._log(
+            project_id,
+            f"Idle deepening: queued {queued} segment(s) beneath starred branches.",
+        )
+        return updated
 
     # ------------------------------------------------------------------ #
     # Research Pack (Phase 4 H2)                                          #

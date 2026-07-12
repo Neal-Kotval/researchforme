@@ -145,6 +145,11 @@ class Budget(BaseModel):
     star_threshold: int = Field(default=75, ge=0, le=100)
     # Milestone check-ins: pause every N tokens for a one-tap continue (0 = off).
     milestone_tokens: int = 0
+    # C4 idle-headroom scavenger — opt-in ONLY, default OFF. When True (and the
+    # governor reports ample headroom, the run is terminal-exhausted, and
+    # unexpanded starred branches exist) the manual ``continue_deepening``
+    # control becomes valid. There is NO automatic trigger in this build.
+    allow_idle_deepening: bool = False
 
 
 class ProjectStatus(str, Enum):
@@ -212,6 +217,9 @@ class Project(BaseModel):
     # next_questions, degraded} written on terminal transition. ``degraded: true``
     # marks the deterministic no-LLM fallback. None until a run finishes.
     digest: Optional[dict] = None
+    # C3 re-run lineage: set on projects created via POST /projects/{pid}/rerun
+    # so a fresh run can be diffed against the run it was cloned from.
+    parent_project_id: Optional[str] = None
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -439,6 +447,74 @@ class UpdatePreferencesRequest(BaseModel):
     status: Literal["active", "dismissed"]
 
 
+class RerunRequest(BaseModel):
+    """Body for ``POST /api/projects/{pid}/rerun`` (C3).
+
+    The new project clones the parent's domain, sub-segments, steering, intake,
+    budget, and model policy, and records ``parent_project_id``. ``autostart``
+    defaults to False — a re-run never spends tokens until asked to.
+    """
+
+    autostart: bool = False
+
+
+class DiffEntry(BaseModel):
+    """One gap present on only one side of a re-run diff (C3). Mirrors types.ts."""
+
+    node_id: str
+    title: str
+    viability: Optional[int] = None
+    fit: Optional[int] = None
+
+
+class MovedGap(BaseModel):
+    """A title-matched gap whose viability or fit shifted between runs (C3).
+
+    ``*_from`` is the baseline (``?against=``) run's value, ``*_to`` the
+    requested project's. None = unscored on that side — never fabricated.
+    Mirrors types.ts.
+    """
+
+    title: str
+    viability_from: Optional[int] = None
+    viability_to: Optional[int] = None
+    fit_from: Optional[int] = None
+    fit_to: Optional[int] = None
+
+
+class ProjectDiff(BaseModel):
+    """``GET /api/projects/{pid}/diff?against={other}`` (C3) — node-level diff
+    of scored gaps by normalized-title match. Pure store computation, no LLM.
+    Mirrors types.ts."""
+
+    project_id: str
+    against: str
+    new: list[DiffEntry] = Field(default_factory=list)
+    gone: list[DiffEntry] = Field(default_factory=list)
+    moved: list[MovedGap] = Field(default_factory=list)
+
+
+class PortfolioItem(BaseModel):
+    """One scored gap in the cross-project portfolio (``GET /api/portfolio``, H1).
+
+    Store-level rollup — no LLM. ``fit`` stays None when no steering scored it
+    (the frontend renders those in a separate "no steering" strip, never faked
+    onto the 2×2). Mirrors types.ts.
+    """
+
+    project_id: str
+    domain: Optional[str] = None               # None if the project row is gone
+    node_id: str
+    title: str
+    viability: Optional[int] = None
+    fit: Optional[int] = None
+    confidence: Optional[Confidence] = None
+    star: bool = False
+    triage: Optional[Triage] = None
+    stage: Optional[Stage] = None
+    updated_at: Optional[datetime] = None
+
+
 class ControlAction(str, Enum):
     PAUSE = "pause"
     RESUME = "resume"
@@ -451,6 +527,10 @@ class ControlAction(str, Enum):
     SET_STAGE = "set_stage"                    # S2: look-into checklist (+learnings)
     WATCH_NODE = "watch_node"                  # C2: flag for Space Watch sweeps
     UNWATCH_NODE = "unwatch_node"
+    # C4: manual idle-headroom deepening — valid ONLY when the project opted in
+    # (allow_idle_deepening), is terminal-exhausted, the governor reports ample
+    # headroom, and unexpanded starred branches exist. Never automatic.
+    CONTINUE_DEEPENING = "continue_deepening"
 
 
 class ControlRequest(BaseModel):

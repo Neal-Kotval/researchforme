@@ -77,6 +77,10 @@ export interface Budget {
   pace: Pace;
   star_threshold: number;
   milestone_tokens: number;
+  /** C4 idle-headroom scavenger — opt-in ONLY, default OFF. When true (and the
+   *  run is exhausted with ample headroom + unexpanded starred branches) the
+   *  manual `continue_deepening` control becomes valid. Never automatic. */
+  allow_idle_deepening: boolean;
 }
 
 export type ProjectStatus =
@@ -118,6 +122,9 @@ export interface Project {
   /** H4 end-of-run digest, written on terminal transition. null/absent until a
    *  run finishes; `degraded: true` marks the deterministic no-LLM fallback. */
   digest?: ProjectDigest | null;
+  /** C3 re-run lineage: set on projects created via POST /projects/{pid}/rerun
+   *  so a fresh run can be diffed against the run it was cloned from. */
+  parent_project_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -368,7 +375,8 @@ export type ControlAction =
   | "set_budget"
   | "set_pace"
   | "pin_node"
-  | "unpin_node";
+  | "unpin_node"
+  | "continue_deepening";
 
 export const DEFAULT_BUDGET: Budget = {
   max_tokens: null,
@@ -378,7 +386,72 @@ export const DEFAULT_BUDGET: Budget = {
   pace: "balanced",
   star_threshold: 75,
   milestone_tokens: 0,
+  allow_idle_deepening: false,
 };
+
+/* ------------------------------------------------- re-run diff (C3) -- */
+
+/** Body for POST /api/projects/{pid}/rerun. The clone links back via
+ *  `parent_project_id`; `autostart` defaults false — a re-run never spends
+ *  tokens unbidden. Mirrors backend `RerunRequest`. */
+export interface RerunRequest {
+  autostart?: boolean;
+}
+
+/** One gap present on only one side of a re-run diff. Mirrors `DiffEntry`. */
+export interface DiffEntry {
+  node_id: string;
+  title: string;
+  viability: number | null;
+  fit: number | null;
+}
+
+/** A title-matched gap whose viability or fit shifted between runs; `*_from`
+ *  is the baseline (`?against=`) run, `*_to` the requested project. null =
+ *  unscored on that side, never fabricated. Mirrors backend `MovedGap`. */
+export interface MovedGap {
+  title: string;
+  viability_from: number | null;
+  viability_to: number | null;
+  fit_from: number | null;
+  fit_to: number | null;
+}
+
+/** GET /api/projects/{pid}/diff?against={other} — node-level diff of scored
+ *  gaps by normalized-title match. Pure store computation, no LLM.
+ *  Mirrors backend `ProjectDiff`. */
+export interface ProjectDiff {
+  project_id: string;
+  against: string;
+  new: DiffEntry[];
+  gone: DiffEntry[];
+  moved: MovedGap[];
+}
+
+/* --------------------------------------------------- portfolio (H1) -- */
+
+/** One scored gap in the cross-project portfolio (GET /api/portfolio) — the
+ *  2×2 fit × viability scatter dataset. `fit: null` gaps render in a separate
+ *  "no steering" strip, never faked onto the plot. Mirrors `PortfolioItem`. */
+export interface PortfolioItem {
+  project_id: string;
+  domain: string | null;
+  node_id: string;
+  title: string;
+  viability: number | null;
+  fit: number | null;
+  confidence: Confidence | null;
+  star: boolean;
+  triage: "interested" | "passed" | null;
+  stage:
+    | "found"
+    | "interviewing"
+    | "smoke_testing"
+    | "verdict_build"
+    | "verdict_pass"
+    | null;
+  updated_at: string | null;
+}
 
 /** viability (0..100) → ramp token index for the compact viability chip. */
 export function viabilityRamp(v: number | null): string {

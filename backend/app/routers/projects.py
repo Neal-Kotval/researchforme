@@ -42,9 +42,12 @@ from ..autonomous.schemas import (
     GraveyardItem,
     IntakeRequest,
     IntakeResponse,
+    PortfolioItem,
     Preferences,
     PreferencesState,
     Project,
+    ProjectDiff,
+    RerunRequest,
     ResearchPackResponse,
     ScoutRequest,
     ScoutResponse,
@@ -341,6 +344,73 @@ def get_project(pid: str) -> Project:
     return project
 
 
+@router.get("/portfolio", response_model=list[PortfolioItem])
+def get_portfolio() -> list[PortfolioItem]:
+    """Every scored gap across every project (H1) — the 2×2 scatter dataset.
+
+    Pure store-level rollup, no LLM. ``fit`` is null for gaps scored without
+    steering; the frontend renders those separately, never faked onto the plot.
+    """
+    from ..autonomous.portfolio import portfolio_items
+
+    try:
+        return portfolio_items(get_store())
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("get_portfolio failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not read the portfolio: {type(exc).__name__}.",
+        ) from exc
+
+
+@router.post("/projects/{pid}/rerun", response_model=Project)
+def rerun_project(pid: str, req: RerunRequest | None = None) -> Project:
+    """Clone a project into a fresh linked run (C3).
+
+    Same domain, sub-segments, steering, intake, budget, and model policy;
+    ``parent_project_id`` records the lineage for the diff view. Starts only
+    when the request says ``autostart: true`` (default false — a re-run never
+    spends tokens unbidden).
+    """
+    try:
+        return get_service().rerun(pid, autostart=bool(req and req.autostart))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Project not found.") from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("rerun_project failed for pid=%r", pid)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not re-run project: {type(exc).__name__}.",
+        ) from exc
+
+
+@router.get("/projects/{pid}/diff", response_model=ProjectDiff)
+def diff_project(
+    pid: str,
+    against: str = Query(min_length=1, description="Baseline project id to diff against."),
+) -> ProjectDiff:
+    """Node-level diff of two runs' scored gaps by normalized title (C3).
+
+    ``new``/``gone``/``moved`` with viability + fit deltas — pure store
+    computation, no LLM. 404 when either project is unknown.
+    """
+    from ..autonomous.diff import project_diff
+
+    store = get_store()
+    if store.get_project(pid) is None or store.get_project(against) is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    try:
+        return project_diff(store, pid, against)
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("diff_project failed for pid=%r against=%r", pid, against)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not diff projects: {type(exc).__name__}.",
+        ) from exc
+
+
 @router.get("/projects/{pid}/tree", response_model=TreeSnapshot)
 def get_tree(pid: str) -> TreeSnapshot:
     """Return the full tree snapshot the UI hydrates from before subscribing."""
@@ -474,6 +544,14 @@ async def control_project(pid: str, req: ControlRequest) -> Project:
             return service.watch_node(
                 pid, req.node_id, action is ControlAction.WATCH_NODE
             )
+        if action is ControlAction.CONTINUE_DEEPENING:
+            # C4: valid ONLY when the contract conditions hold (opt-in +
+            # exhausted + ample headroom + unexpanded starred branches);
+            # otherwise a 409 carrying the honest reason.
+            try:
+                return service.continue_deepening(pid)
+            except ValueError as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
         # Enum coverage is exhaustive; guard anyway for forward-compat.
         raise HTTPException(status_code=400, detail=f"Unknown action: {action}.")
     except HTTPException:
