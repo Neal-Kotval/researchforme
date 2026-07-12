@@ -43,6 +43,7 @@ from ..autonomous.schemas import (
     IntakeRequest,
     IntakeResponse,
     Project,
+    ResearchPackResponse,
     ScoutRequest,
     ScoutResponse,
     SortResearchRequest,
@@ -274,6 +275,48 @@ async def delete_project(pid: str) -> dict:
             detail=f"Could not delete project: {type(exc).__name__}.",
         ) from exc
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- #
+# Research Pack (Phase 4 H2)                                                  #
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/projects/{pid}/nodes/{nid}/research-pack", response_model=ResearchPackResponse
+)
+async def research_pack(
+    pid: str,
+    nid: str,
+    refresh: int = Query(default=0, description="1 = regenerate, bypassing the cache."),
+) -> ResearchPackResponse:
+    """The gap's markdown research pack — cached on the node, ONE strong-model call.
+
+    Serves ``Node.research_pack`` when present (``?refresh=1`` regenerates).
+    Honest degrade: when no LLM backend can produce a real pack (the fixture
+    backend included) this returns 503 with the reason — NEVER canned content.
+    """
+    from ..autonomous.researchpack import ResearchPackUnavailable
+
+    if get_store().get_project(pid) is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    try:
+        node, cached = await get_service().research_pack(pid, nid, refresh=bool(refresh))
+        return ResearchPackResponse(
+            node_id=node.id, markdown=node.research_pack, cached=cached
+        )
+    except ResearchPackUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Node not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("research_pack failed for pid=%r nid=%r", pid, nid)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not build the research pack: {type(exc).__name__}.",
+        ) from exc
 
 
 # --------------------------------------------------------------------------- #

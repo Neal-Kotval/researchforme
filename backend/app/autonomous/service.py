@@ -127,6 +127,8 @@ _BASE_STRUCTURAL = 700
 _BASE_SEGMENT = 2500
 _BASE_PRESSURE = 1500
 _BASE_FIT = 900  # founder-fit judge: steering block + gap payload, tiny output
+_BASE_DIGEST = 900  # end-of-run digest: gap summaries + steering, small output
+_BASE_PACK = 3500  # research pack: strong model over the full gap payload
 
 # States a project rests in permanently until a user action restarts it.
 _TERMINAL: frozenset[ProjectStatus] = frozenset(
@@ -404,6 +406,47 @@ class ExplorerService:
         node.watched = watched
         return self._touch_node(project_id, node)
 
+    # ------------------------------------------------------------------ #
+    # Research Pack (Phase 4 H2)                                          #
+    # ------------------------------------------------------------------ #
+    async def research_pack(
+        self, project_id: str, node_id: str, refresh: bool = False
+    ) -> tuple[Node, bool]:
+        """The gap's markdown research pack: ``(node, served_from_cache)``.
+
+        Serves ``Node.research_pack`` when it exists (unless ``refresh``);
+        otherwise makes ONE strong-model call, caches the pack on the node
+        (persist + ``node_updated``), and meters the spend into the governor
+        and the project stats. Raises ``KeyError`` for unknown/foreign nodes,
+        ``ValueError`` for a node without a scored gap payload, and
+        :class:`~app.autonomous.researchpack.ResearchPackUnavailable` when no
+        backend can produce a real pack (the router's honest 503 — NEVER
+        canned content).
+        """
+        from .researchpack import generate_research_pack
+
+        node = self._owned_node(project_id, node_id)
+        if node.gap is None:
+            raise ValueError("Research packs are only available for scored gap nodes.")
+        if node.research_pack and not refresh:
+            return node, True
+
+        project = self._get_or_raise(project_id)
+        markdown = await generate_research_pack(node, project, self.client)
+
+        est = self._est(_BASE_PACK, len(markdown))
+        node.research_pack = markdown
+        node.tokens_spent += est
+        self._touch_node(project_id, node)
+        self.governor.record_usage(est)
+
+        def fn(p: Project) -> None:
+            p.stats.tokens_spent += est
+
+        self._mutate(project_id, fn)
+        self._log(project_id, f"Research pack generated for '{node.title}'.")
+        return node, False
+
     def set_budget(self, project_id: str, budget: Budget) -> Project:
         """Replace the project's budget (ceilings, pace, star threshold, milestones)."""
         project = self._mutate(project_id, lambda p: setattr(p, "budget", budget))
@@ -479,7 +522,7 @@ class ExplorerService:
                 # Explicit stop conditions (never imply "done" when a cap fired).
                 reason = self._stop_reason(project, run_start)
                 if reason is not None:
-                    self._finish(project_id, reason)
+                    await self._finish(project_id, reason)
                     return
 
                 # Usage-aware gate: sleeps/backs off internally, returns the mode.
@@ -495,7 +538,7 @@ class ExplorerService:
                     if extra:
                         rt.frontier.push_all(extra)
                         continue
-                    self._finish(
+                    await self._finish(
                         project_id,
                         ("exhausted", "Frontier exhausted — no more nodes to explore."),
                     )
@@ -742,8 +785,9 @@ class ExplorerService:
     # ------------------------------------------------------------------ #
     # Status transitions (all guarded, all through the store)             #
     # ------------------------------------------------------------------ #
-    def _finish(self, project_id: str, reason: tuple[str, str]) -> None:
-        """Park a project in the terminal status for a fired stop condition."""
+    async def _finish(self, project_id: str, reason: tuple[str, str]) -> None:
+        """Park a project in the terminal status for a fired stop condition,
+        then write the end-of-run digest (H4)."""
         key, message = reason
         status = _STOP_STATUS.get(key, ProjectStatus.EXHAUSTED)
 
@@ -756,6 +800,40 @@ class ExplorerService:
 
         self._mutate(project_id, fn)
         self._log(project_id, f"Stopped: {message}")
+        await self._write_digest(project_id)
+
+    async def _write_digest(self, project_id: str) -> None:
+        """End-of-run digest (H4): ONE cheap-model call, deterministic fallback.
+
+        Steering-aware (the founder block rides in the prompt), metered into
+        the governor, persisted on ``Project.digest``, and emitted via the
+        ``project_updated`` that :meth:`_mutate` fires. NEVER raises — a
+        terminal project must stay terminal, digest or not.
+        """
+        try:
+            from .digest import build_digest
+
+            project = self.store.get_project(project_id)
+            if project is None:
+                return
+            digest = await build_digest(
+                project, self.store.get_nodes(project_id), self.client
+            )
+            est = self._est(_BASE_DIGEST, len(str(digest)))
+            self.governor.record_usage(est)
+
+            def fn(p: Project) -> None:
+                p.digest = digest
+                p.stats.tokens_spent += est
+
+            self._mutate(project_id, fn)
+            self._log(
+                project_id,
+                "Run digest ready"
+                + (" (deterministic fallback)." if digest.get("degraded") else "."),
+            )
+        except Exception:  # noqa: BLE001 - the digest must never un-finish a run.
+            pass
 
     def _errored(self, project_id: str, exc: Exception) -> None:
         """Last-resort guard: surface an unexpected failure as ERRORED."""

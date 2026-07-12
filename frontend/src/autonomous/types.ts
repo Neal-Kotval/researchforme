@@ -57,6 +57,9 @@ export interface TreeNode {
   /** C2 Space Watch: sweeps re-check this node's sources for material shifts.
    *  Optional until the Wave D exploration surfaces land the full sensor set. */
   watched?: boolean;
+  /** H2 Research Pack: cached markdown hand-off pack ("" = not generated).
+   *  Optional until the Wave D exploration surfaces land. */
+  research_pack?: string;
   child_ids: string[];
   error: string | null;
   tokens_spent: number;
@@ -112,8 +115,35 @@ export interface Project {
   budget: Budget;
   stats: ProjectStats;
   steering?: SteeringContext;
+  /** H4 end-of-run digest, written on terminal transition. null/absent until a
+   *  run finishes; `degraded: true` marks the deterministic no-LLM fallback. */
+  digest?: ProjectDigest | null;
   created_at: string;
   updated_at: string;
+}
+
+/** One "worth your next hour" space in the end-of-run digest (H4). */
+export interface DigestSpace {
+  title: string;
+  why: string;
+}
+
+/** The end-of-run digest (H4): mirrors backend `Project.digest` (a dict). */
+export interface ProjectDigest {
+  top_spaces: DigestSpace[];
+  kill_pattern: string;
+  next_questions: string[];
+  degraded: boolean;
+}
+
+/** POST /api/projects/{pid}/nodes/{nid}/research-pack (H2). `cached` is true
+ *  when the pack was served from `Node.research_pack` without a new LLM call;
+ *  `?refresh=1` regenerates. A backend that can't produce a real pack returns
+ *  503 (honest degrade — never canned content). Mirrors `ResearchPackResponse`. */
+export interface ResearchPackResponse {
+  node_id: string;
+  markdown: string;
+  cached: boolean;
 }
 
 export type EventType =

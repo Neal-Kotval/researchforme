@@ -117,6 +117,11 @@ class Node(BaseModel):
     learnings: str = ""                        # what the user found out so far
     watched: bool = False                      # Space Watch sweeps re-check this node
 
+    # Research Pack (Phase 4 H2): the cached markdown hand-off pack for a gap
+    # node, generated on demand by ONE strong-model call ("" = not generated).
+    # Never canned — an unusable backend yields an honest 503, not content.
+    research_pack: str = ""
+
     # Bookkeeping.
     child_ids: list[str] = Field(default_factory=list)
     error: Optional[str] = None
@@ -203,6 +208,10 @@ class Project(BaseModel):
     stats: ProjectStats = Field(default_factory=ProjectStats)
     # Preflight intake answers (question → answer) that steer decomposition/scope.
     intake: dict[str, str] = Field(default_factory=dict)
+    # End-of-run digest (Phase 4 H4): {top_spaces: [{title, why}], kill_pattern,
+    # next_questions, degraded} written on terminal transition. ``degraded: true``
+    # marks the deterministic no-LLM fallback. None until a run finishes.
+    digest: Optional[dict] = None
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -377,6 +386,18 @@ class WatchSweepResult(BaseModel):
 
     swept: int = 0
     alerts: list[WatchAlert] = Field(default_factory=list)
+
+
+class ResearchPackResponse(BaseModel):
+    """What ``POST /api/projects/{pid}/nodes/{nid}/research-pack`` returns (H2).
+
+    ``markdown`` is the pack cached on ``Node.research_pack``; ``cached`` is
+    True when the call served the existing pack without a new LLM call
+    (pass ``?refresh=1`` to regenerate). Mirrors types.ts."""
+
+    node_id: str
+    markdown: str
+    cached: bool = False
 
 
 class ControlAction(str, Enum):
