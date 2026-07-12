@@ -404,3 +404,44 @@ async def test_intake_degrades_to_static_questions():
     block = intake_context_block({"Who for?": "SMB", "Win?": ""})
     assert "Who for? → SMB" in block and "Win?" not in block
     assert intake_context_block({}) == ""
+
+
+# --------------------------------------------------------------------------- #
+# Boot reconciliation — a project persisted as RUNNING has no worker after a   #
+# server restart; it must not present as live forever. Regression for the      #
+# 2026-07-12 audit's "stale Sprinting status" finding.                         #
+# --------------------------------------------------------------------------- #
+def test_reconcile_on_boot_parks_orphaned_running_projects(fixture_env, tmp_path):
+    from app.autonomous.governor import UsageGovernor
+    from app.autonomous.schemas import (
+        CreateProjectRequest,
+        EventType,
+        ExplorerMode,
+        ProjectStatus,
+    )
+    from app.autonomous.service import ExplorerService
+    from app.autonomous.store import TreeStore
+
+    store = TreeStore(path=str(tmp_path / "reconcile.db"))
+    service = ExplorerService(store, UsageGovernor())
+
+    # A parked project (no worker) persisted mid-run as RUNNING/sprinting —
+    # exactly what a crashed or restarted server leaves behind.
+    project = service.create(CreateProjectRequest(domain="stale test", autostart=False))
+    project.status = ProjectStatus.RUNNING
+    project.stats.mode = ExplorerMode.SPRINTING
+    store.save_project(project)
+
+    # A second service (fresh process) reconciles on boot.
+    reborn = ExplorerService(store, UsageGovernor())
+    parked = reborn.reconcile_on_boot()
+
+    assert [p.id for p in parked] == [project.id]
+    fresh = store.get_project(project.id)
+    assert fresh.status is ProjectStatus.PAUSED
+    assert fresh.stats.mode is ExplorerMode.PAUSED
+    events = store.events_since(project.id, 0)
+    assert any(e.type is EventType.LOG and "restart" in e.message for e in events)
+
+    # Idempotent: a healthy store reconciles to nothing.
+    assert reborn.reconcile_on_boot() == []

@@ -39,6 +39,16 @@ app.include_router(analyze_router, prefix="/api")
 app.include_router(projects_router, prefix="/api")
 
 
+@app.on_event("startup")
+def _reconcile_orphaned_runs() -> None:
+    """Park projects left RUNNING by a previous process (workers don't survive
+    restarts) so the UI shows an honest paused-with-Resume state, not a
+    perpetually 'sprinting' ghost."""
+    from .autonomous.service import get_service
+
+    get_service().reconcile_on_boot()
+
+
 @app.get("/")
 def root() -> dict:
     """Tiny liveness probe for the root path."""

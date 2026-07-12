@@ -244,6 +244,32 @@ class ExplorerService:
             rt.task = None
             rt.pending_start = True
 
+    def reconcile_on_boot(self) -> list[Project]:
+        """Park projects persisted as RUNNING whose worker died with the process.
+
+        Workers are in-process asyncio tasks, so a restart orphans any project
+        stored mid-run: it would present as live ("sprinting") forever while
+        nothing ticks. Auto-resuming instead is deliberately NOT done — a server
+        boot must never start spending tokens on its own. The frontier is
+        persisted, so a user Resume picks up exactly where the run stopped.
+        Returns the projects it parked (empty on a healthy store).
+        """
+        parked: list[Project] = []
+        for project in self.store.list_projects():
+            if project.status is not ProjectStatus.RUNNING:
+                continue
+            rt = self._runtimes.get(project.id)
+            if rt is not None and rt.task is not None and not rt.task.done():
+                continue  # a live worker owns this project
+            updated = self._mutate(
+                project.id,
+                lambda p: self._apply_status(p, ProjectStatus.PAUSED, mode=ExplorerMode.PAUSED),
+            )
+            if updated is not None:
+                self._log(project.id, "Interrupted by a server restart — resume to continue.")
+                parked.append(updated)
+        return parked
+
     # ================================================================== #
     # Controls (SPEC §6.3)                                               #
     # ================================================================== #
