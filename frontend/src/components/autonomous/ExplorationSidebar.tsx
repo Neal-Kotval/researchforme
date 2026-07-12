@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Project } from "../../autonomous/types";
-import { statusMeta } from "./ProjectTabs";
+import { statusMeta } from "./statusMeta";
 
 interface Props {
   projects: Project[];

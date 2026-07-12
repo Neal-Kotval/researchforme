@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getUsage } from "../../autonomous/api";
 import type { GlobalUsage, Project, UsageLevel } from "../../autonomous/types";
-import { statusMeta } from "./ProjectTabs";
+import { statusMeta } from "./statusMeta";
 
 interface Props {
   projects: Project[];
