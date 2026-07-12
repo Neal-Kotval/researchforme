@@ -48,6 +48,8 @@ from ..autonomous.schemas import (
     SortResearchRequest,
     SortedResearch,
     TreeSnapshot,
+    WatchSweepResult,
+    WatchedNodeStatus,
 )
 from ..autonomous.governor import get_governor
 from ..autonomous.service import get_service
@@ -109,6 +111,49 @@ def get_graveyard(
         raise HTTPException(
             status_code=500,
             detail=f"Could not read the graveyard: {type(exc).__name__}.",
+        ) from exc
+
+
+# --------------------------------------------------------------------------- #
+# Space Watch (Phase 3 C2)                                                     #
+# --------------------------------------------------------------------------- #
+@router.get("/watch", response_model=list[WatchedNodeStatus])
+def get_watch() -> list[WatchedNodeStatus]:
+    """Every watched node across projects with its most recent alert.
+
+    Backs the dashboard "recent signals / movers" block. Pure store reads —
+    no fetching, no LLM.
+    """
+    from ..autonomous.watch import get_watch_service
+
+    try:
+        return get_watch_service().watch_status()
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("get_watch failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not read the watch list: {type(exc).__name__}.",
+        ) from exc
+
+
+@router.post("/watch/sweep", response_model=WatchSweepResult)
+def sweep_watch() -> WatchSweepResult:
+    """Manually sweep every watched node's sources (source fetch only, NO LLM).
+
+    Diffs against each node's baseline snapshot; a material shift (≥3 new
+    items or a new regulatory/outcomes hit) emits a ``watch_alert`` event.
+    Sync handler on purpose — FastAPI runs it in the threadpool, keeping the
+    (network-bound) source fetches off the event loop.
+    """
+    from ..autonomous.watch import get_watch_service
+
+    try:
+        return get_watch_service().sweep()
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("sweep_watch failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Watch sweep failed: {type(exc).__name__}.",
         ) from exc
 
 

@@ -90,6 +90,12 @@ class Settings(BaseModel):
     reddit_use_web_search: bool = True   # blend DuckDuckGo site:reddit.com discovery
     reddit_web_results: int = 2          # thread .json fetches from web-search hits
 
+    # --- Space Watch (C2) — opt-in background sweep, default OFF ---
+    # Hours between background source-only sweeps of watched nodes. None (the
+    # default) means NO background task ever starts; sweeps are manual via
+    # POST /api/watch/sweep. Env: WATCH_SWEEP_HOURS.
+    watch_sweep_hours: float | None = None
+
     # --- Behavior ---
     allow_mock: bool = True  # when a key is absent, serve fixtures instead of failing
 
@@ -197,5 +203,6 @@ def get_settings() -> Settings:
         llm_model=os.getenv("LLM_MODEL", Settings().llm_model),
         llm_temperature=_env_float("LLM_TEMPERATURE"),
         cache_path=os.getenv("CACHE_PATH", "cache.db"),
+        watch_sweep_hours=_env_float("WATCH_SWEEP_HOURS"),
         reddit_use_web_search=os.getenv("REDDIT_USE_WEB_SEARCH", "1") not in ("0", "false", "False"),
     )

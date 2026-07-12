@@ -169,6 +169,30 @@ class TreeStore:
                 continue
         return out
 
+    def watched_nodes(self) -> list[tuple[Node, Optional[str]]]:
+        """Cross-project nodes flagged for Space Watch sweeps (C2).
+
+        Pure store-level SQL over ``ap_nodes`` (no LLM): every node whose
+        ``watched`` flag is set, each paired with its project's domain (None
+        if the project row is gone). Unparseable rows are skipped — degrade,
+        don't crash.
+        """
+        with self._lock, self._conn() as conn:
+            rows = conn.execute(
+                """SELECT n.value, json_extract(p.value, '$.domain')
+                   FROM ap_nodes n
+                   LEFT JOIN ap_projects p ON p.id = n.project_id
+                   WHERE json_extract(n.value, '$.watched')"""
+            ).fetchall()
+        out: list[tuple[Node, Optional[str]]] = []
+        for value, domain in rows:
+            try:
+                out.append((Node.model_validate(json.loads(value)), domain))
+            except Exception:  # noqa: BLE001 - one bad row must not sink the list.
+                continue
+        out.sort(key=lambda pair: pair[0].created_at)
+        return out
+
     # ------------------------------------------------------------------ #
     # Events (append-only log + live fan-out)                            #
     # ------------------------------------------------------------------ #
@@ -207,6 +231,28 @@ class TreeStore:
                 (project_id, after_seq),
             ).fetchall()
         return [ExplorerEvent.model_validate(json.loads(r[0])) for r in rows]
+
+    def last_watch_alert(self, project_id: str, node_id: str):
+        """The newest ``watch_alert`` payload for one node, or None (C2).
+
+        Store-level SQL over the event log; an unparseable row degrades to
+        None rather than raising.
+        """
+        with self._lock, self._conn() as conn:
+            row = conn.execute(
+                """SELECT value FROM ap_events
+                   WHERE project_id=?
+                     AND json_extract(value, '$.type') = 'watch_alert'
+                     AND json_extract(value, '$.alert.node_id') = ?
+                   ORDER BY seq DESC LIMIT 1""",
+                (project_id, node_id),
+            ).fetchone()
+        if not row:
+            return None
+        try:
+            return ExplorerEvent.model_validate(json.loads(row[0])).alert
+        except Exception:  # noqa: BLE001 - degrade, don't crash.
+            return None
 
     def _last_seq(self, project_id: str) -> int:
         with self._lock, self._conn() as conn:

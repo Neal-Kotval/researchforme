@@ -217,6 +217,25 @@ class EventType(str, Enum):
     NODE_UPDATED = "node_updated"              # state / score / star change
     NODE_PRUNED = "node_pruned"
     LOG = "log"                                # human-readable progress line
+    WATCH_ALERT = "watch_alert"                # C2: material shift on a watched node
+
+
+class WatchAlert(BaseModel):
+    """One Space Watch material-shift alert (C2).
+
+    Emitted by ``WatchService.sweep()`` when a watched node's sources moved
+    materially since the last sweep (≥3 new items or any new regulatory/
+    outcomes hit). Evidence is only ever the actual new source items — never
+    fabricated. Mirrors types.ts.
+    """
+
+    node_id: str
+    summary: str = ""                          # human-readable one-liner
+    evidence: list[Evidence] = Field(default_factory=list)
+    new_items: int = 0                         # count of never-seen source items
+    weight_delta: float = 0.0                  # summed weight of the new items
+    regulatory_hit: bool = False               # a regulatory/outcomes item landed
+    at: datetime = Field(default_factory=_now)
 
 
 class ExplorerEvent(BaseModel):
@@ -227,6 +246,7 @@ class ExplorerEvent(BaseModel):
     node: Optional[Node] = None                # for node_* events
     project: Optional[Project] = None          # for project_* events
     message: str = ""                          # for log events
+    alert: Optional[WatchAlert] = None         # for watch_alert events (C2)
 
 
 class TreeSnapshot(BaseModel):
@@ -336,6 +356,27 @@ class GraveyardItem(BaseModel):
     triage_reason: str = ""
     updated_at: Optional[datetime] = None
     external: bool = False                     # post-mortem corpus entry (S4)
+
+
+class WatchedNodeStatus(BaseModel):
+    """One watched node + its most recent alert (``GET /api/watch``, C2).
+
+    Backs the dashboard "recent signals / movers" block. ``last_alert`` is
+    None until a sweep has found a material shift. Mirrors types.ts.
+    """
+
+    project_id: str
+    project_domain: Optional[str] = None       # None if the project row is gone
+    node: Node
+    last_alert: Optional[WatchAlert] = None
+
+
+class WatchSweepResult(BaseModel):
+    """What ``POST /api/watch/sweep`` returns: how many watched nodes were
+    swept and any material-shift alerts the sweep produced. Mirrors types.ts."""
+
+    swept: int = 0
+    alerts: list[WatchAlert] = Field(default_factory=list)
 
 
 class ControlAction(str, Enum):

@@ -54,6 +54,9 @@ export interface TreeNode {
   fit_reason: string;
   star: boolean;
   pinned: boolean;
+  /** C2 Space Watch: sweeps re-check this node's sources for material shifts.
+   *  Optional until the Wave D exploration surfaces land the full sensor set. */
+  watched?: boolean;
   child_ids: string[];
   error: string | null;
   tokens_spent: number;
@@ -119,7 +122,21 @@ export type EventType =
   | "node_added"
   | "node_updated"
   | "node_pruned"
-  | "log";
+  | "log"
+  | "watch_alert";
+
+/** One Space Watch material-shift alert (C2): ≥3 new source items or a new
+ *  regulatory/outcomes hit on a watched node. Evidence is only ever the
+ *  actual new source items. Mirrors backend `WatchAlert`. */
+export interface WatchAlert {
+  node_id: string;
+  summary: string;
+  evidence: Evidence[];
+  new_items: number;
+  weight_delta: number;
+  regulatory_hit: boolean;
+  at: string;
+}
 
 export interface ExplorerEvent {
   seq: number;
@@ -129,6 +146,8 @@ export interface ExplorerEvent {
   node: TreeNode | null;
   project: Project | null;
   message: string;
+  /** Present on `watch_alert` events only. */
+  alert?: WatchAlert | null;
 }
 
 export interface TreeSnapshot {
@@ -152,6 +171,21 @@ export interface GraveyardItem {
   triage_reason: string;
   updated_at: string | null;
   external: boolean;
+}
+
+/** One watched node + its most recent alert (GET /api/watch) — the dashboard
+ *  "recent signals / movers" block. Mirrors backend `WatchedNodeStatus`. */
+export interface WatchedNodeStatus {
+  project_id: string;
+  project_domain: string | null;
+  node: TreeNode;
+  last_alert: WatchAlert | null;
+}
+
+/** What POST /api/watch/sweep returns. Mirrors backend `WatchSweepResult`. */
+export interface WatchSweepResult {
+  swept: number;
+  alerts: WatchAlert[];
 }
 
 export type UsageLevel = "low" | "medium" | "high" | "heavy";

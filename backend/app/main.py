@@ -52,6 +52,19 @@ def _reconcile_orphaned_runs() -> None:
     get_service().reconcile_on_boot()
 
 
+@app.on_event("startup")
+async def _maybe_start_watch_sweeper() -> None:
+    """Start the periodic Space Watch sweep ONLY if the user opted in.
+
+    Gated on ``Settings.watch_sweep_hours`` (env ``WATCH_SWEEP_HOURS``); the
+    default ``None`` makes this a no-op — a server boot never begins fetching
+    on its own. Manual sweeps stay available via ``POST /api/watch/sweep``.
+    """
+    from .autonomous.watch import start_background_sweeper
+
+    start_background_sweeper()
+
+
 @app.get("/")
 def root() -> dict:
     """Tiny liveness probe for the root path."""
