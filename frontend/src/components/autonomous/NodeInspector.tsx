@@ -10,6 +10,7 @@ import {
   viabilityRamp,
   type TreeNode,
 } from "../../autonomous/types";
+import FitChip from "./FitChip";
 import Markdown from "./Markdown";
 import ViabChip from "./ViabChip";
 
@@ -19,6 +20,8 @@ interface Props {
   onSelectChild?: (id: string) => void;
   /** Pin/unpin a queued branch so the frontier expands it next (SPEC §4.1). */
   onTogglePin?: (nodeId: string, pinned: boolean) => void;
+  /** Whether this project was given founder steering (drives fit messaging). */
+  hasSteering?: boolean;
   busy?: boolean;
 }
 
@@ -36,6 +39,8 @@ const METRIC_HELP = {
     "How much fresh evidence backs the score. High means corroborated; low means the model is mostly guessing.",
   rigor:
     "How hard the red team pushed. Light passes are quick reads — their scores stay unverified.",
+  fit:
+    "Founder fit — how attackable this space is for YOU, from your steering. Orthogonal to viability.",
 };
 
 // Map a 1..5 score onto the theme's grey→blue→navy ramp (denser = stronger),
@@ -68,6 +73,7 @@ export default function NodeInspector({
   childNodes = [],
   onSelectChild,
   onTogglePin,
+  hasSteering = false,
   busy = false,
 }: Props) {
   if (!node) {
@@ -149,6 +155,12 @@ export default function NodeInspector({
                   onClick={() => onSelectChild?.(c.id)}
                 >
                   <span className="cr-title">{c.title}</span>
+                  {(c.kind === "gap" || c.kind === "gap_candidate") && c.fit != null && (
+                    <FitChip
+                      value={c.fit}
+                      title={`Founder fit ${c.fit} — how attackable this space is for YOU, from your steering. Orthogonal to viability.`}
+                    />
+                  )}
                   {(c.kind === "gap" || c.kind === "gap_candidate") && c.viability != null && (
                     <ViabChip
                       value={c.viability}
@@ -210,6 +222,12 @@ export default function NodeInspector({
           <span className="vb-lab">viability</span>
           {trust === "unverified" && <span className="vb-unverified">unverified</span>}
         </div>
+        {node.fit != null && (
+          <div className="viab-big fit-big" title={METRIC_HELP.fit}>
+            <span className="vb-num">{node.fit}</span>
+            <span className="vb-lab">founder fit</span>
+          </div>
+        )}
         <div className="viab-side">
           <div className="vs-row">
             <span className="vs-k" title={METRIC_HELP.confidence}>Confidence</span>
@@ -232,6 +250,20 @@ export default function NodeInspector({
           )}
         </div>
       </div>
+
+      {/* founder-fit narrative / instruction (memo §1: vermillion = the founder) */}
+      {node.fit != null && node.fit_reason && (
+        <div className="fit-reason">
+          <span className="fr-k">Why this fit</span>
+          <p>{node.fit_reason}</p>
+        </div>
+      )}
+      {node.fit == null && !hasSteering && (
+        <div className="fit-hint">
+          Add founder context when starting a run to get fit scores — viability says real
+          space, fit says real for you.
+        </div>
+      )}
 
       <Markdown className="detail-thesis" text={g.thesis} />
 

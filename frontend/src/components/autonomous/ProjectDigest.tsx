@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { nodeTrust, type TreeNode } from "../../autonomous/types";
+import FitChip from "./FitChip";
 import ViabChip from "./ViabChip";
 
 interface Props {
@@ -43,6 +44,12 @@ export default function ProjectDigest({ nodes, onSelect, topN = 6 }: Props) {
             : `Viability ${n.viability}`
         }
       />
+      {n.fit != null && (
+        <FitChip
+          value={n.fit}
+          title={`Founder fit ${n.fit} — how attackable this space is for YOU, from your steering. Orthogonal to viability.`}
+        />
+      )}
       <span className="dr-body">
         <span className="dr-title">{n.gap?.title ?? n.title}</span>
         {n.gap?.sub_segment && <span className="dr-sub">{n.gap.sub_segment}</span>}

@@ -15,6 +15,7 @@ import type {
   UsagePolicy,
   Pace,
   Project,
+  ScoutResponse,
   SortedResearch,
   TreeSnapshot,
 } from "./types";
@@ -83,6 +84,21 @@ export function createProject(req: CreateProjectRequest): Promise<Project> {
 /** Every project, newest first — feeds the tab bar. */
 export function listProjects(): Promise<Project[]> {
   return request<Project[]>("/api/projects");
+}
+
+/** One-shot tree snapshot (no SSE) — lets the dashboard rank ideas across
+ *  projects without holding an event stream open per project. */
+export function getTree(pid: string): Promise<TreeSnapshot> {
+  return request<TreeSnapshot>(`/api/projects/${encodeURIComponent(pid)}/tree`);
+}
+
+/** Ask the engine to propose ownable spaces from what is hot right now. */
+export function scout(brief = "", avoid: string[] = []): Promise<ScoutResponse> {
+  return request<ScoutResponse>("/api/projects/scout", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ brief, avoid }),
+  });
 }
 
 /** The shared governor's real global usage snapshot — drives the global bar. */

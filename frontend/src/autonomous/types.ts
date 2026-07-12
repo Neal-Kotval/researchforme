@@ -47,6 +47,11 @@ export interface TreeNode {
   viability: number | null;
   confidence: Confidence | null;
   pressure_test: PressureTest | null;
+  /** Founder fit (0..100, orthogonal to viability): "is this space for YOU",
+   *  scored from the project's steering context. null = no steering provided
+   *  or scoring unavailable — render nothing for null, never a fake 0. */
+  fit: number | null;
+  fit_reason: string;
   star: boolean;
   pinned: boolean;
   child_ids: string[];
@@ -193,6 +198,62 @@ export interface SortedResearch {
   research: string;
 }
 
+/* ------------------------------------------------------------------ scout -- */
+// POST /api/projects/scout — the engine proposes ownable spaces from what is
+// hot right now. Stateless; mirrors ScoutRequest/ScoutResponse in schemas.py.
+
+export interface ScoutRequest {
+  brief?: string;      // optional founder context
+  avoid?: string[];    // spaces to exclude
+}
+
+/** One trending item that triggered a scout candidate — always grounded in the
+ *  fetched input set, never LLM-invented. */
+export interface ScoutSignal {
+  source: string;
+  title: string;
+  url: string;
+}
+
+/** A candidate DOMAIN shaped like an ownable space, with its trigger signals. */
+export interface ScoutCandidate {
+  domain: string;
+  rationale: string;
+  signals: ScoutSignal[];
+  suggested_sub_segments: string[];
+  degraded: boolean;   // true = deterministic fallback (LLM unavailable)
+}
+
+/** Per-source telemetry ("which sources fired") — mirrors SourceReport. */
+export interface SourceReport {
+  name: string;
+  status: string;
+  item_count: number;
+  freshest: string | null;
+  fetched_at: string;
+  note: string | null;
+  query_terms: string[];
+}
+
+export interface ScoutResponse {
+  candidates: ScoutCandidate[];
+  sources: SourceReport[];
+  generated_at: string;
+}
+
+/** True when a steering context actually says anything (drives fit scoring). */
+export function hasSteeringContext(s: SteeringContext | undefined | null): boolean {
+  if (!s) return false;
+  return Boolean(
+    s.brief?.trim() ||
+      s.advantages?.length ||
+      s.constraints?.length ||
+      s.avoid?.length ||
+      s.time_horizon?.trim() ||
+      s.research?.trim()
+  );
+}
+
 export type ControlAction =
   | "pause"
   | "resume"
@@ -217,6 +278,13 @@ export function viabilityRamp(v: number | null): string {
   if (v == null) return "var(--data-neutral)";
   const i = Math.min(4, Math.max(0, Math.floor((v / 100) * 5)));
   return `var(--ramp-${i})`;
+}
+
+/** Composite ranking score for "fit × viability" ordering (memo §4). A node
+ *  with no fit score ranks by viability alone — never by a fabricated fit. */
+export function fitViabScore(n: Pick<TreeNode, "viability" | "fit">): number {
+  if (n.viability == null) return -1;
+  return n.fit != null ? (n.viability * n.fit) / 100 : n.viability;
 }
 
 /* ------------------------------------------------------- trust encoding -- */

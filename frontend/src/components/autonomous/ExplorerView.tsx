@@ -12,6 +12,7 @@ import {
 } from "../../autonomous/api";
 import {
   DEFAULT_BUDGET,
+  hasSteeringContext,
   type Budget,
   type CreateProjectRequest,
   type ExplorerEvent,
@@ -19,6 +20,7 @@ import {
   type IntakeQuestion,
   type Pace,
   type Project,
+  type ScoutCandidate,
   type TreeNode,
   type TreeSnapshot,
 } from "../../autonomous/types";
@@ -230,8 +232,21 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
   const [loaded, setLoaded] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [newDepth, setNewDepth] = useState<Depth>("standard");
+  const [prefill, setPrefill] = useState<DialogPrefill | null>(null);
   const openNew = useCallback((depth: Depth) => {
     setNewDepth(depth);
+    setPrefill(null);
+    setShowNew(true);
+  }, []);
+  // Scout → drawer: launch the new-exploration dialog pre-seeded with a
+  // suggested space (domain + sub-segments + rationale as the founder brief).
+  const openScoutPrefill = useCallback((c: ScoutCandidate) => {
+    setNewDepth("standard");
+    setPrefill({
+      domain: c.domain,
+      segs: c.suggested_sub_segments,
+      brief: c.rationale,
+    });
     setShowNew(true);
   }, []);
   const [busy, setBusy] = useState(false);
@@ -399,8 +414,10 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
             <HomeDashboard
               projects={allProjects}
               onOpen={navProject}
+              onOpenNode={navNode}
               onNew={() => openNew("standard")}
               onQuickNew={() => openNew("quick")}
+              onExploreCandidate={openScoutPrefill}
             />
           ) : (
             <>
@@ -476,6 +493,7 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                     node={selectedNode}
                     childNodes={selectedChildren}
                     onSelectChild={selectNode}
+                    hasSteering={hasSteeringContext(project.steering)}
                     busy={busy}
                     onTogglePin={(nodeId, pinned) =>
                       onControl({ action: pinned ? "pin_node" : "unpin_node", node_id: nodeId })
@@ -534,22 +552,35 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
       {state.order.length > 0 && <GlobalUsageBar projects={allProjects} />}
 
       {showNew && (
-        <NewExplorationDialog initialDepth={newDepth} onClose={() => setShowNew(false)} onCreate={onCreate} />
+        <NewExplorationDialog
+          initialDepth={newDepth}
+          prefill={prefill}
+          onClose={() => setShowNew(false)}
+          onCreate={onCreate}
+        />
       )}
     </div>
   );
 }
 
 /* =================================================== New exploration dialog == */
+/** Seed values for the drawer (scout candidate → prefilled launch). */
+export interface DialogPrefill {
+  domain: string;
+  segs: string[];
+  brief: string;
+}
+
 interface DialogProps {
   initialDepth: Depth;
+  prefill?: DialogPrefill | null;
   onClose: () => void;
   onCreate: (req: CreateProjectRequest) => Promise<void>;
 }
 
-function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) {
-  const [domain, setDomain] = useState("");
-  const [segs, setSegs] = useState<string[]>([]);
+function NewExplorationDialog({ initialDepth, prefill, onClose, onCreate }: DialogProps) {
+  const [domain, setDomain] = useState(prefill?.domain ?? "");
+  const [segs, setSegs] = useState<string[]>(prefill?.segs ?? []);
   const [segText, setSegText] = useState("");
   const [decompose, setDecompose] = useState("claude-haiku-4-5-20251001");
   const [synth, setSynth] = useState("claude-opus-4-8");
@@ -568,13 +599,13 @@ function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) 
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Rich steering context — a founder brief + structured fields + pasted research.
-  const [brief, setBrief] = useState("");
+  const [brief, setBrief] = useState(prefill?.brief ?? "");
   const [advantages, setAdvantages] = useState("");
   const [constraints, setConstraints] = useState("");
   const [avoid, setAvoid] = useState("");
   const [timeHorizon, setTimeHorizon] = useState("");
   const [research, setResearch] = useState("");
-  const [showSteering, setShowSteering] = useState(false);
+  const [showSteering, setShowSteering] = useState(Boolean(prefill?.brief));
   const [sortOpen, setSortOpen] = useState(false);
   const [sortText, setSortText] = useState("");
   const [sorting, setSorting] = useState(false);

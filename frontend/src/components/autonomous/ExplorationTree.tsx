@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { nodeTrust, viabilityRamp, type TreeNode } from "../../autonomous/types";
+import { fitViabScore, nodeTrust, viabilityRamp, type TreeNode } from "../../autonomous/types";
+import FitChip from "./FitChip";
 import ViabChip from "./ViabChip";
+
+/** Gap ordering: pure market strength, or discounted by founder fit (memo §4). */
+type SortBy = "viab" | "fitviab";
 
 interface Props {
   nodes: Record<string, TreeNode>;
@@ -45,6 +49,7 @@ interface Row {
 export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [starOnly, setStarOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortBy>("viab");
   const [viabMin, setViabMin] = useState(0);
   const [zoomId, setZoomId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -80,7 +85,8 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
       let sum = 0;
       let count = 0;
       if (node && isGapish(node) && node.viability != null) {
-        best = node.viability;
+        // Ordering score: raw market strength, or discounted by founder fit.
+        best = sortBy === "fitviab" ? fitViabScore(node) : node.viability;
         sum = node.viability;
         count = 1;
       }
@@ -96,7 +102,7 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
     };
     for (const id of Object.keys(nodes)) visit(id);
     return memo;
-  }, [nodes, childrenOf]);
+  }, [nodes, childrenOf, sortBy]);
   const bestBelow = useMemo(() => {
     const m = new Map<string, number>();
     for (const [id, a] of aggBelow) m.set(id, a.best);
@@ -243,6 +249,27 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
         >
           <span className="tf-star">★</span> Starred only
         </button>
+        <div className="tree-sort" role="radiogroup" aria-label="Sort gaps by">
+          <span className="ts-lab">Sort</span>
+          <button
+            role="radio"
+            aria-checked={sortBy === "viab"}
+            className={`ts-opt${sortBy === "viab" ? " on" : ""}`}
+            onClick={() => setSortBy("viab")}
+            title="Order branches by best descendant viability — pure market strength"
+          >
+            Viability
+          </button>
+          <button
+            role="radio"
+            aria-checked={sortBy === "fitviab"}
+            className={`ts-opt fit${sortBy === "fitviab" ? " on" : ""}`}
+            onClick={() => setSortBy("fitviab")}
+            title="Order by fit × viability — market strength discounted by how attackable the space is for YOU. Ideas without a fit score rank by viability alone."
+          >
+            Fit × viability
+          </button>
+        </div>
         <label className="tree-viab">
           <span className="tv-lab">Viability ≥</span>
           <input
@@ -360,6 +387,12 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
                     </>
                   );
                 })()}
+                {gapish && n.fit != null && (
+                  <FitChip
+                    value={n.fit}
+                    title={`Founder fit ${n.fit} — how attackable this space is for YOU, from your steering. Orthogonal to viability.`}
+                  />
+                )}
                 {gapish && n.viability != null ? (
                   <ViabChip
                     value={n.viability}
