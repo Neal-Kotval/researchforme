@@ -1,0 +1,125 @@
+<!-- @dsCard group="Components" name="Trust-encoded viability" subtitle="The same number at three levels of earned belief" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trust-encoded viability — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--surface-3:#ececE6;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent:#1863dc;--accent-strong:#1550b8;--accent-tint:#e8eefb;
+  --ramp-1:#a9c3ee;--ramp-2:#6f9fe4;--ramp-3:#1863dc;--ramp-4:#1145a0;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 22px}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tcol{display:flex;flex-direction:column;gap:10px}
+.score-card{background:var(--surface);border-radius:6px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:132px;justify-content:center}
+/* HIGH: solid heavy, full saturation, solid border */
+.score-high{border:1.5px solid var(--ramp-4);box-shadow:var(--shadow-sm)}
+.score-high .num{font-family:var(--mono);font-size:40px;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ramp-4);line-height:1}
+.score-high .word{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-strong)}
+/* MEDIUM: outline numeral treatment, normal weight, solid hairline */
+.score-med{border:1px solid var(--border-strong)}
+.score-med .num{font-family:var(--mono);font-size:34px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--ramp-2);line-height:1}
+.score-med .word{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)}
+/* LOW: dashed, desaturated, smaller, explicit "unverified" */
+.score-low{border:1px dashed var(--border-strong);background:var(--surface-2);box-shadow:none}
+.score-low .num{font-family:var(--mono);font-size:26px;font-weight:450;font-variant-numeric:tabular-nums;color:var(--text-ghost);line-height:1}
+.score-low .word{font-size:11px;font-weight:600;font-style:italic;color:var(--text-ghost);letter-spacing:0;text-transform:none}
+.when{font-size:11.5px;color:var(--text-dim);line-height:1.55;padding:0 2px}
+.when b{font-weight:650;color:var(--text)}
+.sec{margin-top:30px}
+.sec-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px}
+.sec-note{font-size:12px;color:var(--text-faint);margin-bottom:12px}
+.chip-panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px 20px}
+.chip-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.chip-row:last-child{border-bottom:none}
+.viab-chip{
+  display:inline-flex;align-items:center;gap:3px;justify-content:center;
+  min-width:27px;padding:2px 6px;border-radius:3px;
+  font-family:var(--mono);font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;
+  color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.3);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);flex:none;
+}
+.viab-chip.med{background:var(--surface)!important;color:var(--ramp-2);text-shadow:none;font-weight:600;box-shadow:inset 0 0 0 1px var(--ramp-2)}
+.viab-chip.low{background:var(--surface-2)!important;color:var(--text-ghost);text-shadow:none;font-weight:500;font-size:10.5px;box-shadow:none;border:1px dashed var(--border-strong)}
+.viab-chip.star{box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 0 0 1.5px var(--accent)}
+.viab-chip .vc-star{font-size:9px;text-shadow:none}
+.chip-gap{font-size:13px;color:var(--text-dim);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-cap{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);flex:none}
+.unv{font-size:10.5px;font-style:italic;color:var(--text-ghost);flex:none}
+.law{margin-top:22px;background:var(--surface);border:1px solid var(--border-strong);border-radius:6px;padding:14px 20px;box-shadow:var(--shadow-sm);font-size:13px;color:var(--text-dim)}
+.law b{color:var(--text);font-weight:650}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trust-encoded viability</h1>
+  <p class="page-sub">A number's visual weight must match how much it deserves belief. The same 84, three ways — confidence is visible, not a label.</p>
+
+  <div class="trio">
+    <div class="tcol">
+      <div class="score-card score-high">
+        <div class="num">84</div>
+        <div class="word">Corroborated</div>
+      </div>
+      <p class="when"><b>High + tool-corroborated.</b> Earned by deep rigor plus independent tool corroboration (search hits, repo counts, pricing pages). Solid heavy numeral, solid ramp-4 border, full saturation.</p>
+    </div>
+    <div class="tcol">
+      <div class="score-card score-med">
+        <div class="num">84</div>
+        <div class="word">Medium confidence</div>
+      </div>
+      <p class="when"><b>Medium.</b> Standard-rigor pass, no independent corroboration yet. Normal weight, mid-ramp color, plain hairline border. Neither shouts nor apologizes.</p>
+    </div>
+    <div class="tcol">
+      <div class="score-card score-low">
+        <div class="num">84</div>
+        <div class="word">unverified</div>
+      </div>
+      <p class="when"><b>Low / light rigor / uncorroborated.</b> Dashed border, desaturated, smaller, with the explicit word "unverified". A light-rigor 93 must <b>look</b> weaker than a deep-rigor 61.</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Tree-row chip equivalents (.viab-chip)</div>
+    <div class="sec-note">The same three trust levels at chip scale, plus the star variant for ideas that cleared the star threshold with earned confidence.</div>
+    <div class="chip-panel">
+      <div class="chip-row">
+        <span class="viab-chip" style="background:#1145a0">84</span>
+        <span class="chip-gap">Denial &amp; prior-auth fax parser for sub-10-provider clinics</span>
+        <span class="chip-cap">high + corroborated — solid ramp fill</span>
+      </div>
+      <div class="chip-row">
+        <span class="viab-chip med">84</span>
+        <span class="chip-gap">Ambient scribe QA layer for locum tenens shifts</span>
+        <span class="chip-cap">medium — outlined, no fill</span>
+      </div>
+      <div class="chip-row">
+        <span class="viab-chip low">84</span>
+        <span class="chip-gap">Restaurant tip-pool compliance engine for multi-state groups</span>
+        <span class="unv">unverified</span>
+        <span class="chip-cap">low — dashed, desaturated, smaller</span>
+      </div>
+      <div class="chip-row">
+        <span class="viab-chip star" style="background:#1145a0"><span class="vc-star">★</span>91</span>
+        <span class="chip-gap">SOC 2 evidence collector for solo DevOps consultancies</span>
+        <span class="chip-cap">starred — ≥75 with earned confidence, blue ring</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="law">
+    <b>The law:</b> saturation, weight, and border style encode <b>belief</b>; the numeral encodes <b>magnitude</b>. Never render an uncorroborated score with the solid treatment — a confident-looking guess is a lie.
+  </div>
+</div>
+</body>
+</html>

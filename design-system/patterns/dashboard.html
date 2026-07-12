@@ -1,0 +1,223 @@
+<!-- @dsCard group="Patterns" name="Dashboard" subtitle="Worth your attention → active → suggested spaces" viewport="wide" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--surface-3:#ececE6;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent:#1863dc;--accent-strong:#1550b8;--accent-tint:#e8eefb;
+  --primary:#1a1a18;--primary-fg:#ffffff;
+  --live:#1863dc;--live-tint:#e8eefb;--warn:#b7791f;--warn-tint:#fbf3e2;
+  --fit:#d24317;--fit-strong:#b03410;--fit-tint:#fbe9e2;
+  --ramp-2:#6f9fe4;--ramp-3:#1863dc;--ramp-4:#1145a0;--data-neutral:#6b6b62;
+  --src:#4a4a44;--src-tint:#f0f0eb;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:32px 28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto}
+.page-head{margin-bottom:24px}
+h1{font-size:24px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:13px;color:var(--text-faint);margin-top:3px}
+.module{margin-bottom:28px}
+.mod-head{margin-bottom:12px}
+.mod-title{font-size:15px;font-weight:640;letter-spacing:-.01em}
+.mod-sub{font-size:12.5px;color:var(--text-faint);margin-top:1px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm)}
+/* hero: worth your attention */
+.hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.idea{padding:18px;display:flex;flex-direction:column;gap:0}
+.idea-scores{display:flex;gap:7px;align-items:center;margin-bottom:11px}
+.score-chip{display:inline-flex;align-items:baseline;gap:4px;font-family:var(--mono);font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 9px;border-radius:3px}
+.score-chip small{font-family:var(--font);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:.85}
+.sv-high{color:#fff;background:var(--ramp-4);box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.sv-med{color:var(--ramp-2);background:var(--surface);box-shadow:inset 0 0 0 1px var(--ramp-2);font-weight:600}
+.sv-low{color:var(--text-ghost);background:var(--surface-2);border:1px dashed var(--border-strong);font-weight:500;font-size:12.5px}
+.sf{color:var(--fit-strong);background:var(--fit-tint);border:1px solid var(--fit)}
+.unv{font-size:10px;font-style:italic;color:var(--text-ghost)}
+.idea-title{font-size:14.5px;font-weight:640;letter-spacing:-.01em;line-height:1.3}
+.idea-why{font-size:12.5px;color:var(--text-dim);margin-top:6px;line-height:1.5;flex:1}
+.idea-proj{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-top:11px;padding-top:9px;border-top:1px solid var(--border)}
+/* active exploration */
+.active-card{display:flex;align-items:stretch;gap:0;padding:16px 20px}
+.ac-main{flex:1;min-width:0}
+.ac-head{display:flex;align-items:center;gap:10px}
+.ac-name{font-size:14.5px;font-weight:640;letter-spacing:-.01em}
+.mode-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:620;padding:3px 9px;border-radius:3px;border:1px solid rgba(24,99,220,.25);color:var(--live);background:var(--live-tint)}
+.mode-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.mode-pill.curb{color:var(--warn);background:var(--warn-tint);border-color:rgba(183,121,31,.3)}
+.ac-now{font-size:12px;color:var(--text-faint);margin-top:3px}
+.ac-stats{display:flex;gap:22px;margin-top:12px}
+.ac-stat .v{font-family:var(--mono);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;display:block}
+.ac-stat .k{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
+.ac-spark{flex:none;width:220px;padding-left:20px;margin-left:20px;border-left:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;gap:4px}
+.spark-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
+.spark-cap{font-family:var(--mono);font-size:10.5px;color:var(--text-faint)}
+.active-stack{display:flex;flex-direction:column;gap:12px}
+/* suggested spaces row */
+.scout-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.scout{padding:16px 18px;display:flex;flex-direction:column}
+.scout-title{font-size:13.5px;font-weight:640;letter-spacing:-.01em;line-height:1.35}
+.scout-sig{display:flex;gap:7px;align-items:baseline;font-size:11.5px;color:var(--text-dim);margin-top:8px;line-height:1.45;flex:1}
+.src-chip{flex:none;display:inline-flex;font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;color:var(--src);background:var(--src-tint);border:1px solid var(--border-strong)}
+.scout-act{margin-top:12px}
+.btn{display:inline-flex;align-items:center;padding:6px 12px;border-radius:3px;font-family:var(--font);font-size:12.5px;font-weight:550;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);cursor:pointer}
+.btn-primary{background:var(--primary);border-color:transparent;color:var(--primary-fg);box-shadow:var(--shadow-sm)}
+/* usage footer */
+.usage-footer{display:flex;align-items:center;gap:16px;padding:10px 16px;border-top:1px solid var(--border);margin-top:6px}
+.uf-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);flex:none}
+.uf-track{flex:1;height:5px;border-radius:2px;background:var(--surface-3);border:1px solid var(--border);overflow:hidden;position:relative}
+.uf-fill{display:block;height:100%;width:38%;background:var(--accent)}
+.uf-mark{position:absolute;top:-2px;bottom:-2px;left:80%;width:1px;background:var(--border-strong)}
+.uf-stats{flex:none;display:flex;gap:14px;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;color:var(--text-faint)}
+.uf-stats b{color:var(--text);font-weight:660}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <h1>Gap Finder</h1>
+    <p class="page-sub">Brief → Explore → Pressure-test → Compare → Take away. The machine hunts; you decide.</p>
+  </div>
+
+  <!-- 1. Worth your attention -->
+  <div class="module">
+    <div class="mod-head">
+      <div class="mod-title">Worth your attention</div>
+      <div class="mod-sub">Top ideas across all projects by fit × viability — survived the red team, ranked by how much they deserve your attention.</div>
+    </div>
+    <div class="hero-grid">
+      <div class="card idea">
+        <div class="idea-scores">
+          <span class="score-chip sv-high">84 <small>viab</small></span>
+          <span class="score-chip sf">78 <small>fit</small></span>
+        </div>
+        <div class="idea-title">Denial &amp; prior-auth fax parser for sub-10-provider clinics</div>
+        <p class="idea-why">Why now: two incumbent vendors raised seat minimums last quarter, orphaning the sub-10 segment while denial volumes hit a record.</p>
+        <div class="idea-proj">clinic-ops · corroborated · red team 4/6</div>
+      </div>
+      <div class="card idea">
+        <div class="idea-scores">
+          <span class="score-chip sv-med">76 <small>viab</small></span>
+          <span class="score-chip sf">81 <small>fit</small></span>
+        </div>
+        <div class="idea-title">SOC 2 evidence collector for solo DevOps consultancies</div>
+        <p class="idea-why">Why now: enterprise clients began demanding SOC 2 from one-person vendors; existing tools price at team scale.</p>
+        <div class="idea-proj">compliance-tools · medium confidence · red team 5/6</div>
+      </div>
+      <div class="card idea">
+        <div class="idea-scores">
+          <span class="score-chip sv-low">88</span><span class="unv">unverified</span>
+          <span class="score-chip sf">64 <small>fit</small></span>
+        </div>
+        <div class="idea-title">Carrier-vetting API for freight brokers under 50 trucks</div>
+        <p class="idea-why">Why now: FMCSA fraud enforcement shifted liability onto brokers in May; light-rigor pass only — corroboration queued.</p>
+        <div class="idea-proj">logistics · light rigor · red team 0/6</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Active exploration -->
+  <div class="module">
+    <div class="mod-head">
+      <div class="mod-title">Active exploration</div>
+      <div class="mod-sub">What the machine is doing right now — live counters and spend. Pause any run; it resumes exactly where it stopped.</div>
+    </div>
+    <div class="active-stack">
+      <div class="card active-card">
+        <div class="ac-main">
+          <div class="ac-head">
+            <span class="ac-name">Independent HVAC &amp; field-service software</span>
+            <span class="mode-pill"><span class="dot"></span>sprinting</span>
+          </div>
+          <div class="ac-now">Pressure-testing "Preventive-maintenance copilot for independent HVAC firms" — lens 3 of 6</div>
+          <div class="ac-stats">
+            <div class="ac-stat"><span class="v">142</span><span class="k">nodes</span></div>
+            <div class="ac-stat"><span class="v">37</span><span class="k">gaps</span></div>
+            <div class="ac-stat"><span class="v">5</span><span class="k">starred</span></div>
+            <div class="ac-stat"><span class="v">2h 14m</span><span class="k">running</span></div>
+          </div>
+        </div>
+        <div class="ac-spark">
+          <span class="spark-label">Spend — last 3h</span>
+          <svg width="200" height="36" viewBox="0 0 200 36" aria-label="Spend sparkline, rising to $4.18">
+            <polyline fill="none" stroke="#6b6b62" stroke-width="1.5"
+              points="0,32 18,31 36,29 54,29 72,26 90,25 108,21 126,20 144,15 162,13 180,9 200,6"/>
+            <circle cx="200" cy="6" r="2.5" fill="#6b6b62"/>
+          </svg>
+          <span class="spark-cap">$4.18 of $10.00 run cap</span>
+        </div>
+      </div>
+      <div class="card active-card">
+        <div class="ac-main">
+          <div class="ac-head">
+            <span class="ac-name">Multi-state restaurant-group payroll compliance</span>
+            <span class="mode-pill curb"><span class="dot"></span>curbing</span>
+          </div>
+          <div class="ac-now">Governor slowing spend at 71% of cap — deep-rigor passes deferred to next window</div>
+          <div class="ac-stats">
+            <div class="ac-stat"><span class="v">88</span><span class="k">nodes</span></div>
+            <div class="ac-stat"><span class="v">19</span><span class="k">gaps</span></div>
+            <div class="ac-stat"><span class="v">2</span><span class="k">starred</span></div>
+            <div class="ac-stat"><span class="v">5h 02m</span><span class="k">running</span></div>
+          </div>
+        </div>
+        <div class="ac-spark">
+          <span class="spark-label">Spend — last 6h</span>
+          <svg width="200" height="36" viewBox="0 0 200 36" aria-label="Spend sparkline, flattening at $7.10">
+            <polyline fill="none" stroke="#6b6b62" stroke-width="1.5"
+              points="0,33 20,29 40,24 60,18 80,13 100,10 120,8 140,7 160,6.5 180,6.2 200,6"/>
+            <circle cx="200" cy="6" r="2.5" fill="#6b6b62"/>
+          </svg>
+          <span class="spark-cap">$7.10 of $10.00 run cap</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Suggested spaces -->
+  <div class="module">
+    <div class="mod-head">
+      <div class="mod-title">Suggested spaces</div>
+      <div class="mod-sub">Domains the engine proposes from signal convergence — each shows what triggered it. Launch one, or dismiss and it learns.</div>
+    </div>
+    <div class="scout-row">
+      <div class="card scout">
+        <div class="scout-title">Grant-compliance reporting for rural water utilities</div>
+        <div class="scout-sig"><span class="src-chip">Reddit</span><span>"EPA grant reporting eats 2 days/month and our clerk retired" — 214 upvotes, r/Wastewater</span></div>
+        <div class="scout-sig"><span class="src-chip">Newsletter</span><span>$11.7B in BIL grants now carry quarterly digital reporting mandates</span></div>
+        <div class="scout-act"><button class="btn btn-primary">Explore this space</button></div>
+      </div>
+      <div class="card scout">
+        <div class="scout-title">Ambient-scribe QA tooling for locum tenens staffing</div>
+        <div class="scout-sig"><span class="src-chip">HN</span><span>"Every hospital has a different scribe vendor and locums get blamed for the errors" — 148 points</span></div>
+        <div class="scout-sig"><span class="src-chip">arXiv</span><span>3 papers in 90 days on clinical-note hallucination rates across vendor models</span></div>
+        <div class="scout-act"><button class="btn btn-primary">Explore this space</button></div>
+      </div>
+      <div class="card scout">
+        <div class="scout-title">Chargeback evidence automation for niche-vertical SaaS</div>
+        <div class="scout-sig"><span class="src-chip">GitHub</span><span>4 single-maintainer "stripe-dispute-helper" repos gained 200+ stars in 60 days</span></div>
+        <div class="scout-sig"><span class="src-chip">Reddit</span><span>r/SaaS founders reporting 3–5% revenue lost to friendly-fraud disputes</span></div>
+        <div class="scout-act"><button class="btn btn-primary">Explore this space</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- usage demoted to footer -->
+  <div class="usage-footer">
+    <span class="uf-label">Usage</span>
+    <div class="uf-track"><span class="uf-fill"></span><span class="uf-mark"></span></div>
+    <div class="uf-stats">
+      <span><b>$11.28</b> / $30.00 today</span>
+      <span><b>1.4M</b> tokens</span>
+      <span>check-in at 80%</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!-- @dsCard group="Components" name="Provenance" subtitle="Canned-data badge, fixture banner, live source chips" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Provenance — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--surface-3:#ececE6;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent-strong:#1550b8;--live:#1863dc;
+  --mock:#9a6b00;--mock-tint:#f6eed7;
+  --src:#4a4a44;--src-tint:#f0f0eb;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 20px}
+.sec{margin-top:24px}
+.sec-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px}
+.sec-note{font-size:12px;color:var(--text-faint);margin-bottom:12px}
+/* fixture-gap banner */
+.fixture-banner{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--mock-tint);border:1px solid var(--mock);border-radius:6px;
+  padding:13px 16px;
+}
+.fixture-banner .fb-ico{
+  flex:none;width:18px;height:18px;border-radius:50%;margin-top:1px;
+  background:var(--mock);color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.fixture-banner .fb-t{font-size:13px;font-weight:650;color:var(--mock)}
+.fixture-banner .fb-d{font-size:12.5px;color:var(--text-dim);margin-top:1px;line-height:1.5}
+/* evidence item */
+.evidence{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:14px 18px}
+.ev-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ev-quote{font-size:13.5px;color:var(--text-dim);line-height:1.55;margin-top:8px}
+.ev-meta{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-top:8px}
+.mock-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:650;padding:2px 8px;border-radius:3px;
+  color:var(--mock);background:var(--mock-tint);border:1px solid var(--mock);
+}
+.mock-badge .mb-dot{width:6px;height:6px;border-radius:50%;background:var(--mock)}
+/* source chips */
+.src-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;
+  color:var(--src);background:var(--src-tint);border:1px solid var(--border-strong);
+}
+.src-chip .sc-dot{width:6px;height:6px;border-radius:50%;background:var(--live)}
+.chip-strip{display:flex;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:14px 18px}
+.note{margin-top:16px;font-size:12.5px;color:var(--text-dim);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:13px 18px;line-height:1.55}
+.note b{font-weight:650;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Provenance</h1>
+  <p class="page-sub">Amber means exactly one thing: this data is canned, not live. It is never a caution color — that's --warn's job.</p>
+
+  <div class="sec">
+    <div class="sec-label">Fixture-gap banner</div>
+    <div class="sec-note">Shown at the top of any gap tagged <span style="font-family:var(--mono);font-size:11px">fixture</span>. The scores below it inherit low-trust rendering.</div>
+    <div class="fixture-banner">
+      <div class="fb-ico">!</div>
+      <div>
+        <div class="fb-t">Fixture data — not live</div>
+        <div class="fb-d">This gap was generated from canned fixture data, not live source pulls. Its scores demonstrate the pipeline, not the market. Run a live exploration before believing anything here.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Canned-data badge on an evidence item (live: false)</div>
+    <div class="sec-note">Every evidence item carries its provenance. A fixture item wears the amber badge inline, next to its source chip.</div>
+    <div class="evidence">
+      <div class="ev-row">
+        <span class="src-chip"><span class="sc-dot" style="background:var(--mock)"></span>Reddit · r/medicalbilling</span>
+        <span class="mock-badge"><span class="mb-dot"></span>fixture data</span>
+      </div>
+      <p class="ev-quote">"We're a 6-provider family practice and our denials still come in on the fax line. I spend every Friday retyping them into the clearinghouse portal. There has to be something that reads these."</p>
+      <div class="ev-meta">live: false · fixtures/reddit_medicalbilling_denials.json · loaded 2026-07-09</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Live source chips</div>
+    <div class="sec-note">Muted warm graphite, one shape for every adapter. The blue dot means the pull was live; identity comes from the label, not a hue.</div>
+    <div class="chip-strip">
+      <span class="src-chip"><span class="sc-dot"></span>Reddit</span>
+      <span class="src-chip"><span class="sc-dot"></span>arXiv</span>
+      <span class="src-chip"><span class="sc-dot"></span>Hacker News</span>
+      <span class="src-chip"><span class="sc-dot"></span>GitHub</span>
+      <span class="src-chip"><span class="sc-dot"></span>Newsletter</span>
+    </div>
+  </div>
+
+  <p class="note"><b>Rule:</b> amber (--mock #9a6b00) is reserved for provenance warnings only. If an element is amber, the only question it answers is "is this data real?" — never severity, never caution, never brand.</p>
+</div>
+</body>
+</html>

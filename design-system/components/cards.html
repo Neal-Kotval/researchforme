@@ -1,0 +1,138 @@
+<!-- @dsCard group="Components" name="Cards" subtitle="Idea card w/ fit chip, project card, scout suggestion" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cards — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--surface-3:#ececE6;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent:#1863dc;--accent-strong:#1550b8;--accent-tint:#e8eefb;
+  --primary:#1a1a18;--primary-fg:#ffffff;
+  --live:#1863dc;--live-tint:#e8eefb;
+  --fit:#d24317;--fit-strong:#b03410;--fit-tint:#fbe9e2;
+  --ramp-4:#1145a0;
+  --src:#4a4a44;--src-tint:#f0f0eb;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 20px}
+.sec{margin-top:24px}
+.sec-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px}
+.sec-note{font-size:12px;color:var(--text-faint);margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm)}
+/* --- idea card --- */
+.idea-card{padding:18px 20px}
+.ic-scores{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.score-chip{
+  display:inline-flex;align-items:baseline;gap:5px;
+  font-family:var(--mono);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;
+  padding:3px 10px;border-radius:3px;
+}
+.score-viab{color:#fff;background:var(--ramp-4);box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.score-fit{color:var(--fit-strong);background:var(--fit-tint);border:1px solid var(--fit)}
+.score-chip small{font-family:var(--font);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:.85}
+.ic-title{font-size:16px;font-weight:650;letter-spacing:-.015em;line-height:1.3}
+.ic-why{font-size:13px;color:var(--text-dim);margin-top:6px;line-height:1.55}
+.fit-reason{
+  display:flex;gap:8px;align-items:flex-start;margin-top:12px;
+  font-size:12.5px;color:var(--fit-strong);background:var(--fit-tint);
+  border-radius:3px;padding:8px 12px;line-height:1.5;
+}
+.fit-reason .fr-mark{font-weight:700;flex:none}
+.ic-foot{display:flex;gap:14px;margin-top:12px;font-family:var(--mono);font-size:10.5px;color:var(--text-faint)}
+/* --- project card --- */
+.proj-card{padding:16px 20px}
+.pc-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pc-name{font-size:14.5px;font-weight:640;letter-spacing:-.01em}
+.state-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:620;padding:3px 10px;border-radius:3px;border:1px solid rgba(24,99,220,.25);color:var(--live);background:var(--live-tint)}
+.state-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pc-stats{display:flex;gap:20px;margin-top:12px}
+.pc-stat{display:flex;flex-direction:column;gap:1px}
+.pc-stat .v{font-family:var(--mono);font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.pc-stat .k{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint)}
+.pc-foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text-faint)}
+/* --- scout card --- */
+.scout-card{padding:18px 20px;border-style:solid}
+.sc-eyebrow{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:6px}
+.sc-title{font-size:15px;font-weight:640;letter-spacing:-.01em}
+.sc-why{font-size:12.5px;color:var(--text-dim);margin-top:5px;line-height:1.55}
+.sc-signals{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.sig{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--text-dim)}
+.sig .src-chip{flex:none}
+.src-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:3px;color:var(--src);background:var(--src-tint);border:1px solid var(--border-strong)}
+.sc-actions{display:flex;gap:8px;margin-top:14px}
+.btn{display:inline-flex;align-items:center;padding:8px 14px;border-radius:3px;font-family:var(--font);font-size:13px;font-weight:550;letter-spacing:-.01em;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);cursor:pointer}
+.btn-primary{background:var(--primary);border-color:transparent;color:var(--primary-fg);box-shadow:var(--shadow-sm)}
+.btn-ghost{background:transparent;border-color:var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cards</h1>
+  <p class="page-sub">White on warm paper, hairline border, shadow-sm. Never nested. Blue score = the market's number; vermillion chip = yours.</p>
+
+  <div class="sec">
+    <div class="sec-label">Idea card — viability (blue) + fit (vermillion) side by side</div>
+    <div class="sec-note">The two hues meet only here, and each keeps its meaning. The fit_reason line explains the vermillion in your own steering terms.</div>
+    <div class="card idea-card">
+      <div class="ic-scores">
+        <span class="score-chip score-viab">84 <small>viability</small></span>
+        <span class="score-chip score-fit">78 <small>fit</small></span>
+      </div>
+      <div class="ic-title">Denial &amp; prior-auth fax parser for sub-10-provider clinics</div>
+      <p class="ic-why">Payer denial volumes hit a record quarter while small clinics remain fax-bound; two incumbent vendors just raised minimum seat counts, orphaning the segment.</p>
+      <div class="fit-reason">
+        <span class="fr-mark">›</span>
+        <span>Matches your healthcare-billing domain experience and your "sell to owner-operators, not committees" constraint; your OCR pipeline work covers the hardest technical risk.</span>
+      </div>
+      <div class="ic-foot"><span>project: clinic-ops</span><span>evidence: 23 items</span><span>red team: 4/6 lenses run</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Project status card</div>
+    <div class="sec-note">Live counters in mono; state as a dot + word, never color alone.</div>
+    <div class="card proj-card">
+      <div class="pc-head">
+        <span class="pc-name">Independent HVAC &amp; field-service software</span>
+        <span class="state-pill"><span class="dot"></span>sprinting</span>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat"><span class="v">142</span><span class="k">nodes</span></div>
+        <div class="pc-stat"><span class="v">37</span><span class="k">gaps</span></div>
+        <div class="pc-stat"><span class="v">5</span><span class="k">starred</span></div>
+        <div class="pc-stat"><span class="v">$4.18</span><span class="k">spent</span></div>
+        <div class="pc-stat"><span class="v">2h 14m</span><span class="k">running</span></div>
+      </div>
+      <div class="pc-foot">Currently pressure-testing "Preventive-maintenance copilot for independent HVAC firms" — lens 3 of 6.</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Scout suggested-space card</div>
+    <div class="sec-note">The engine proposes a domain and shows the signals that triggered it. One-click launch; dismissal is a quiet ghost.</div>
+    <div class="card scout-card">
+      <div class="sc-eyebrow">Suggested space</div>
+      <div class="sc-title">Grant-compliance reporting for rural water utilities</div>
+      <p class="sc-why">Three unrelated sources surfaced the same unmet reporting burden inside 30 days — a convergence worth a look.</p>
+      <div class="sc-signals">
+        <div class="sig"><span class="src-chip">Reddit</span><span>r/Wastewater thread: "EPA grant reporting eats 2 days/month and our clerk retired" — 214 upvotes</span></div>
+        <div class="sig"><span class="src-chip">Newsletter</span><span>Water Finance Weekly: $11.7B in BIL grants now carry quarterly digital reporting mandates</span></div>
+        <div class="sig"><span class="src-chip">GitHub</span><span>3 new open-source "CMOM report generator" repos in 60 days, all single-maintainer</span></div>
+      </div>
+      <div class="sc-actions">
+        <button class="btn btn-primary">Explore this space</button>
+        <button class="btn btn-ghost">Dismiss</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!-- @dsCard group="Components" name="Pressure-test lenses" subtitle="Survives / weakens / kills / not-evaluated" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pressure-test lenses — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --live:#1863dc;--live-tint:#e8eefb;
+  --warn:#b7791f;--warn-tint:#fbf3e2;
+  --unavailable:#c8402f;--unavailable-tint:#fbeae6;
+  --empty:#a7a7a0;--empty-tint:#f0f0eb;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 20px}
+.module{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);overflow:hidden}
+.module-head{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.module-title{font-size:15px;font-weight:620;letter-spacing:-.01em}
+.module-sub{font-size:12.5px;color:var(--text-faint);margin-top:2px}
+.lens{display:flex;gap:14px;align-items:flex-start;padding:14px 20px;border-bottom:1px solid var(--border)}
+.lens:last-child{border-bottom:none}
+.pill{
+  flex:none;display:inline-flex;align-items:center;gap:6px;margin-top:1px;
+  font-size:11.5px;font-weight:650;padding:3px 10px;border-radius:3px;
+  border:1px solid transparent;min-width:88px;justify-content:center;
+}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.pill-survives{color:var(--live);background:var(--live-tint);border-color:rgba(24,99,220,.25)}
+.pill-weakens{color:var(--warn);background:var(--warn-tint);border-color:rgba(183,121,31,.3)}
+.pill-kills{color:var(--unavailable);background:var(--unavailable-tint);border-color:rgba(200,64,47,.3)}
+.pill-none{
+  color:var(--text-ghost);background:var(--surface-2);border:1px dashed var(--border-strong);
+  font-weight:550;font-style:italic;min-width:0;
+}
+.lens-body{flex:1;min-width:0}
+.lens-name{font-size:13.5px;font-weight:620}
+.lens-finding{font-size:12.5px;color:var(--text-dim);margin-top:2px;line-height:1.5}
+.lens-meta{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-top:5px}
+.note{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:13px 18px;font-size:12.5px;color:var(--text-dim);line-height:1.55}
+.note b{font-weight:650;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pressure-test lenses</h1>
+  <p class="page-sub">Each lens is an adversarial question. The pill states the verdict; the line under it states the finding that earned it.</p>
+
+  <div class="module">
+    <div class="module-head">
+      <div class="module-title">Red team — Denial &amp; prior-auth fax parser for sub-10-provider clinics</div>
+      <div class="module-sub">Six lenses attacked this idea. Verdicts adjust viability; a kill removes it from the shortlist with the reason kept.</div>
+    </div>
+
+    <div class="lens">
+      <span class="pill pill-survives"><span class="dot"></span>survives</span>
+      <div class="lens-body">
+        <div class="lens-name">Willingness to pay</div>
+        <div class="lens-finding">Billing services already charge 7% of collections for manual denial handling; a $299/mo tool undercuts them 10× at current denial volumes.</div>
+        <div class="lens-meta">deep rigor · 9 signals cited · run 2026-07-11</div>
+      </div>
+    </div>
+
+    <div class="lens">
+      <span class="pill pill-survives"><span class="dot"></span>survives</span>
+      <div class="lens-body">
+        <div class="lens-name">Incumbent response</div>
+        <div class="lens-finding">Athenahealth and Tebra target 25+ provider groups; the sub-10 segment is below their CAC floor. Two years of roadmap posts show no movement downmarket.</div>
+        <div class="lens-meta">deep rigor · 6 signals cited · run 2026-07-11</div>
+      </div>
+    </div>
+
+    <div class="lens">
+      <span class="pill pill-weakens"><span class="dot"></span>weakens</span>
+      <div class="lens-body">
+        <div class="lens-name">Channel access</div>
+        <div class="lens-finding">No self-serve channel reaches small-clinic office managers; sales likely runs through regional billing consultants, adding a 20–30% margin layer.</div>
+        <div class="lens-meta">standard rigor · 4 signals cited · run 2026-07-11</div>
+      </div>
+    </div>
+
+    <div class="lens">
+      <span class="pill pill-kills"><span class="dot"></span>kills</span>
+      <div class="lens-body">
+        <div class="lens-name">Regulatory drag <span style="font-weight:400;color:var(--text-faint)">(as scoped: auto-resubmission)</span></div>
+        <div class="lens-finding">Automated claim resubmission without a certified clearinghouse relationship violates most payer contracts. Survivable only if rescoped to parse-and-draft, human submits.</div>
+        <div class="lens-meta">deep rigor · 5 signals cited · run 2026-07-11</div>
+      </div>
+    </div>
+
+    <div class="lens">
+      <span class="pill pill-none">not evaluated — heuristic fallback</span>
+      <div class="lens-body">
+        <div class="lens-name">Data moat</div>
+        <div class="lens-finding">Red-team pass skipped under budget governor (curbing). Placeholder from structural heuristics only — do not treat as a verdict.</div>
+        <div class="lens-meta">no rigor · 0 signals · will run on next sprint window</div>
+      </div>
+    </div>
+
+    <div class="lens">
+      <span class="pill pill-none">not evaluated — heuristic fallback</span>
+      <div class="lens-body">
+        <div class="lens-name">Substitute tolerance</div>
+        <div class="lens-finding">Red-team pass skipped under budget governor (curbing). Placeholder from structural heuristics only — do not treat as a verdict.</div>
+        <div class="lens-meta">no rigor · 0 signals · will run on next sprint window</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note"><b>Rule:</b> the grey dashed treatment is reserved for lenses that never ran. A heuristic fallback must never wear the same pill as a real red-team verdict — an unexamined "survives" is worth nothing.</p>
+</div>
+</body>
+</html>

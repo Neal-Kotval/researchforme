@@ -1,0 +1,133 @@
+<!-- @dsCard group="Patterns" name="Instructional voice" subtitle="Subtitles, empty states, metric definitions" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Instructional voice — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent-strong:#1550b8;
+  --unavailable:#c8402f;--live:#1863dc;--live-tint:#e8eefb;
+  --primary:#1a1a18;--primary-fg:#ffffff;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 20px}
+.sec{margin-top:26px}
+.sec-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px}
+.sec-note{font-size:12px;color:var(--text-faint);margin-bottom:12px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ex{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);overflow:hidden}
+.ex-tag{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;padding:7px 14px;border-bottom:1px solid var(--border)}
+.ex-tag .x{color:var(--unavailable)}
+.ex-tag .ok{color:var(--accent-strong)}
+.ex-body{padding:14px 16px}
+/* module subtitle demo */
+.mod-title{font-size:15px;font-weight:640;letter-spacing:-.01em}
+.mod-sub{font-size:12.5px;color:var(--text-faint);margin-top:2px;line-height:1.5}
+/* empty state demo */
+.empty{text-align:center;padding:26px 18px}
+.empty-t{font-size:14px;font-weight:620;color:var(--text-dim)}
+.empty-d{font-size:12.5px;color:var(--text-faint);margin-top:5px;line-height:1.55;max-width:300px;margin-left:auto;margin-right:auto}
+.empty .btn{margin-top:12px}
+.btn{display:inline-flex;align-items:center;padding:6px 13px;border-radius:3px;font-family:var(--font);font-size:12.5px;font-weight:550;border:1px solid transparent;background:var(--primary);color:var(--primary-fg);box-shadow:var(--shadow-sm);cursor:pointer}
+/* metric definition demo */
+.metric{display:flex;align-items:baseline;gap:8px}
+.metric .num{font-family:var(--mono);font-size:26px;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#1145a0}
+.metric .lbl{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)}
+.metric-def{font-size:12px;color:var(--text-dim);margin-top:7px;line-height:1.55}
+.principles{margin-top:26px;background:var(--surface);border:1px solid var(--border-strong);border-radius:6px;box-shadow:var(--shadow-sm);padding:16px 20px}
+.principles h2{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:8px}
+.principles li{font-size:12.5px;color:var(--text-dim);margin-left:18px;line-height:1.7}
+.principles b{font-weight:650;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Instructional voice</h1>
+  <p class="page-sub">Every module answers "what am I looking at, and what should I do" in one line. Plain, verb + object, no hype. Numbers are hypotheses, never promises.</p>
+
+  <div class="sec">
+    <div class="sec-label">Module subtitles</div>
+    <div class="sec-note">A quiet one-liner under every heading that says what earned inclusion and how to read the list.</div>
+    <div class="pair">
+      <div class="ex">
+        <div class="ex-tag"><span class="x">✕</span>Wrong — labels the container</div>
+        <div class="ex-body">
+          <div class="mod-title">Top Ideas</div>
+          <div class="mod-sub">Your best ideas, all in one place!</div>
+        </div>
+      </div>
+      <div class="ex">
+        <div class="ex-tag"><span class="ok">✓</span>Right — teaches the machine</div>
+        <div class="ex-body">
+          <div class="mod-title">Worth your attention</div>
+          <div class="mod-sub">Ideas that survived the red team, ranked by how much they deserve your attention.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Empty states</div>
+    <div class="sec-note">Instruct with the next action. Never apologize, never a sad illustration.</div>
+    <div class="pair">
+      <div class="ex">
+        <div class="ex-tag"><span class="x">✕</span>Wrong — apologizes, dead end</div>
+        <div class="ex-body empty">
+          <div class="empty-t">No starred spaces yet :(</div>
+          <div class="empty-d">Sorry, there's nothing here. Check back later!</div>
+        </div>
+      </div>
+      <div class="ex">
+        <div class="ex-tag"><span class="ok">✓</span>Right — explains the mechanism, offers the action</div>
+        <div class="ex-body empty">
+          <div class="empty-t">No spaces starred yet</div>
+          <div class="empty-d">Runs star ideas that score ≥75 with earned confidence — start one, or lower the star threshold.</div>
+          <button class="btn">Start an exploration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Metric definitions</div>
+    <div class="sec-note">Key numbers get an inline or hover definition framed as a hypothesis, not a verdict.</div>
+    <div class="pair">
+      <div class="ex">
+        <div class="ex-tag"><span class="x">✕</span>Wrong — the number as oracle</div>
+        <div class="ex-body">
+          <div class="metric"><span class="num">84</span><span class="lbl">Viability</span></div>
+          <p class="metric-def">This idea has an 84% chance of success. Higher is better!</p>
+        </div>
+      </div>
+      <div class="ex">
+        <div class="ex-tag"><span class="ok">✓</span>Right — the number as hypothesis</div>
+        <div class="ex-body">
+          <div class="metric"><span class="num">84</span><span class="lbl">Viability</span></div>
+          <p class="metric-def">Viability — market strength after adversarial testing. Not a promise; a prioritized hypothesis. Corroborated by 12 independent signals.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="principles">
+    <h2>Voice principles</h2>
+    <ul>
+      <li><b>One line, two answers</b> — what am I looking at, and what should I do.</li>
+      <li><b>Verb + object</b> — "Start an exploration", "Lower the star threshold", never "Get started!".</li>
+      <li><b>Name the mechanism</b> — say what earned inclusion ("survived the red team"), what triggers a star (≥75 with earned confidence), what the governor is doing.</li>
+      <li><b>Hypotheses, not promises</b> — every score is a prioritized guess with visible provenance.</li>
+      <li><b>Never apologize, never hype</b> — no ":(", no "!", no "amazing".</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

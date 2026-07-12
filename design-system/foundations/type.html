@@ -1,0 +1,98 @@
+<!-- @dsCard group="Foundations" name="Typography" subtitle="Inter UI + mono readouts, full scale" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Typography — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent:#1863dc;--accent-strong:#1550b8;--fit-strong:#b03410;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 22px}
+.spec-table{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);overflow:hidden}
+.row{display:grid;grid-template-columns:168px 1fr;gap:20px;align-items:baseline;padding:16px 20px;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.spec{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);line-height:1.6}
+.spec b{display:block;font-size:11px;color:var(--text);font-weight:600}
+/* the scale — real UI strings */
+.t-xl{font-size:24px;font-weight:680;letter-spacing:-.02em;line-height:1.2;text-wrap:balance}
+.t-lg{font-size:19px;font-weight:650;letter-spacing:-.02em;line-height:1.25}
+.t-md{font-size:15px;font-weight:620;letter-spacing:-.01em}
+.t-base{font-size:14px;font-weight:400;color:var(--text-dim);line-height:1.55}
+.t-sm{font-size:12.5px;color:var(--text-faint);line-height:1.5}
+.t-subtitle{font-size:12.5px;color:var(--text-faint);line-height:1.5}
+.t-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint)}
+.t-metric{font-family:var(--mono);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.t-metric small{font-family:var(--font);font-size:12px;font-weight:400;color:var(--text-faint);letter-spacing:0;margin-left:6px}
+.t-metric-sm{font-family:var(--mono);font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--text-dim)}
+.t-link{font-size:14px;color:var(--accent-strong);font-weight:500;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(21,80,184,.35)}
+.rules{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:16px 20px}
+.rules h2{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:8px}
+.rules li{font-size:12.5px;color:var(--text-dim);margin-left:18px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Typography</h1>
+  <p class="page-sub">One family — Inter — with weight carrying hierarchy. Mono is reserved for numeric readouts. No display font, no all-caps body, no gradient text.</p>
+
+  <div class="spec-table">
+    <div class="row">
+      <div class="spec"><b>--fs-xl · 24px</b>fw 680 · ls -0.02em<br>page titles, hero</div>
+      <div class="t-xl">Denial &amp; prior-auth fax parser for sub-10-provider clinics</div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>--fs-lg · 19px</b>fw 650 · ls -0.02em<br>inspector title, section head</div>
+      <div class="t-lg">Ambient scribe QA layer for locum tenens shifts</div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>--fs-md · 15px</b>fw 620<br>card titles, module headings</div>
+      <div class="t-md">Worth your attention</div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>--fs-base · 14px</b>fw 400 · --text-dim<br>body copy</div>
+      <div class="t-base">Clinics under ten providers still receive 40–60% of payer denials by fax. Practice-management vendors ignore the segment; billing services charge 7% of collections to handle it manually.</div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>--fs-sm · 12.5px</b>--text-faint<br>module subtitle, captions</div>
+      <div class="t-subtitle">Ideas that survived the red team, ranked by how much they deserve your attention.</div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>--fs-xs · 11px</b>fw 650 · uppercase · ls 0.05em<br>faint field labels</div>
+      <div><span class="t-label">Viability</span> &nbsp;&nbsp; <span class="t-label">Founder fit</span> &nbsp;&nbsp; <span class="t-label">Evidence depth</span> &nbsp;&nbsp; <span class="t-label">Last pressure test</span></div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>Metric readout</b>--mono · 24px · fw 700<br>tabular-nums</div>
+      <div><span class="t-metric">84<small>viability · corroborated</small></span></div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>Small readout</b>--mono · 13px · fw 650<br>counters, spend, deltas</div>
+      <div><span class="t-metric-sm">142 nodes · 37 gaps · $4.18 spent · +6 viability (7d)</span></div>
+    </div>
+    <div class="row">
+      <div class="spec"><b>Link</b>--accent-strong · fw 500<br>blue = market, links included</div>
+      <div><span class="t-link">View the 12 corroborating signals</span></div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <h2>Rules</h2>
+    <ul>
+      <li>Headings get <span style="font-family:var(--mono);font-size:11.5px">letter-spacing:-0.02em</span> and <span style="font-family:var(--mono);font-size:11.5px">text-wrap:balance</span>.</li>
+      <li>Tabular numerals on every score, counter, and metric — numbers never jitter.</li>
+      <li>Mono (<span style="font-family:var(--mono);font-size:11.5px">ui-monospace, 'IBM Plex Mono'</span>) is for numeric readouts only, never prose.</li>
+      <li>11px uppercase labels are the only tracked type; body copy is never all-caps.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

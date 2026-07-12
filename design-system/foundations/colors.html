@@ -1,0 +1,159 @@
+<!-- @dsCard group="Foundations" name="Color system" subtitle="Canvas, ink, blue=market, vermillion=founder, amber=provenance, danger" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Color system — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--surface-3:#ececE6;--surface-hover:#f3f3ef;
+  --border:#deded7;--border-strong:#cfcfc9;--ring:rgba(24,99,220,.45);
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent:#1863dc;--accent-bright:#2f74e6;--accent-strong:#1550b8;--accent-tint:#e8eefb;--accent-tint-2:#c5d8f5;
+  --primary:#1a1a18;--primary-hover:#33332e;--primary-fg:#ffffff;
+  --highlight:#fbff7a;
+  --live:#1863dc;--live-tint:#e8eefb;--warn:#b7791f;--warn-tint:#fbf3e2;
+  --unavailable:#c8402f;--unavailable-tint:#fbeae6;--empty:#a7a7a0;--empty-tint:#f0f0eb;
+  --mock:#9a6b00;--mock-tint:#f6eed7;
+  --fit:#d24317;--fit-strong:#b03410;--fit-tint:#fbe9e2;
+  --ramp-0:#cfcfc9;--ramp-1:#a9c3ee;--ramp-2:#6f9fe4;--ramp-3:#1863dc;--ramp-4:#1145a0;--data-neutral:#6b6b62;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 20px}
+.rule-banner{
+  background:var(--surface);border:1px solid var(--border-strong);border-radius:6px;
+  padding:16px 20px;margin-bottom:26px;box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;gap:14px;
+}
+.rule-banner .chip-pair{display:flex;gap:6px;flex:none}
+.rule-banner .rb-blue,.rule-banner .rb-verm{width:22px;height:22px;border-radius:3px}
+.rule-banner .rb-blue{background:var(--accent)}
+.rule-banner .rb-verm{background:var(--fit)}
+.rule-banner p{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.rule-banner span{display:block;font-size:12px;font-weight:400;color:var(--text-faint);margin-top:1px}
+.section{margin-top:26px}
+.sec-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px}
+.sec-note{font-size:12px;color:var(--text-faint);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:10px}
+.swatch{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.sw-color{height:52px;border-bottom:1px solid var(--border)}
+.sw-body{padding:9px 11px 11px}
+.sw-name{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text)}
+.sw-hex{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-top:1px}
+.sw-mean{font-size:11px;color:var(--text-dim);margin-top:5px;line-height:1.45}
+.ramp{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px;box-shadow:var(--shadow-sm)}
+.ramp-strip{display:flex;height:34px;border-radius:3px;overflow:hidden;border:1px solid var(--border-strong)}
+.ramp-strip div{flex:1}
+.ramp-labels{display:flex;margin-top:7px}
+.ramp-labels span{flex:1;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--text-faint)}
+.ramp-cap{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--text-dim);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Color system</h1>
+  <p class="page-sub">Every hue carries exactly one meaning. If you're reaching for color to decorate, use neutral instead.</p>
+
+  <div class="rule-banner">
+    <div class="chip-pair"><div class="rb-blue"></div><div class="rb-verm"></div></div>
+    <p>Blue is the market, vermillion is you.<span>Blue encodes market evidence — viability, demand, signals. Vermillion encodes the founder — fit, steering, "for you". Never mix the two.</span></p>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Canvas &amp; surfaces</div>
+    <div class="sec-note">Warm paper under white cards. Borders carry structure; shadows are barely there.</div>
+    <div class="grid">
+      <div class="swatch"><div class="sw-color" style="background:#edede8"></div><div class="sw-body"><div class="sw-name">--bg</div><div class="sw-hex">#edede8</div><div class="sw-mean">Warm paper canvas — the app background</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#ffffff"></div><div class="sw-body"><div class="sw-name">--surface</div><div class="sw-hex">#ffffff</div><div class="sw-mean">White cards pop on the warm paper</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#f6f6f3"></div><div class="sw-body"><div class="sw-name">--surface-2</div><div class="sw-hex">#f6f6f3</div><div class="sw-mean">Insets, table headers, secondary panels</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#ececE6"></div><div class="sw-body"><div class="sw-name">--surface-3</div><div class="sw-hex">#ececE6</div><div class="sw-mean">Chips, tracks, tertiary fills</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#deded7"></div><div class="sw-body"><div class="sw-name">--border</div><div class="sw-hex">#deded7</div><div class="sw-mean">Warm hairline — defines most edges</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#cfcfc9"></div><div class="sw-body"><div class="sw-name">--border-strong</div><div class="sw-hex">#cfcfc9</div><div class="sw-mean">Emphasized edges, button outlines</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Ink</div>
+    <div class="sec-note">Warm near-black. Every body value clears 4.5:1 on --surface.</div>
+    <div class="grid">
+      <div class="swatch"><div class="sw-color" style="background:#222220"></div><div class="sw-body"><div class="sw-name">--text</div><div class="sw-hex">#222220</div><div class="sw-mean">Primary text, headings</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#3d3d38"></div><div class="sw-body"><div class="sw-name">--text-dim</div><div class="sw-hex">#3d3d38</div><div class="sw-mean">Secondary body</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#6b6b62"></div><div class="sw-body"><div class="sw-name">--text-faint</div><div class="sw-hex">#6b6b62</div><div class="sw-mean">Labels, captions (still ≥4.5:1)</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#a7a7a0"></div><div class="sw-body"><div class="sw-name">--text-ghost</div><div class="sw-hex">#a7a7a0</div><div class="sw-mean">Decorative only — never body copy</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Blue — the market</div>
+    <div class="sec-note">Viability, demand density, market signals, links, selection, focus.</div>
+    <div class="grid">
+      <div class="swatch"><div class="sw-color" style="background:#1863dc"></div><div class="sw-body"><div class="sw-name">--accent</div><div class="sw-hex">#1863dc</div><div class="sw-mean">Market signal — links, active, selection</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#2f74e6"></div><div class="sw-body"><div class="sw-name">--accent-bright</div><div class="sw-hex">#2f74e6</div><div class="sw-mean">Hover state of blue elements</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#1550b8"></div><div class="sw-body"><div class="sw-name">--accent-strong</div><div class="sw-hex">#1550b8</div><div class="sw-mean">Inline link text on light (≥4.5:1)</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#e8eefb"></div><div class="sw-body"><div class="sw-name">--accent-tint</div><div class="sw-hex">#e8eefb</div><div class="sw-mean">Selected row, soft market fills</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#c5d8f5"></div><div class="sw-body"><div class="sw-name">--accent-tint-2</div><div class="sw-hex">#c5d8f5</div><div class="sw-mean">Soft borders on selected surfaces</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Vermillion — the founder</div>
+    <div class="sec-note">Fit score, steering-derived markers, advantages matched, "for you". Spent sparingly.</div>
+    <div class="grid">
+      <div class="swatch"><div class="sw-color" style="background:#d24317"></div><div class="sw-body"><div class="sw-name">--fit</div><div class="sw-hex">#d24317</div><div class="sw-mean">Founder fit — chips, fit rings, steering marks</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#b03410"></div><div class="sw-body"><div class="sw-name">--fit-strong</div><div class="sw-hex">#b03410</div><div class="sw-mean">Fit text on light surfaces (≥4.5:1)</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#fbe9e2"></div><div class="sw-body"><div class="sw-name">--fit-tint</div><div class="sw-hex">#fbe9e2</div><div class="sw-mean">Fit chip fill, steering highlight wash</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Amber — provenance</div>
+    <div class="sec-note">Amber means exactly one thing: "this data is canned/fixture, not live."</div>
+    <div class="grid">
+      <div class="swatch"><div class="sw-color" style="background:#9a6b00"></div><div class="sw-body"><div class="sw-name">--mock</div><div class="sw-hex">#9a6b00</div><div class="sw-mean">Fixture-data badge on evidence with live:false</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#f6eed7"></div><div class="sw-body"><div class="sw-name">--mock-tint</div><div class="sw-hex">#f6eed7</div><div class="sw-mean">Fixture badge fill, fixture-gap banner wash</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Actions, danger &amp; states</div>
+    <div class="sec-note">Black stays actions. Muted red stays destruction and heavy-usage only.</div>
+    <div class="grid">
+      <div class="swatch"><div class="sw-color" style="background:#1a1a18"></div><div class="sw-body"><div class="sw-name">--primary</div><div class="sw-hex">#1a1a18</div><div class="sw-mean">Black primary buttons — actions</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#33332e"></div><div class="sw-body"><div class="sw-name">--primary-hover</div><div class="sw-hex">#33332e</div><div class="sw-mean">Primary button hover</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#c8402f"></div><div class="sw-body"><div class="sw-name">--unavailable</div><div class="sw-hex">#c8402f</div><div class="sw-mean">Danger / error / destruction only</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#fbeae6"></div><div class="sw-body"><div class="sw-name">--unavailable-tint</div><div class="sw-hex">#fbeae6</div><div class="sw-mean">Error surface wash</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#b7791f"></div><div class="sw-body"><div class="sw-name">--warn</div><div class="sw-hex">#b7791f</div><div class="sw-mean">Caution only: curbing pace, weakens verdicts</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#fbf3e2"></div><div class="sw-body"><div class="sw-name">--warn-tint</div><div class="sw-hex">#fbf3e2</div><div class="sw-mean">Caution pill fill</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#1863dc"></div><div class="sw-body"><div class="sw-name">--live</div><div class="sw-hex">#1863dc</div><div class="sw-mean">Live / sprinting run state (blue)</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#a7a7a0"></div><div class="sw-body"><div class="sw-name">--empty</div><div class="sw-hex">#a7a7a0</div><div class="sw-mean">Paused / empty / inactive</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#fbff7a"></div><div class="sw-body"><div class="sw-name">--highlight</div><div class="sw-hex">#fbff7a</div><div class="sw-mean">Chartreuse marker — reserved, sparing</div></div></div>
+      <div class="swatch"><div class="sw-color" style="background:#6b6b62"></div><div class="sw-body"><div class="sw-name">--data-neutral</div><div class="sw-hex">#6b6b62</div><div class="sw-mean">Single-hue bars &amp; sparklines — warm grey</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Viability ramp — grey → blue → navy</div>
+    <div class="sec-note">The only data ramp. Denser blue = stronger market evidence. Vermillion never appears in a ramp.</div>
+    <div class="ramp">
+      <div class="ramp-strip">
+        <div style="background:#cfcfc9"></div>
+        <div style="background:#a9c3ee"></div>
+        <div style="background:#6f9fe4"></div>
+        <div style="background:#1863dc"></div>
+        <div style="background:#1145a0"></div>
+      </div>
+      <div class="ramp-labels">
+        <span>--ramp-0 #cfcfc9</span><span>--ramp-1 #a9c3ee</span><span>--ramp-2 #6f9fe4</span><span>--ramp-3 #1863dc</span><span>--ramp-4 #1145a0</span>
+      </div>
+      <div class="ramp-cap"><span>weak signal</span><span>strong market evidence</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

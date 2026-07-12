@@ -1,0 +1,102 @@
+<!-- @dsCard group="Components" name="Buttons" subtitle="Primary / ghost / small / disabled / pin toggle" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buttons — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--border:#deded7;--border-strong:#cfcfc9;
+  --ring:rgba(24,99,220,.45);--shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --primary:#1a1a18;--primary-hover:#33332e;--primary-fg:#ffffff;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 22px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:20px;margin-bottom:16px}
+.panel h2{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:14px}
+.strip{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.variant{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.cap{font-family:var(--mono);font-size:10.5px;color:var(--text-faint)}
+/* --- button styles (mirrors index.css) --- */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:3px;
+  font-family:var(--font);font-size:13.5px;font-weight:550;letter-spacing:-.01em;
+  border:1px solid var(--border-strong);
+  background:var(--surface);color:var(--text);cursor:pointer;
+}
+.btn.hover{background:var(--surface-2);border-color:var(--text-ghost)}
+.btn.focus{outline:none;box-shadow:0 0 0 2px var(--ring)}
+.btn:disabled,.btn.disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary);border-color:transparent;color:var(--primary-fg);box-shadow:var(--shadow-sm)}
+.btn-primary.hover{background:var(--primary-hover)}
+.btn-primary.disabled{background:var(--primary);opacity:.5}
+.btn-ghost{background:transparent;border-color:var(--border)}
+.btn-ghost.hover{background:var(--surface-2)}
+.btn-sm{padding:5px 11px;font-size:12.5px}
+.pin-btn{padding:5px 11px;font-size:12.5px}
+.pin-btn.pinned{color:var(--primary);border-color:var(--primary)}
+.note{font-size:12px;color:var(--text-faint);margin-top:12px;line-height:1.55}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Buttons</h1>
+  <p class="page-sub">Black is the action color. Labels are verb + object. Every button has hover, focus-visible, active, and disabled states — shown here as annotated static variants.</p>
+
+  <div class="panel">
+    <h2>.btn — neutral default</h2>
+    <div class="strip">
+      <div class="variant"><button class="btn">Export findings</button><span class="cap">rest</span></div>
+      <div class="variant"><button class="btn hover">Export findings</button><span class="cap">:hover — surface-2 + stronger border</span></div>
+      <div class="variant"><button class="btn focus">Export findings</button><span class="cap">:focus-visible — blue ring</span></div>
+      <div class="variant"><button class="btn disabled" disabled>Export findings</button><span class="cap">:disabled — opacity .5</span></div>
+    </div>
+    <p class="note">:active nudges the button down 1px (translateY) — no color change.</p>
+  </div>
+
+  <div class="panel">
+    <h2>.btn-primary — black, one per view</h2>
+    <div class="strip">
+      <div class="variant"><button class="btn btn-primary">Start exploration</button><span class="cap">rest — #1a1a18, shadow-sm</span></div>
+      <div class="variant"><button class="btn btn-primary hover">Start exploration</button><span class="cap">:hover — #33332e</span></div>
+      <div class="variant"><button class="btn btn-primary focus">Start exploration</button><span class="cap">:focus-visible — blue ring</span></div>
+      <div class="variant"><button class="btn btn-primary disabled" disabled>Start exploration</button><span class="cap">:disabled — same fill, opacity .5</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>.btn-ghost — quiet secondary</h2>
+    <div class="strip">
+      <div class="variant"><button class="btn btn-ghost">Dismiss suggestion</button><span class="cap">rest — transparent, hairline</span></div>
+      <div class="variant"><button class="btn btn-ghost hover">Dismiss suggestion</button><span class="cap">:hover — surface-2 wash</span></div>
+      <div class="variant"><button class="btn btn-ghost disabled" disabled>Dismiss suggestion</button><span class="cap">:disabled</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>.btn-sm — dense contexts</h2>
+    <div class="strip">
+      <div class="variant"><button class="btn btn-sm">Re-run lens</button><span class="cap">5px 11px · 12.5px</span></div>
+      <div class="variant"><button class="btn btn-primary btn-sm">Deepen node</button><span class="cap">primary small</span></div>
+      <div class="variant"><button class="btn btn-ghost btn-sm">Collapse</button><span class="cap">ghost small</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>.pin-btn — pin toggle</h2>
+    <div class="strip">
+      <div class="variant"><button class="btn pin-btn">Pin this gap</button><span class="cap">unpinned — neutral .btn base</span></div>
+      <div class="variant"><button class="btn pin-btn pinned">Pinned</button><span class="cap">.pinned — primary ink + border, no fill</span></div>
+    </div>
+    <p class="note">Pinned state uses ink, not accent — pinning is your action, not a market signal.</p>
+  </div>
+</div>
+</body>
+</html>

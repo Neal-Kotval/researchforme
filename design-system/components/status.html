@@ -1,0 +1,104 @@
+<!-- @dsCard group="Components" name="Status & usage" subtitle="Run states, governor modes, usage footer" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Status &amp; usage — Market Gap Finder</title>
+<style>
+:root{
+  --bg:#edede8;--surface:#ffffff;--surface-2:#f6f6f3;--surface-3:#ececE6;--border:#deded7;--border-strong:#cfcfc9;
+  --shadow-sm:0 1px 2px rgba(34,34,32,.06);
+  --text:#222220;--text-dim:#3d3d38;--text-faint:#6b6b62;--text-ghost:#a7a7a0;
+  --accent:#1863dc;
+  --live:#1863dc;--live-tint:#e8eefb;
+  --warn:#b7791f;--warn-tint:#fbf3e2;
+  --unavailable:#c8402f;--unavailable-tint:#fbeae6;
+  --empty:#a7a7a0;--empty-tint:#f0f0eb;
+  --primary:#1a1a18;
+  --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,'IBM Plex Mono',"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;padding:28px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:19px;font-weight:680;letter-spacing:-.02em}
+.page-sub{font-size:12.5px;color:var(--text-faint);margin:4px 0 20px}
+.sec{margin-top:24px}
+.sec-label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:4px}
+.sec-note{font-size:12px;color:var(--text-faint);margin-bottom:12px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:16px 20px}
+.state-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
+.state-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border)}
+.state-row:nth-last-child(-n+2){border-bottom:none}
+.mode-pill{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  font-size:11.5px;font-weight:620;padding:4px 10px;border-radius:3px;
+  border:1px solid transparent;min-width:104px;
+}
+.mode-pill .mp-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st-sprinting{color:var(--live);background:var(--live-tint);border-color:rgba(24,99,220,.25)}
+.st-curbing{color:var(--warn);background:var(--warn-tint);border-color:rgba(183,121,31,.3)}
+.st-paused{color:var(--empty);background:var(--empty-tint);border-color:rgba(167,167,160,.35)}
+.st-checkin{color:var(--text-dim);background:var(--surface-2);border-color:var(--border-strong)}
+.st-exhausted{color:var(--unavailable);background:var(--unavailable-tint);border-color:rgba(200,64,47,.3)}
+.st-budget{color:var(--unavailable);background:var(--unavailable-tint);border-color:rgba(200,64,47,.3)}
+.st-errored{color:var(--unavailable);background:transparent;border-color:var(--unavailable)}
+.st-interrupted{color:var(--empty);background:transparent;border:1px dashed var(--border-strong)}
+.state-desc{font-size:11.5px;color:var(--text-faint);line-height:1.4}
+/* usage footer */
+.usage-footer{
+  display:flex;align-items:center;gap:16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  box-shadow:var(--shadow-sm);padding:10px 16px;
+}
+.uf-mode{flex:none}
+.uf-track{flex:1;height:6px;border-radius:2px;background:var(--surface-3);border:1px solid var(--border);overflow:hidden;position:relative}
+.uf-fill{display:block;height:100%;width:41%;background:var(--accent);border-radius:2px}
+.uf-mark{position:absolute;top:-2px;bottom:-2px;left:80%;width:1px;background:var(--border-strong)}
+.uf-stats{flex:none;display:flex;gap:14px;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;color:var(--text-faint)}
+.uf-stats b{color:var(--text);font-weight:660}
+.note{margin-top:14px;font-size:12.5px;color:var(--text-dim);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow-sm);padding:13px 18px;line-height:1.55}
+.note b{font-weight:650;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Status &amp; usage</h1>
+  <p class="page-sub">State is always a dot plus a word — never color alone. The governor's mood is visible at a glance; cost is never the hero.</p>
+
+  <div class="sec">
+    <div class="sec-label">Run states &amp; governor modes</div>
+    <div class="sec-note">Blue = actively working. Amber-brown (--warn) = deliberately slowing. Grey = at rest. Red = something needs you.</div>
+    <div class="panel">
+      <div class="state-grid">
+        <div class="state-row"><span class="mode-pill st-sprinting"><span class="mp-dot"></span>sprinting</span><span class="state-desc">full pace — budget headroom is comfortable</span></div>
+        <div class="state-row"><span class="mode-pill st-curbing"><span class="mp-dot"></span>curbing</span><span class="state-desc">governor slowing spend — deep passes deferred</span></div>
+        <div class="state-row"><span class="mode-pill st-paused"><span class="mp-dot"></span>paused</span><span class="state-desc">you paused it — resumes exactly where it stopped</span></div>
+        <div class="state-row"><span class="mode-pill st-checkin"><span class="mp-dot"></span>check-in</span><span class="state-desc">waiting on your answer before spending more</span></div>
+        <div class="state-row"><span class="mode-pill st-exhausted"><span class="mp-dot"></span>exhausted</span><span class="state-desc">frontier fully explored at current depth</span></div>
+        <div class="state-row"><span class="mode-pill st-budget"><span class="mp-dot"></span>budget spent</span><span class="state-desc">run cap reached — raise it or accept results</span></div>
+        <div class="state-row"><span class="mode-pill st-errored"><span class="mp-dot"></span>errored</span><span class="state-desc">a stage failed — the retry names what broke</span></div>
+        <div class="state-row"><span class="mode-pill st-interrupted"><span class="mp-dot"></span>interrupted</span><span class="state-desc">process died mid-run — safe to resume</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Usage footer bar</div>
+    <div class="sec-note">Demoted to the page footer by design. Mono readouts, a quiet track, the check-in threshold as a hairline tick.</div>
+    <div class="usage-footer">
+      <span class="mode-pill st-sprinting uf-mode"><span class="mp-dot"></span>sprinting</span>
+      <div class="uf-track"><span class="uf-fill"></span><span class="uf-mark"></span></div>
+      <div class="uf-stats">
+        <span><b>$4.18</b> / $10.00 run</span>
+        <span><b>612k</b> tokens</span>
+        <span><b>41%</b> of cap</span>
+        <span>check-in at 80%</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="note"><b>Rules:</b> the sprinting dot may pulse; every other dot is still. Red (--unavailable) appears only when the machine needs the founder — exhaustion of budget or a real failure. Curbing is amber-brown --warn, the caution family — never the provenance amber.</p>
+</div>
+</body>
+</html>
