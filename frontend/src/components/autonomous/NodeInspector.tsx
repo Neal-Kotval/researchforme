@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import {
   SCORE_KEYS,
   SCORE_LABELS,
@@ -9,8 +10,15 @@ import {
   isUnevaluatedLens,
   nodeTrust,
   viabilityRamp,
+  STAGES,
+  STAGE_LABELS,
+  TRIAGE_REASONS,
+  TRIAGE_REASON_LABELS,
+  type Stage,
   type TreeNode,
+  type Triage,
 } from "../../autonomous/types";
+import { ApiError, getResearchPack } from "../../autonomous/api";
 import FitChip from "./FitChip";
 import Markdown from "./Markdown";
 import ViabChip from "./ViabChip";
@@ -21,6 +29,14 @@ interface Props {
   onSelectChild?: (id: string) => void;
   /** Pin/unpin a queued branch so the frontier expands it next (SPEC §4.1). */
   onTogglePin?: (nodeId: string, pinned: boolean) => void;
+  /** S1 triage — interested/pass (+ reason); null clears the verdict. */
+  onSetTriage?: (nodeId: string, triage: Triage | null, reason: string) => void;
+  /** S2 look-into checklist — stage (+ learnings); null clears the stage. */
+  onSetStage?: (nodeId: string, stage: Stage | null, learnings: string) => void;
+  /** C2 Space Watch — toggle background source sweeps for this node. */
+  onToggleWatch?: (nodeId: string, watched: boolean) => void;
+  /** Needed for the Research Pack call (H2). */
+  projectId?: string;
   /** Whether this project was given founder steering (drives fit messaging). */
   hasSteering?: boolean;
   busy?: boolean;
@@ -61,6 +77,299 @@ function fmtDate(d: string | null): string | null {
     : t.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+/* ------------------------------------------------- watch toggle (C2) ---- */
+function WatchButton({
+  node,
+  busy,
+  onToggleWatch,
+}: {
+  node: TreeNode;
+  busy: boolean;
+  onToggleWatch: (nodeId: string, watched: boolean) => void;
+}) {
+  return (
+    <button
+      className={`btn btn-ghost watch-btn${node.watched ? " on" : ""}`}
+      disabled={busy}
+      aria-pressed={node.watched}
+      onClick={() => onToggleWatch(node.id, !node.watched)}
+      title={
+        node.watched
+          ? "Stop re-checking this space's sources for material shifts"
+          : "Watch this space — sweeps re-check its sources and alert you on material shifts. No LLM spend."
+      }
+    >
+      {node.watched ? "◉ Watching" : "◎ Watch this space"}
+    </button>
+  );
+}
+
+/* ------------------------------------------------ triage block (S1) ----- */
+function TriageBlock({
+  node,
+  busy,
+  onSetTriage,
+}: {
+  node: TreeNode;
+  busy: boolean;
+  onSetTriage: (nodeId: string, triage: Triage | null, reason: string) => void;
+}) {
+  const [reasonDraft, setReasonDraft] = useState("");
+  const isTaxonomy = (TRIAGE_REASONS as readonly string[]).includes(node.triage_reason);
+  const commitFreeText = () => {
+    const t = reasonDraft.trim();
+    if (t && t !== node.triage_reason) onSetTriage(node.id, "passed", t);
+  };
+  return (
+    <div className="triage-block">
+      <div className="triage-btns">
+        <button
+          className={`btn triage-btn${node.triage === "interested" ? " on" : ""}`}
+          disabled={busy}
+          aria-pressed={node.triage === "interested"}
+          onClick={() =>
+            onSetTriage(node.id, node.triage === "interested" ? null : "interested", "")
+          }
+          title="Mark interested — press i when the inspector is focused. Click again to clear."
+        >
+          Interested <kbd className="kbd-hint">i</kbd>
+        </button>
+        <button
+          className={`btn triage-btn${node.triage === "passed" ? " on" : ""}`}
+          disabled={busy}
+          aria-pressed={node.triage === "passed"}
+          onClick={() =>
+            onSetTriage(node.id, node.triage === "passed" ? null : "passed", "")
+          }
+          title="Pass on this space — press p when the inspector is focused. Click again to clear."
+        >
+          Pass <kbd className="kbd-hint">p</kbd>
+        </button>
+      </div>
+      {node.triage === "passed" && (
+        <div className="triage-reason">
+          <div className="tr-hint">Why the pass? Your reasons teach the engine your taste.</div>
+          <div className="chip-wrap">
+            {TRIAGE_REASONS.map((r) => (
+              <button
+                key={r}
+                className={`tagpill reason-chip${node.triage_reason === r ? " on" : ""}`}
+                disabled={busy}
+                aria-pressed={node.triage_reason === r}
+                onClick={() =>
+                  onSetTriage(node.id, "passed", node.triage_reason === r ? "" : r)
+                }
+              >
+                {TRIAGE_REASON_LABELS[r]}
+              </button>
+            ))}
+          </div>
+          <input
+            className="reason-input"
+            type="text"
+            placeholder="…or say it in your own words (Enter to save)"
+            value={reasonDraft}
+            disabled={busy}
+            onChange={(e) => setReasonDraft(e.target.value)}
+            onBlur={commitFreeText}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitFreeText();
+            }}
+          />
+          {node.triage_reason && !isTaxonomy && (
+            <div className="tr-current">Saved reason: “{node.triage_reason}”</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------- stage block (S2) ----- */
+function StageBlock({
+  node,
+  busy,
+  onSetStage,
+}: {
+  node: TreeNode;
+  busy: boolean;
+  onSetStage: (nodeId: string, stage: Stage | null, learnings: string) => void;
+}) {
+  const [draft, setDraft] = useState(node.learnings);
+  const dirty = draft !== node.learnings;
+  const save = () => {
+    if (dirty) onSetStage(node.id, node.stage, draft);
+  };
+  return (
+    <div className="stage-block">
+      <div className="stage-row">
+        <label className="stage-label" htmlFor={`stage-${node.id}`}>
+          Look-into stage
+        </label>
+        <select
+          id={`stage-${node.id}`}
+          className="stage-select"
+          disabled={busy}
+          value={node.stage ?? ""}
+          onChange={(e) =>
+            onSetStage(node.id, (e.target.value || null) as Stage | null, node.learnings)
+          }
+        >
+          <option value="">— not started —</option>
+          {STAGES.map((s) => (
+            <option key={s} value={s}>
+              {STAGE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <textarea
+        className="learnings-box"
+        placeholder="What have you learned so far? Interview notes, smoke-test numbers, dead ends…"
+        value={draft}
+        disabled={busy}
+        rows={3}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+      />
+      {dirty && (
+        <button className="btn btn-sm" disabled={busy} onClick={save}>
+          Save learnings
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------- research pack (H2) -------- */
+type PackState =
+  | { phase: "idle" }
+  | { phase: "loading" }
+  | { phase: "ready"; markdown: string; cached: boolean }
+  | { phase: "error"; message: string; unavailable: boolean };
+
+function ResearchPackButton({
+  projectId,
+  node,
+}: {
+  projectId: string;
+  node: TreeNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pack, setPack] = useState<PackState>({ phase: "idle" });
+
+  const fetchPack = useCallback(
+    async (refresh: boolean) => {
+      setPack({ phase: "loading" });
+      try {
+        const r = await getResearchPack(projectId, node.id, refresh);
+        setPack({ phase: "ready", markdown: r.markdown, cached: r.cached });
+      } catch (e) {
+        const status = e instanceof ApiError ? e.status : 0;
+        setPack({
+          phase: "error",
+          message:
+            e instanceof ApiError && e.message
+              ? e.message
+              : "The research pack could not be generated.",
+          unavailable: status === 503,
+        });
+      }
+    },
+    [projectId, node.id],
+  );
+
+  const openModal = () => {
+    setOpen(true);
+    if (node.research_pack) {
+      // Serve the cached pack instantly — regenerate stays one click away.
+      setPack({ phase: "ready", markdown: node.research_pack, cached: true });
+    } else {
+      fetchPack(false);
+    }
+  };
+
+  const download = (markdown: string) => {
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `research-pack-${(node.gap?.title ?? node.title).replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 60)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <>
+      <button
+        className={`btn${node.star ? " btn-primary" : ""} rp-btn`}
+        onClick={openModal}
+        title="One strong-model pass turns this gap into a hand-off pack: interview scripts, a smoke-test plan, a sizing sketch, and a falsification map."
+      >
+        ⎘ Research pack{node.research_pack ? " · ready" : ""}
+      </button>
+      {open && (
+        <div className="rp-scrim" onClick={() => setOpen(false)} role="presentation">
+          <div
+            className="rp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Research pack"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="rp-head">
+              <div>
+                <div className="eyebrow">Research pack</div>
+                <div className="rp-title">{node.gap?.title ?? node.title}</div>
+              </div>
+              <button className="drawer-close" onClick={() => setOpen(false)} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="rp-body">
+              {pack.phase === "loading" && (
+                <div className="rp-loading" aria-busy="true">
+                  Writing the pack — one strong-model pass over this gap's evidence. Interview
+                  scripts quote only live evidence; nothing is invented.
+                </div>
+              )}
+              {pack.phase === "error" && (
+                <div className="rp-error" role="alert">
+                  <div className="rp-error-t">
+                    {pack.unavailable ? "Pack unavailable" : "Something failed"}
+                  </div>
+                  <div className="rp-error-d">{pack.message}</div>
+                  <div className="rp-error-d">
+                    Nothing canned is shown in its place — a pack only exists when the model
+                    actually wrote one.
+                  </div>
+                  <button className="btn" onClick={() => fetchPack(false)}>
+                    Try again
+                  </button>
+                </div>
+              )}
+              {pack.phase === "ready" && <Markdown className="rp-md" text={pack.markdown} />}
+            </div>
+            {pack.phase === "ready" && (
+              <div className="rp-foot">
+                <span className="rp-cached">
+                  {pack.cached ? "cached — regenerating costs one strong-model call" : "freshly generated"}
+                </span>
+                <button className="btn" onClick={() => fetchPack(true)}>
+                  ↻ Regenerate
+                </button>
+                <button className="btn btn-primary" onClick={() => download(pack.markdown)}>
+                  ↓ Download .md
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /**
  * Right-rail inspector. For gap nodes it renders the full case (thesis, the
  * narrative pillars, competitors, evidence — the same structure as the
@@ -74,9 +383,33 @@ export default function NodeInspector({
   childNodes = [],
   onSelectChild,
   onTogglePin,
+  onSetTriage,
+  onSetStage,
+  onToggleWatch,
+  projectId,
   hasSteering = false,
   busy = false,
 }: Props) {
+  // Keyboard triage (S1): i = interested, p = pass, when the inspector holds
+  // focus and the keypress is not aimed at a form field.
+  const handleKey = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!node || !onSetTriage || busy) return;
+      if (node.kind !== "gap" && node.kind !== "gap_candidate") return;
+      const t = e.target as HTMLElement;
+      if (/^(input|textarea|select)$/i.test(t.tagName) || t.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "i") {
+        e.preventDefault();
+        onSetTriage(node.id, node.triage === "interested" ? null : "interested", "");
+      } else if (k === "p") {
+        e.preventDefault();
+        onSetTriage(node.id, node.triage === "passed" ? null : "passed", "");
+      }
+    },
+    [node, onSetTriage, busy],
+  );
   if (!node) {
     return (
       <div className="inspector-empty">
@@ -104,22 +437,30 @@ export default function NodeInspector({
         <div className="insp-head">
           <div className="insp-kind">
             {node.pinned && <span className="ik-pin">⚑ Pinned · </span>}
+            {node.watched && <span className="ik-watch">◉ Watched · </span>}
             {titleCase(node.kind)}
           </div>
           <h3 className="insp-title">{node.title}</h3>
-          {(pinnable || node.pinned) && (
-            <button
-              className={`btn btn-ghost pin-btn${node.pinned ? " pinned" : ""}`}
-              disabled={busy || (!pinnable && !node.pinned)}
-              onClick={() => onTogglePin?.(node.id, !node.pinned)}
-              title={
-                node.pinned
-                  ? "Remove the priority boost from this branch"
-                  : "Boost this branch to the front of the exploration queue"
-              }
-            >
-              {node.pinned ? "⚑ Unpin branch" : "⚑ Explore next"}
-            </button>
+          {((pinnable || node.pinned) || (node.kind === "segment" && onToggleWatch)) && (
+            <div className="insp-actions">
+              {(pinnable || node.pinned) && (
+                <button
+                  className={`btn btn-ghost pin-btn${node.pinned ? " pinned" : ""}`}
+                  disabled={busy || (!pinnable && !node.pinned)}
+                  onClick={() => onTogglePin?.(node.id, !node.pinned)}
+                  title={
+                    node.pinned
+                      ? "Remove the priority boost from this branch"
+                      : "Boost this branch to the front of the exploration queue"
+                  }
+                >
+                  {node.pinned ? "⚑ Unpin branch" : "⚑ Explore next"}
+                </button>
+              )}
+              {node.kind === "segment" && onToggleWatch && (
+                <WatchButton node={node} busy={busy} onToggleWatch={onToggleWatch} />
+              )}
+            </div>
           )}
         </div>
         {displayRationale(node.rationale) && (
@@ -199,10 +540,16 @@ export default function NodeInspector({
     trust === "unverified" ? `color-mix(in srgb, ${ramp} 42%, var(--data-neutral))` : ramp;
   const fixture = g.tags.includes("fixture");
   return (
-    <div className="inspector">
+    <div className="inspector" tabIndex={0} onKeyDown={handleKey}>
       <div className="insp-head">
         <div className="insp-kind">
           {node.star && <span className="ik-star">★ Starred · </span>}
+          {node.watched && <span className="ik-watch">◉ Watched · </span>}
+          {node.triage && (
+            <span className="ik-triage">
+              {node.triage === "interested" ? "Interested" : "Passed"} ·{" "}
+            </span>
+          )}
           {node.kind === "gap" ? "Pressure-tested gap" : "Candidate gap"}
         </div>
         <h3 className="insp-title">{g.title}</h3>
@@ -270,6 +617,32 @@ export default function NodeInspector({
         <div className="fit-hint">
           Add founder context when starting a run to get fit scores — viability says real
           space, fit says real for you.
+        </div>
+      )}
+
+      {/* your read — triage, watch, stage, research pack (S1/S2/C2/H2).
+          Workflow state, not scores: neutral ink throughout (memo §1). */}
+      {(onSetTriage || onToggleWatch || projectId) && (
+        <div className="detail-block sensor-block">
+          <h4>Your read</h4>
+          <div className="mod-sub">
+            Log your verdict so the engine learns your taste — <kbd className="kbd-hint">i</kbd>{" "}
+            interested · <kbd className="kbd-hint">p</kbd> pass when this panel is focused.
+          </div>
+          <div className="sensor-actions">
+            {onSetTriage && (
+              <TriageBlock key={node.id} node={node} busy={busy} onSetTriage={onSetTriage} />
+            )}
+            <div className="sensor-side">
+              {onToggleWatch && (
+                <WatchButton node={node} busy={busy} onToggleWatch={onToggleWatch} />
+              )}
+              {projectId && <ResearchPackButton key={`rp-${node.id}`} projectId={projectId} node={node} />}
+            </div>
+          </div>
+          {node.star && onSetStage && (
+            <StageBlock key={`stage-${node.id}`} node={node} busy={busy} onSetStage={onSetStage} />
+          )}
         </div>
       )}
 

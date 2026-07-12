@@ -83,6 +83,11 @@ export default function PressureTestView({ onOpenNode, onNewExploration }: Props
               onClick={() => setSel(i.node.id)}
             >
               {i.node.gap?.title ?? i.node.title}
+              {i.node.triage && (
+                <span className={`pt-triage ${i.node.triage}`}>
+                  {i.node.triage === "interested" ? "interested" : "passed"}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -90,7 +95,21 @@ export default function PressureTestView({ onOpenNode, onNewExploration }: Props
 
       <div className="pt-head">
         <div>
-          <div className="pt-eyebrow">Red team · {current.domain}</div>
+          <div className="pt-eyebrow">
+            Red team · {current.domain}
+            {n.triage && (
+              <span
+                className={`pt-triage ${n.triage}`}
+                title={
+                  n.triage === "interested"
+                    ? "You marked this space interested."
+                    : `You passed on this space${n.triage_reason ? ` — ${n.triage_reason.replace(/_/g, " ")}` : ""}.`
+                }
+              >
+                {n.triage === "interested" ? "interested" : "passed"}
+              </span>
+            )}
+          </div>
           <div className="pt-title">{n.gap?.title ?? n.title}</div>
         </div>
         <div className="pt-score">

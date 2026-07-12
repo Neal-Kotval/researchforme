@@ -879,3 +879,29 @@
   .pf-topbar-actions .btn:not(.btn-primary) { display: none; }
   .pf-topbar-actions .pf-kbd-dark { display: none; }
 }
+
+/* ---- triage state on pressure-test rows (S1 — workflow state, neutral) --- */
+.pt-triage {
+  display: inline-block; margin-left: 8px; padding: 1px 7px;
+  font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-dim); background: var(--surface-3);
+  border: 1px solid var(--border); border-radius: var(--r-xs);
+}
+.pt-triage.passed { color: var(--text-faint); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* ---- compact end-of-run digest strip on Explore (H4) --------------------- */
+.pf-digest-strip {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.pf-digest-label {
+  flex: none; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-faint);
+}
+.pf-digest-text {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pf-digest-strip .btn-sm { flex: none; }
+.pf-digest-degraded { color: var(--mock); }

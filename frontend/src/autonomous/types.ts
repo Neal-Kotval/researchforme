@@ -15,6 +15,53 @@ export type NodeState =
 export type Confidence = "low" | "medium" | "high";
 export type TestRigor = "light" | "standard" | "deep";
 
+/* --------------------------------------------------- user sensors (S1/S2) -- */
+// Triage is the cheap interested/pass verdict; Stage tracks a gap the user is
+// actively looking into. Workflow state, not scores — neutral ink, never a hue.
+export type Triage = "interested" | "passed";
+export type Stage =
+  | "found"
+  | "interviewing"
+  | "smoke_testing"
+  | "verdict_build"
+  | "verdict_pass";
+
+/** Pass-reason taxonomy (S1) — picker chips; free text is always allowed. */
+export const TRIAGE_REASONS = [
+  "too_crowded",
+  "not_my_skills",
+  "too_small",
+  "boring",
+  "no_distribution",
+  "other",
+] as const;
+
+export const TRIAGE_REASON_LABELS: Record<(typeof TRIAGE_REASONS)[number], string> = {
+  too_crowded: "Too crowded",
+  not_my_skills: "Not my skills",
+  too_small: "Too small",
+  boring: "Boring",
+  no_distribution: "No distribution",
+  other: "Other",
+};
+
+/** Look-into checklist order (S2) — the stage select on starred gaps. */
+export const STAGES: Stage[] = [
+  "found",
+  "interviewing",
+  "smoke_testing",
+  "verdict_build",
+  "verdict_pass",
+];
+
+export const STAGE_LABELS: Record<Stage, string> = {
+  found: "Found",
+  interviewing: "Interviewing",
+  smoke_testing: "Smoke testing",
+  verdict_build: "Verdict: build",
+  verdict_pass: "Verdict: pass",
+};
+
 export interface LensVerdict {
   lens: string;
   verdict: "survives" | "weakens" | "kills";
@@ -54,12 +101,19 @@ export interface TreeNode {
   fit_reason: string;
   star: boolean;
   pinned: boolean;
-  /** C2 Space Watch: sweeps re-check this node's sources for material shifts.
-   *  Optional until the Wave D exploration surfaces land the full sensor set. */
-  watched?: boolean;
-  /** H2 Research Pack: cached markdown hand-off pack ("" = not generated).
-   *  Optional until the Wave D exploration surfaces land. */
-  research_pack?: string;
+  /** S1 triage — the user's cheap verdict. null = untriaged. Set only via the
+   *  `set_triage` control action, never by the LLM. */
+  triage: Triage | null;
+  /** Taxonomy slug or free text; "" when untriaged or no reason given. */
+  triage_reason: string;
+  /** S2 look-into checklist position on gaps the user is chasing. */
+  stage: Stage | null;
+  /** What the user found out so far (free text alongside the stage). */
+  learnings: string;
+  /** C2 Space Watch: sweeps re-check this node's sources for material shifts. */
+  watched: boolean;
+  /** H2 Research Pack: cached markdown hand-off pack ("" = not generated). */
+  research_pack: string;
   child_ids: string[];
   error: string | null;
   tokens_spent: number;
@@ -141,6 +195,31 @@ export interface ProjectDigest {
   kill_pattern: string;
   next_questions: string[];
   degraded: boolean;
+}
+
+/** The backend stores `Project.digest` as a plain dict — normalize defensively
+ *  so a partial or malformed digest degrades to null (never invented fields).
+ *  Returns null unless at least one substantive field survives validation. */
+export function normalizeDigest(raw: unknown): ProjectDigest | null {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const d = raw as Record<string, unknown>;
+  const top_spaces: DigestSpace[] = Array.isArray(d.top_spaces)
+    ? d.top_spaces
+        .filter((s): s is Record<string, unknown> => s != null && typeof s === "object")
+        .map((s) => ({
+          title: typeof s.title === "string" ? s.title : "",
+          why: typeof s.why === "string" ? s.why : "",
+        }))
+        .filter((s) => s.title.trim() !== "")
+    : [];
+  const kill_pattern = typeof d.kill_pattern === "string" ? d.kill_pattern : "";
+  const next_questions: string[] = Array.isArray(d.next_questions)
+    ? d.next_questions.filter((q): q is string => typeof q === "string" && q.trim() !== "")
+    : [];
+  if (top_spaces.length === 0 && kill_pattern.trim() === "" && next_questions.length === 0) {
+    return null;
+  }
+  return { top_spaces, kill_pattern, next_questions, degraded: d.degraded === true };
 }
 
 /** POST /api/projects/{pid}/nodes/{nid}/research-pack (H2). `cached` is true
@@ -376,6 +455,10 @@ export type ControlAction =
   | "set_pace"
   | "pin_node"
   | "unpin_node"
+  | "set_triage"
+  | "set_stage"
+  | "watch_node"
+  | "unwatch_node"
   | "continue_deepening";
 
 export const DEFAULT_BUDGET: Budget = {
@@ -442,14 +525,8 @@ export interface PortfolioItem {
   fit: number | null;
   confidence: Confidence | null;
   star: boolean;
-  triage: "interested" | "passed" | null;
-  stage:
-    | "found"
-    | "interviewing"
-    | "smoke_testing"
-    | "verdict_build"
-    | "verdict_pass"
-    | null;
+  triage: Triage | null;
+  stage: Stage | null;
   updated_at: string | null;
 }
 

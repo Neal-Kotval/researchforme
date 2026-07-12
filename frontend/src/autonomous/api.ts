@@ -15,9 +15,12 @@ import type {
   UsagePolicy,
   Pace,
   Project,
+  ResearchPackResponse,
   ScoutResponse,
   SortedResearch,
+  Stage,
   TreeSnapshot,
+  Triage,
 } from "./types";
 
 /** A structured API error carrying the HTTP status so callers can branch. */
@@ -120,6 +123,12 @@ export interface ControlRequest {
   budget?: Budget;
   pace?: Pace;
   node_id?: string;
+  /** set_triage payload — `triage: null` clears the verdict (and its reason). */
+  triage?: Triage | null;
+  triage_reason?: string;
+  /** set_stage payload — `stage: null` clears the checklist position. */
+  stage?: Stage | null;
+  learnings?: string;
 }
 
 /** Apply a run-control action (pause/resume/continue/budget/pace/pin) → updated project. */
@@ -129,6 +138,21 @@ export function control(pid: string, req: ControlRequest): Promise<Project> {
     headers: JSON_HEADERS,
     body: JSON.stringify(req),
   });
+}
+
+/** Generate (or fetch the cached) Research Pack for a gap node — ONE strong-model
+ *  call, cached on the node; `refresh` forces a regenerate. A backend that can't
+ *  produce a real pack answers 503 (honest degrade — surface it, never fake it). */
+export function getResearchPack(
+  pid: string,
+  nid: string,
+  refresh = false,
+): Promise<ResearchPackResponse> {
+  const q = refresh ? "?refresh=1" : "";
+  return request<ResearchPackResponse>(
+    `/api/projects/${encodeURIComponent(pid)}/nodes/${encodeURIComponent(nid)}/research-pack${q}`,
+    { method: "POST", headers: JSON_HEADERS },
+  );
 }
 
 /** Stop the worker (if running) and forget the project. */

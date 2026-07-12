@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { control, subscribeEvents } from "../../autonomous/api";
 import {
   nodeTrust,
+  normalizeDigest,
   type ExplorerEvent,
   type Project,
   type TreeNode,
@@ -218,6 +219,37 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
           </span>
         </div>
       </div>
+
+      {/* finished runs leave a one-line digest behind (H4) — the full card
+          lives on the run's Overview tab in the explorer drill-in */}
+      {mode === "done" && p && (() => {
+        const d = normalizeDigest(p.digest);
+        if (!d) return null;
+        return (
+          <div className="pf-digest-strip">
+            <span className="pf-digest-label">
+              Run digest
+              {d.degraded && (
+                <span
+                  className="pf-digest-degraded"
+                  title="The model was unavailable when this run ended — this digest was computed deterministically, not written by the model."
+                >
+                  {" "}· deterministic fallback
+                </span>
+              )}
+            </span>
+            <span className="pf-digest-text">
+              {d.top_spaces.length > 0 && (
+                <>Top: {d.top_spaces.map((s) => s.title).join(" · ")}. </>
+              )}
+              {d.kill_pattern && <>Kill pattern: {d.kill_pattern}</>}
+            </span>
+            <button className="btn btn-sm" onClick={() => onOpenProject(pid)}>
+              Full digest ▸
+            </button>
+          </div>
+        );
+      })()}
 
       <div className="pf-explore-cols">
         <div>

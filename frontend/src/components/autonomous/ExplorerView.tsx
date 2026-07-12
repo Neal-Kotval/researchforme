@@ -30,6 +30,7 @@ import LiveActivity, { type Sample } from "./LiveActivity";
 import GlobalUsageBar from "./GlobalUsageBar";
 import HomeDashboard from "./HomeDashboard";
 import ProjectDigest from "./ProjectDigest";
+import RunDigestCard from "./RunDigestCard";
 import { statusMeta } from "./statusMeta";
 import type { Route } from "../../hooks/useHashRoute";
 
@@ -238,6 +239,18 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
     setShowNew(true);
   }, []);
   const [busy, setBusy] = useState(false);
+  // Digest → follow-up: launch a new exploration prefilled to chase one of the
+  // finished run's open questions (H4). Steering, not spend — autostart stays
+  // the user's call inside the dialog.
+  const openFollowUp = useCallback((project: Project, question: string) => {
+    setNewDepth("standard");
+    setPrefill({
+      domain: project.domain,
+      segs: project.sub_segments,
+      brief: `Follow-up run on "${project.domain}". Open question from the previous run: ${question}`,
+    });
+    setShowNew(true);
+  }, []);
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "nodes">("nodes");
   const [treeMode, setTreeMode] = useState<"canvas" | "list">("canvas");
@@ -490,8 +503,26 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                     onSelectChild={selectNode}
                     hasSteering={hasSteeringContext(project.steering)}
                     busy={busy}
+                    projectId={project.id}
                     onTogglePin={(nodeId, pinned) =>
                       onControl({ action: pinned ? "pin_node" : "unpin_node", node_id: nodeId })
+                    }
+                    onSetTriage={(nodeId, triage, reason) =>
+                      onControl({
+                        action: "set_triage",
+                        node_id: nodeId,
+                        triage,
+                        triage_reason: reason,
+                      })
+                    }
+                    onSetStage={(nodeId, stage, learnings) =>
+                      onControl({ action: "set_stage", node_id: nodeId, stage, learnings })
+                    }
+                    onToggleWatch={(nodeId, watched) =>
+                      onControl({
+                        action: watched ? "watch_node" : "unwatch_node",
+                        node_id: nodeId,
+                      })
                     }
                   />
                 </div>
@@ -527,6 +558,10 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                 </div>
               ) : (
                 <>
+                  <RunDigestCard
+                    project={project}
+                    onFollowUp={(q) => openFollowUp(project, q)}
+                  />
                   <UsageMeter project={project} allProjects={allProjects} />
                   <LiveActivity project={project} history={active!.history} />
                   <div className="exp-overview">

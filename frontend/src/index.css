@@ -1694,3 +1694,121 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 }
 .exp-crumbs .crumb-sep { color: var(--text-faint); opacity: 0.6; }
 .home-head-actions { display: flex; gap: 10px; align-items: center; }
+
+/* ==================================== sensors & hand-off (S1/S2/C2/H2/H4) ==
+   Triage/stage/watch are the FOUNDER'S workflow state, not scores — neutral
+   ink and quiet fills throughout (memo §1: color carries meaning; workflow
+   state gets none). Amber appears only on the deterministic-digest badge
+   (a provenance warning, memo §2). */
+
+.inspector:focus { outline: none; }
+.inspector:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.insp-kind .ik-watch { color: var(--text-dim); }
+.insp-kind .ik-triage { color: var(--text-dim); }
+.insp-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.watch-btn { padding: 5px 11px; font-size: 12.5px; }
+.watch-btn.on { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+
+.sensor-block { border-top: 1px solid var(--border); padding-top: 16px; }
+.sensor-actions {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-top: 10px;
+}
+.sensor-side { display: flex; gap: 8px; flex-wrap: wrap; }
+.kbd-hint {
+  font: 600 10px var(--mono); color: var(--text-faint);
+  background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: var(--r-xs); padding: 0 4px; margin-left: 4px;
+}
+
+.triage-btns { display: flex; gap: 8px; }
+.triage-btn { padding: 5px 12px; font-size: 12.5px; }
+.triage-btn.on {
+  color: var(--text); border-color: var(--border-strong);
+  background: var(--surface-2); font-weight: 640;
+}
+.triage-reason { margin-top: 10px; }
+.tr-hint { font-size: 12px; color: var(--text-faint); margin-bottom: 7px; }
+.reason-chip {
+  border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+  font-family: inherit; transition: background var(--dur-fast) var(--ease-out);
+}
+.reason-chip:hover { background: var(--surface-2); }
+.reason-chip.on { background: var(--surface-3); border-color: var(--border-strong); color: var(--text); font-weight: 640; }
+.reason-chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.reason-input {
+  display: block; width: 100%; margin-top: 8px; padding: 6px 9px;
+  font: 12.5px var(--font); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface);
+}
+.reason-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.tr-current { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+.stage-block { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.stage-row { display: flex; align-items: center; gap: 10px; }
+.stage-label { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); }
+.stage-select {
+  padding: 5px 9px; font: 12.5px var(--font); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface);
+}
+.stage-select:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.learnings-box {
+  display: block; width: 100%; margin-top: 9px; padding: 7px 9px; resize: vertical;
+  font: 12.5px/1.5 var(--font); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface);
+}
+.learnings-box:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.stage-block .btn-sm { margin-top: 8px; }
+
+/* ---- research pack modal (H2) -------------------------------------------- */
+.rp-btn { padding: 5px 12px; font-size: 12.5px; }
+.rp-scrim {
+  position: fixed; inset: 0; z-index: var(--z-scrim);
+  background: rgba(31, 31, 26, 0.35); display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.rp-modal {
+  z-index: var(--z-drawer); width: min(720px, 100%); max-height: min(82vh, 900px);
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+}
+.rp-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 16px 20px 12px; border-bottom: 1px solid var(--border);
+}
+.rp-title { font-size: 16px; font-weight: 640; letter-spacing: -0.01em; margin-top: 3px; }
+.rp-body { overflow-y: auto; padding: 18px 20px; flex: 1; }
+.rp-md { font-size: 13.5px; line-height: 1.6; }
+.rp-loading { font-size: 13px; color: var(--text-dim); padding: 28px 8px; text-align: center; line-height: 1.6; }
+.rp-error { padding: 20px 8px; text-align: center; }
+.rp-error-t { font-size: 14px; font-weight: 640; color: var(--text); }
+.rp-error-d { font-size: 12.5px; color: var(--text-faint); margin-top: 6px; line-height: 1.55; }
+.rp-error .btn { margin-top: 12px; }
+.rp-foot {
+  display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+  padding: 12px 20px; border-top: 1px solid var(--border);
+}
+.rp-cached { font-size: 11.5px; color: var(--text-faint); margin-right: auto; }
+
+/* ---- end-of-run digest card (H4) ----------------------------------------- */
+.run-digest { padding: 20px 22px; margin-bottom: 14px; }
+.rd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rd-degraded {
+  flex: none; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--mock); background: var(--mock-tint); border: 1px dashed var(--mock);
+  border-radius: var(--r-xs); padding: 2px 7px;
+}
+.rd-sec { margin-top: 14px; }
+.rd-sec-h { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); margin-bottom: 6px; }
+.rd-spaces { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.65; }
+.rd-space-title { font-weight: 620; }
+.rd-space-why { color: var(--text-dim); }
+.rd-kill { font-size: 13px; color: var(--text-dim); line-height: 1.55; }
+.rd-questions { display: flex; flex-direction: column; gap: 8px; }
+.rd-q {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 11px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+}
+.rd-q-text { font-size: 12.5px; color: var(--text); line-height: 1.45; }
+.rd-q .btn-sm { flex: none; }
