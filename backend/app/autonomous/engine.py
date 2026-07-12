@@ -31,9 +31,10 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import heapq
+import re
 
 from ..analysis.extract import extract_signals
-from ..analysis.scope import scope_area
+from ..analysis.scope import _STOPWORDS, scope_area
 from ..analysis.synthesize import _extract_json_array, synthesize
 from ..llm.client import ClaudeClient
 from ..schemas import Gap, SourceReport, SourceStatus
@@ -94,6 +95,13 @@ _KIND_BASE: dict[NodeKind, float] = {
 # Words in a node's rationale that hint the branch is already source-corroborated.
 _DENSITY_HINTS = ("reddit", "arxiv", "hackernews", "github", "newsletter", "demand", "trend", "evidence")
 
+# Marker keyword stamped on decomposition children whose title/keywords share no
+# significant token with the root domain's scope (see ``_flag_off_domain``), and
+# the priority penalty the frontier applies to them. Penalized, NOT dropped —
+# contrarian adjacency is sometimes right; best-first just prefers on-domain.
+_OFF_DOMAIN_KEYWORD = "off_domain"
+_OFF_DOMAIN_PENALTY = 0.35
+
 
 def node_priority(node: Node, parent: Node | None) -> float:
     """Blend the §4.1 factors into a single frontier priority (higher = sooner).
@@ -117,8 +125,10 @@ def node_priority(node: Node, parent: Node | None) -> float:
         promise = max(0.0, min(parent.priority, 2.0)) / 2.0
 
     # Novelty / uncrowdedness proxy: a richer, more specific keyword set reads as
-    # a more distinct branch worth opening.
-    novelty = min(len(node.keywords), 5) / 5.0
+    # a more distinct branch worth opening. The off-domain marker is bookkeeping,
+    # not a real keyword, so it never counts toward novelty.
+    real_keywords = [k for k in node.keywords if k.lower() != _OFF_DOMAIN_KEYWORD]
+    novelty = min(len(real_keywords), 5) / 5.0
 
     # Signal-density proxy: reward branches whose rationale already cites sources.
     text = (node.rationale or "").lower()
@@ -131,10 +141,14 @@ def node_priority(node: Node, parent: Node | None) -> float:
     # instead of exhausting the node budget on structural breadth.
     decay = 0.06 * node.depth
 
+    # Domain-drift penalty: a child flagged off the project's root domain sinks
+    # below its on-domain siblings but stays explorable (never hard-dropped).
+    drift = _OFF_DOMAIN_PENALTY if _OFF_DOMAIN_KEYWORD in {k.lower() for k in node.keywords} else 0.0
+
     # User boost: a pinned node leaps the queue (SPEC §4.1).
     boost = 1.0 if node.pinned else 0.0
 
-    return round(base + 0.9 * promise + 0.5 * novelty + density - decay + boost, 4)
+    return round(base + 0.9 * promise + 0.5 * novelty + density - decay - drift + boost, 4)
 
 
 # --------------------------------------------------------------------------- #
@@ -224,8 +238,10 @@ founder could specialize in — cheaply and widely. You do NOT evaluate gaps her
 you only carve the space. Avoid the single obvious textbook split of the space:
 at least 2 of your children must come from a non-obvious angle (a neglected
 workflow, an underserved buyer or geography, a contrarian read of where the
-market is going). Be concrete. Output ONLY the requested JSON array — no prose,
-no markdown fences.\
+market is going). Every child MUST remain inside the project's root domain as
+stated by the user: an adjacent-industry analogy may inspire a child's framing,
+but the child's actual market must still be the root domain. Be concrete.
+Output ONLY the requested JSON array — no prose, no markdown fences.\
 """
 
 # Ordinary-practitioner personas rotated deterministically per node (by hash of
@@ -277,6 +293,11 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
     """User prompt handing the model the node + its context to carve up."""
     lines = [f"ROOT DOMAIN: {project.domain}"]
     lines.append(
+        "ANCHOR: every child MUST remain inside the ROOT DOMAIN above, no matter "
+        "how deep this node sits in the tree. Adjacent-industry analogies are "
+        "allowed only as framing — never as a child's actual market."
+    )
+    lines.append(
         f"YOUR VANTAGE POINT: carve this space as {_persona_for(node)}. "
         "Let that vantage point pick which children exist at all — not just "
         "the wording."
@@ -305,6 +326,58 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
     )
 
 
+_DRIFT_TOKEN_RE = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9\-']*")
+
+
+def _significant_drift_tokens(text: str) -> set[str]:
+    """Lowercased content tokens for the drift check (stopwords/shorts dropped).
+
+    Trailing-``s`` plurals are normalized so 'clinic' matches 'clinics' — naive
+    on purpose; this is a cheap, deterministic guard, not NLP.
+    """
+    tokens: set[str] = set()
+    for m in _DRIFT_TOKEN_RE.finditer(text or ""):
+        tok = m.group(0).lower()
+        if len(tok) <= 2 or tok in _STOPWORDS:
+            continue
+        if tok.endswith("s") and len(tok) > 3:
+            tok = tok[:-1]
+        tokens.add(tok)
+    return tokens
+
+
+def _root_domain_tokens(project: Project) -> set[str]:
+    """Significant tokens of the root domain's scope — the drift yardstick.
+
+    Uses the domain phrase plus ``scope_area`` keywords; derived DEFAULT
+    sub-segments are deliberately excluded (their generic SMB tokens would let
+    'freelancer cash flow' pass as on-domain for a clinic-software project).
+    """
+    scope = scope_area(project.domain, project.sub_segments)
+    tokens: set[str] = set()
+    for term in (project.domain, *scope.keywords):
+        tokens |= _significant_drift_tokens(term)
+    return tokens
+
+
+def _drifts_off_domain(title: str, keywords: list[str], root_tokens: set[str]) -> bool:
+    """True when a child shares ZERO significant tokens with the root scope.
+
+    Programmatic complement to the prompt anchor: decomposition sometimes
+    generalizes 'clinic back-office pain' into generic SMB (Etsy sellers,
+    freelancer cash flow) and never returns. Zero-overlap children are flagged
+    (never dropped) so ``node_priority`` prefers on-domain branches.
+    """
+    if not root_tokens:
+        return False
+    child_tokens = _significant_drift_tokens(title)
+    for kw in keywords:
+        child_tokens |= _significant_drift_tokens(kw)
+    if not child_tokens:
+        return False  # nothing to judge — benefit of the doubt
+    return not (child_tokens & root_tokens)
+
+
 def _child_keywords(obj: dict, title: str) -> list[str]:
     """Pull keywords/tags off a decomposition object; derive from the title if bare."""
     kw = obj.get("keywords") or obj.get("tags") or []
@@ -319,7 +392,12 @@ def _child_keywords(obj: dict, title: str) -> list[str]:
 def _children_from_raw(
     node: Node, project: Project, child_kind: NodeKind, child_depth: int, raw: list
 ) -> list[Node]:
-    """Turn parsed decomposition objects into prioritized child nodes (dedup titles)."""
+    """Turn parsed decomposition objects into prioritized child nodes (dedup titles).
+
+    Children with zero keyword/title overlap with the root domain's scope get
+    the ``off_domain`` marker keyword, which ``node_priority`` penalizes.
+    """
+    root_tokens = _root_domain_tokens(project)
     children: list[Node] = []
     seen: set[str] = set()
     for obj in raw:
@@ -341,13 +419,16 @@ def _children_from_raw(
             or obj.get("description")
             or ""
         ).strip()
+        keywords = _child_keywords(obj, title)
+        if _drifts_off_domain(title, keywords, root_tokens):
+            keywords = [*keywords, _OFF_DOMAIN_KEYWORD]
         child = make_node(
             project.id,
             node,
             child_kind,
             title,
             rationale=rationale,
-            keywords=_child_keywords(obj, title),
+            keywords=keywords,
             depth=child_depth,
         )
         child.priority = node_priority(child, node)
