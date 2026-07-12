@@ -109,7 +109,12 @@ export default function RunControls({ project, busy, onControl, compact }: Props
 
       {/* pace dial */}
       <div className="rc-block">
-        <div className="rc-label">Pace</div>
+        <div
+          className="rc-label"
+          title="How fast the explorer burns tokens. Eco stays inside your subscription's comfort zone; Sprint spends freely."
+        >
+          Pace
+        </div>
         <div className="seg-control" role="radiogroup" aria-label="Pace">
           {PACES.map((p) => {
             const active = project.budget.pace === p.id;
@@ -136,7 +141,12 @@ export default function RunControls({ project, busy, onControl, compact }: Props
       {/* star threshold */}
       <div className="rc-block">
         <div className="slider-top">
-          <span className="rc-label">Star threshold</span>
+          <span
+            className="rc-label"
+            title="Ideas scoring at or above this viability get a star — a flag for your review, not a verdict."
+          >
+            Star threshold
+          </span>
           <span className="slider-val">≥ {draft.star_threshold}</span>
         </div>
         <input
@@ -152,7 +162,12 @@ export default function RunControls({ project, busy, onControl, compact }: Props
 
       {/* budget editor */}
       <div className="rc-block">
-        <div className="rc-label">Budget &amp; caps</div>
+        <div
+          className="rc-label"
+          title="Hard stops for the run. The explorer pauses itself when any cap is hit — nothing spends past these."
+        >
+          Budget &amp; caps
+        </div>
         <div className="rc-grid">
           <label className="rc-field">
             <span>Max tokens</span>

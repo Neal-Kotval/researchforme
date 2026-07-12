@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { viabilityRamp, type TreeNode } from "../../autonomous/types";
+import { nodeTrust, viabilityRamp, type TreeNode } from "../../autonomous/types";
+import ViabChip from "./ViabChip";
 
 interface Props {
   nodes: Record<string, TreeNode>;
@@ -360,16 +361,14 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
                   );
                 })()}
                 {gapish && n.viability != null ? (
-                  <span
-                    className={`viab-chip${n.star ? " star" : ""}`}
-                    style={{ background: viabilityRamp(n.viability) }}
+                  <ViabChip
+                    value={n.viability}
+                    trust={nodeTrust(n)}
+                    star={n.star}
                     title={`Viability ${n.viability} · ${n.confidence ?? "?"} confidence${
                       n.pressure_test ? ` · ${n.pressure_test.test_rigor} test` : ""
-                    }`}
-                  >
-                    {n.star && <span className="vc-star">★</span>}
-                    {n.viability}
-                  </span>
+                    }${nodeTrust(n) === "unverified" ? " · unverified" : ""}`}
+                  />
                 ) : gapish ? (
                   <span className="viab-chip pending" title={n.state}>
                     {live ? "…" : "—"}

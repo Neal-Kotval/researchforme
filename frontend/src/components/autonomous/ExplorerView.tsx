@@ -695,6 +695,10 @@ function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) 
           <div>
             <div className="eyebrow">Autonomous mode</div>
             <h3>New exploration</h3>
+            <div className="mod-sub">
+              Point the explorer at a domain. It maps the space, hypothesizes gaps, and
+              red-teams each one — everything below just steers it.
+            </div>
           </div>
           <button className="drawer-close" onClick={onClose} aria-label="Close">
             ×
@@ -926,7 +930,11 @@ function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) 
             </div>
             <div className="nd-col">
               <div className="slider-top">
-                <label className="field-label" style={{ margin: 0 }}>
+                <label
+                  className="field-label"
+                  style={{ margin: 0 }}
+                  title="Ideas scoring at or above this viability get a star — a flag for your review, not a verdict."
+                >
                   Star threshold
                 </label>
                 <span className="slider-val">≥ {budget.star_threshold}</span>

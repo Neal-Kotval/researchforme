@@ -259,7 +259,7 @@ button {
   padding: 2px 7px; border-radius: 5px; border: 1px solid transparent;
 }
 .src-badge.live { color: var(--live); background: var(--live-tint); border-color: rgba(47, 125, 85, 0.25); }
-.src-badge.mock { color: var(--mock); background: var(--mock-tint); border-color: rgba(166, 100, 18, 0.25); }
+.src-badge.mock { color: var(--mock); background: var(--mock-tint); border-color: rgba(154, 107, 0, 0.3); }
 .src-badge.unavailable { color: var(--unavailable); background: var(--unavailable-tint); border-color: rgba(192, 57, 43, 0.25); }
 .src-badge.empty { color: var(--empty); background: var(--empty-tint); border-color: rgba(138, 135, 127, 0.28); }
 .src-meta { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -481,11 +481,11 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 
 .empty-flag {
   display: flex; gap: 11px; align-items: flex-start;
-  background: var(--mock-tint); border: 1px solid rgba(166, 100, 18, 0.25);
+  background: var(--warn-tint); border: 1px solid rgba(166, 100, 18, 0.25);
   border-radius: var(--r-md); padding: 13px 15px; margin-top: 16px;
 }
 .empty-flag .ef-ico { font-size: 15px; }
-.empty-flag .ef-t { font-size: 12.5px; font-weight: 700; color: var(--mock); }
+.empty-flag .ef-t { font-size: 12.5px; font-weight: 700; color: var(--warn); }
 .empty-flag .ef-d { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; line-height: 1.45; }
 
 /* competitors */
@@ -519,6 +519,34 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .ev-foot { display: flex; gap: 12px; margin-top: 7px; font-size: 11px; color: var(--text-faint); align-items: center; }
 .ev-foot a { color: var(--accent-strong); }
 
+/* ---- provenance (memo §2) — amber means "canned/fixture", nothing else ---- */
+.canned-badge {
+  display: inline-flex; align-items: center; flex: none;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--mock); background: var(--mock-tint);
+  border: 1px solid rgba(154, 107, 0, 0.3);
+  padding: 1px 7px; border-radius: var(--r-xs);
+}
+.fixture-banner {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--mock-tint); border: 1px solid var(--mock);
+  border-left-width: 3px; border-radius: var(--r-md);
+  padding: 12px 14px; margin: 4px 0 14px;
+}
+.fixture-banner .fb-badge {
+  flex: none; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: #fff; background: var(--mock);
+  padding: 2px 7px; border-radius: var(--r-xs); margin-top: 1px;
+}
+.fixture-banner .fb-text { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+
+/* ---- instructional voice (memo §3) — the one-line module subtitle ---------- */
+.mod-sub {
+  font-size: 12px; color: var(--text-faint); line-height: 1.5;
+  margin: 3px 0 10px; max-width: 62ch;
+}
+.detail-block h4 + .mod-sub { margin-top: -6px; }
+
 /* ============================================================ states ==== */
 .state-wrap { text-align: center; padding: 70px 20px; }
 .state-ico { font-size: 32px; margin-bottom: 14px; }
@@ -536,10 +564,10 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 
 .warnings {
   display: flex; gap: 10px; align-items: flex-start; margin-top: 16px;
-  background: var(--mock-tint); border: 1px solid rgba(166, 100, 18, 0.22);
+  background: var(--warn-tint); border: 1px solid rgba(166, 100, 18, 0.22);
   border-radius: var(--r-md); padding: 11px 14px; font-size: 12.5px; color: var(--text-dim);
 }
-.warnings .w-ico { color: var(--mock); }
+.warnings .w-ico { color: var(--warn); }
 
 .footer { text-align: center; padding: 40px 0 20px; font-size: 12px; color: var(--text-ghost); }
 
@@ -641,7 +669,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .es-row:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ring); }
 .es-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--text-ghost); }
 .es-dot.sprinting { background: var(--live); }
-.es-dot.curbing { background: var(--mock); }
+.es-dot.curbing { background: var(--warn); }
 .es-dot.paused { background: var(--text-ghost); }
 .es-dot.done { background: var(--src-newsletter); }
 .es-dot.error { background: var(--unavailable); }
@@ -813,6 +841,28 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   text-shadow: none; opacity: 0.92; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
+/* ---- trust encoding (memo §2) — a chip's weight matches earned belief ---- */
+/* earned: the classic solid ramp fill (background set inline by ViabChip).   */
+/* provisional (medium confidence): outlined numeral — transparent fill, the  */
+/* ramp color moves to border + text.                                         */
+.viab-chip.trust-provisional {
+  background: transparent; color: var(--chip-ramp, var(--data-neutral));
+  border: 1px solid var(--chip-ramp, var(--data-neutral));
+  text-shadow: none; box-shadow: none; font-weight: 640;
+}
+.viab-chip.trust-provisional .vc-star { color: inherit; }
+/* unverified (low confidence OR light rigor): dashed, desaturated toward the
+   neutral grey, and visibly smaller — a light-rigor 93 must look weaker than
+   a deep-rigor 61. */
+.viab-chip.trust-unverified {
+  background: transparent;
+  color: color-mix(in srgb, var(--chip-ramp, var(--data-neutral)) 42%, var(--data-neutral));
+  border: 1px dashed color-mix(in srgb, var(--chip-ramp, var(--data-neutral)) 42%, var(--data-neutral));
+  text-shadow: none; box-shadow: none;
+  font-size: 10px; font-weight: 600; min-width: 24px; padding: 1px 5px;
+}
+.viab-chip.trust-unverified .vc-star { color: inherit; }
+
 .tree-empty, .inspector-empty { text-align: center; padding: 54px 24px; }
 .tree-empty-ico, .ie-ico { font-size: 26px; color: var(--text-ghost); margin-bottom: 10px; }
 .tree-empty-t, .ie-t { font-size: 14px; font-weight: 620; color: var(--text-dim); }
@@ -840,6 +890,18 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 }
 .viab-big .vb-num { font-size: 30px; font-weight: 720; font-variant-numeric: tabular-nums; line-height: 1; }
 .viab-big .vb-lab { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-top: 4px; }
+/* trust encoding on the headline numeral (memo §2): earned keeps the solid
+   2px border + heavy numeral; provisional thins to an outline; unverified
+   goes dashed, smaller, and says so out loud. Border/text colors (incl. the
+   desaturated mix) are set inline from the viability ramp. */
+.viab-big.trust-provisional { border-width: 1px; }
+.viab-big.trust-provisional .vb-num { font-weight: 560; }
+.viab-big.trust-unverified { border-style: dashed; border-width: 1px; }
+.viab-big.trust-unverified .vb-num { font-size: 22px; font-weight: 560; }
+.viab-big .vb-unverified {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; margin-top: 3px; color: inherit;
+}
 .viab-side { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
 .vs-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .vs-k { font-size: 11.5px; color: var(--text-faint); font-weight: 560; }
@@ -848,13 +910,13 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   padding: 2px 8px; border-radius: var(--r-xs); border: 1px solid transparent;
 }
 .conf-pill.high { color: var(--live); background: var(--live-tint); border-color: rgba(47, 125, 85, 0.25); }
-.conf-pill.medium { color: var(--mock); background: var(--mock-tint); border-color: rgba(166, 100, 18, 0.25); }
+.conf-pill.medium { color: var(--warn); background: var(--warn-tint); border-color: rgba(166, 100, 18, 0.25); }
 .conf-pill.low { color: var(--empty); background: var(--empty-tint); border-color: rgba(138, 135, 127, 0.28); }
 .rigor-pill { font-size: 10.5px; font-weight: 650; text-transform: capitalize; color: var(--text-dim); background: var(--surface-3); padding: 2px 8px; border-radius: var(--r-xs); }
 .vs-tally { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
 .vs-tally .tally { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tally.survives { color: var(--live); }
-.tally.weakens { color: var(--mock); }
+.tally.weakens { color: var(--warn); }
 .tally.kills { color: var(--unavailable); }
 
 .pt-summary { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 12px; font-style: italic; }
@@ -870,8 +932,11 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   border-left-width: 3px; background: var(--surface-2);
 }
 .lens-item.survives { border-left-color: var(--live); }
-.lens-item.weakens { border-left-color: var(--mock); }
+.lens-item.weakens { border-left-color: var(--warn); }
 .lens-item.kills { border-left-color: var(--unavailable); }
+/* heuristic-fallback lens: grey + dashed — never the authority of a real verdict */
+.lens-item.noteval { border-style: dashed; border-left-color: var(--empty); }
+.lens-item.noteval .lens-name, .lens-item.noteval .lens-arg { color: var(--text-faint); }
 .lens-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
 .lens-name { font-size: 12.5px; font-weight: 640; color: var(--text); }
 .verdict-pill {
@@ -879,8 +944,12 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   padding: 2px 8px; border-radius: var(--r-xs); flex: none;
 }
 .verdict-pill.survives { color: var(--live); background: var(--live-tint); }
-.verdict-pill.weakens { color: var(--mock); background: var(--mock-tint); }
+.verdict-pill.weakens { color: var(--warn); background: var(--warn-tint); }
 .verdict-pill.kills { color: var(--unavailable); background: var(--unavailable-tint); }
+.verdict-pill.noteval {
+  color: var(--text-faint); background: transparent;
+  border: 1px dashed var(--border-strong); text-transform: none; letter-spacing: 0;
+}
 .lens-arg { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .lens-ev { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
 .lens-ev-src {
@@ -945,13 +1014,13 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .mode-pill .mp-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .mode-pill.sprinting { color: var(--live); background: var(--live-tint); border-color: rgba(47, 125, 85, 0.25); }
 .mode-pill.sprinting .mp-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
-.mode-pill.curbing { color: var(--mock); background: var(--mock-tint); border-color: rgba(166, 100, 18, 0.25); }
+.mode-pill.curbing { color: var(--warn); background: var(--warn-tint); border-color: rgba(166, 100, 18, 0.25); }
 .mode-pill.paused { color: var(--empty); background: var(--empty-tint); border-color: rgba(138, 135, 127, 0.28); }
 .um-bar { height: 6px; border-radius: var(--r-xs); background: var(--surface-3); overflow: hidden; border: 1px solid var(--border); }
 .um-bar-fill { display: block; height: 100%; background: var(--accent); border-radius: var(--r-xs); transition: width var(--dur-mid) ease; }
 .um-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-faint); }
 .um-stat b { color: var(--text); font-weight: 660; font-variant-numeric: tabular-nums; }
-.um-stat.resume { color: var(--mock); font-weight: 560; }
+.um-stat.resume { color: var(--warn); font-weight: 560; }
 .um-global {
   display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-faint);
   border-top: 1px solid var(--border); padding-top: 8px;
@@ -959,7 +1028,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .um-global b { color: var(--text-dim); }
 .mode-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--text-ghost); }
 .mode-dot.sprinting { background: var(--live); }
-.mode-dot.curbing { background: var(--mock); }
+.mode-dot.curbing { background: var(--warn); }
 .mode-dot.paused { background: var(--text-ghost); }
 
 /* ---- live activity (streaming graphs) ------------------------------------ */
@@ -969,7 +1038,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .la-title h3 { font-size: 13px; font-weight: 660; letter-spacing: 0.01em; color: var(--text-dim); margin: 0; }
 .la-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-ghost); flex: none; }
 .la-live-dot.sprinting.on { background: var(--live); animation: la-pulse 1.5s ease-in-out infinite; }
-.la-live-dot.curbing.on { background: var(--mock); animation: la-pulse 2.2s ease-in-out infinite; }
+.la-live-dot.curbing.on { background: var(--warn); animation: la-pulse 2.2s ease-in-out infinite; }
 .la-status { display: flex; align-items: center; gap: 10px; }
 .la-rate { font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 
@@ -1021,7 +1090,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .gu-left { display: flex; align-items: center; gap: 8px; flex: none; }
 .gu-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-ghost); }
 .gu-dot.sprinting { background: var(--live); animation: la-pulse 1.5s ease-in-out infinite; }
-.gu-dot.curbing { background: var(--mock); }
+.gu-dot.curbing { background: var(--warn); }
 .gu-dot.paused { background: var(--text-ghost); }
 .gu-mode { font-weight: 620; color: var(--text-dim); }
 .global-usage.alert .gu-mode { color: var(--accent-strong); }
@@ -1029,7 +1098,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .gu-metric b { color: var(--text); font-weight: 660; font-variant-numeric: tabular-nums; }
 .gu-rate { color: var(--accent-strong) !important; }
 .gu-sep { color: var(--border-strong); }
-.gu-backoff { color: var(--mock); font-weight: 560; }
+.gu-backoff { color: var(--warn); font-weight: 560; }
 .gu-right { flex: none; position: relative; }
 .gu-conc { font-size: 11px; color: var(--text-ghost); font-variant-numeric: tabular-nums; }
 
@@ -1037,7 +1106,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .gu-level { font-weight: 660; }
 .gu-level.lvl-low { color: var(--live); }
 .gu-level.lvl-medium { color: var(--text-dim); }
-.gu-level.lvl-high { color: var(--mock); }
+.gu-level.lvl-high { color: var(--warn); }
 .gu-level.lvl-heavy { color: var(--accent-strong); }
 .gu-mode-sub { color: var(--text-ghost); font-size: 11px; }
 
@@ -1049,7 +1118,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 }
 .gu-gauge-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--live); transition: width var(--dur-mid) ease, background var(--dur-mid) ease; }
 .global-usage.lvl-medium .gu-gauge-fill { background: var(--data-neutral); }
-.global-usage.lvl-high .gu-gauge-fill { background: var(--mock); }
+.global-usage.lvl-high .gu-gauge-fill { background: var(--warn); }
 .global-usage.lvl-heavy .gu-gauge-fill { background: var(--accent); }
 .gu-gauge-pct { position: relative; z-index: 1; margin: 0 auto; font-size: 10px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
@@ -1090,7 +1159,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .hu-level-word { font-size: 30px; font-weight: 760; letter-spacing: -0.03em; }
 .hu-level-word.lvl-low { color: var(--live); }
 .hu-level-word.lvl-medium { color: var(--text); }
-.hu-level-word.lvl-high { color: var(--mock); }
+.hu-level-word.lvl-high { color: var(--warn); }
 .hu-level-word.lvl-heavy { color: var(--accent-strong); }
 .hu-level-sub { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 5px; }
 .hu-figures { display: flex; gap: 26px; flex-wrap: wrap; }
@@ -1101,7 +1170,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .hu-gauge-track { height: 10px; border-radius: var(--r-pill); background: var(--surface-3); border: 1px solid var(--border); overflow: hidden; }
 .hu-gauge-fill { display: block; height: 100%; background: var(--live); transition: width var(--dur-mid) ease; }
 .home-usage.lvl-medium .hu-gauge-fill { background: var(--data-neutral); }
-.home-usage.lvl-high .hu-gauge-fill { background: var(--mock); }
+.home-usage.lvl-high .hu-gauge-fill { background: var(--warn); }
 .home-usage.lvl-heavy .hu-gauge-fill { background: var(--accent); }
 .hu-gauge-cap { font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .hu-nocap { font-size: 11.5px; color: var(--text-ghost); }
@@ -1380,7 +1449,7 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .ss-mode .ss-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-ghost); }
 .ss-mode.sprinting { color: var(--accent-strong); }
 .ss-mode.sprinting .ss-dot { background: var(--accent); animation: gnode-pulse 1.4s ease-in-out infinite; }
-.ss-mode.curbing .ss-dot { background: var(--mock); }
+.ss-mode.curbing .ss-dot { background: var(--warn); }
 
 /* On the Nodes tab, let the canvas fill the viewport height (no thin slice). */
 .exp-canvas-card { height: calc(100vh - 250px); min-height: 460px; }

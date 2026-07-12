@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { viabilityRamp, type TreeNode } from "../../autonomous/types";
+import { nodeTrust, type TreeNode } from "../../autonomous/types";
+import ViabChip from "./ViabChip";
 
 interface Props {
   nodes: Record<string, TreeNode>;
@@ -32,13 +33,16 @@ export default function ProjectDigest({ nodes, onSelect, topN = 6 }: Props) {
 
   const row = (n: TreeNode) => (
     <button key={n.id} className="digest-row" onClick={() => onSelect(n.id)}>
-      <span
-        className={`viab-chip${n.star ? " star" : ""}`}
-        style={{ background: viabilityRamp(n.viability) }}
-      >
-        {n.star && <span className="vc-star">★</span>}
-        {n.viability}
-      </span>
+      <ViabChip
+        value={n.viability}
+        trust={nodeTrust(n)}
+        star={n.star}
+        title={
+          nodeTrust(n) === "unverified"
+            ? `Viability ${n.viability} — unverified`
+            : `Viability ${n.viability}`
+        }
+      />
       <span className="dr-body">
         <span className="dr-title">{n.gap?.title ?? n.title}</span>
         {n.gap?.sub_segment && <span className="dr-sub">{n.gap.sub_segment}</span>}
@@ -54,11 +58,15 @@ export default function ProjectDigest({ nodes, onSelect, topN = 6 }: Props) {
       <div className="digest-head">
         <div className="eyebrow">Digest</div>
         <h4 className="digest-title">Worth your attention</h4>
+        <div className="mod-sub">
+          Ideas that survived the red team, ranked by how much they deserve your attention.
+        </div>
       </div>
 
       {empty ? (
         <div className="digest-empty">
-          No strong finds yet — the explorer is still pressure-testing candidates.
+          No strong finds yet. Ideas land here once they score 55+ after pressure-testing —
+          let the run keep going, or lower the star threshold in Controls.
         </div>
       ) : (
         <>

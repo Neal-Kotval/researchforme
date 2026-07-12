@@ -1,10 +1,17 @@
 import {
   SCORE_KEYS,
   SCORE_LABELS,
+  SCORE_HELP,
   SOURCE_LABEL,
 } from "../../types";
-import { viabilityRamp, type TreeNode } from "../../autonomous/types";
+import {
+  isUnevaluatedLens,
+  nodeTrust,
+  viabilityRamp,
+  type TreeNode,
+} from "../../autonomous/types";
 import Markdown from "./Markdown";
+import ViabChip from "./ViabChip";
 
 interface Props {
   node: TreeNode | null;
@@ -19,6 +26,16 @@ const VERDICT_META: Record<string, { cls: string; word: string }> = {
   survives: { cls: "survives", word: "Survives" },
   weakens: { cls: "weakens", word: "Weakens" },
   kills: { cls: "kills", word: "Kills" },
+};
+
+/** Plain-sentence hover definitions — numbers framed as hypotheses (memo §3). */
+const METRIC_HELP = {
+  viability:
+    "Market strength after adversarial testing. Not a promise — a prioritized hypothesis.",
+  confidence:
+    "How much fresh evidence backs the score. High means corroborated; low means the model is mostly guessing.",
+  rigor:
+    "How hard the red team pushed. Light passes are quick reads — their scores stay unverified.",
 };
 
 // Map a 1..5 score onto the theme's grey→blue→navy ramp (denser = stronger),
@@ -57,8 +74,12 @@ export default function NodeInspector({
     return (
       <div className="inspector-empty">
         <div className="ie-ico">☞</div>
-        <div className="ie-t">Select a node</div>
-        <div className="ie-d">Pick any branch or gap in the tree to inspect its case and pressure test.</div>
+        <div className="ie-t">Nothing selected</div>
+        <div className="ie-d">
+          Click a node in the tree. Gaps open their full case, evidence, and pressure test;
+          branches show their rationale and children. Solid scores are earned — dashed ones
+          are still unverified.
+        </div>
       </div>
     );
   }
@@ -129,13 +150,16 @@ export default function NodeInspector({
                 >
                   <span className="cr-title">{c.title}</span>
                   {(c.kind === "gap" || c.kind === "gap_candidate") && c.viability != null && (
-                    <span
-                      className={`viab-chip${c.star ? " star" : ""}`}
-                      style={{ background: viabilityRamp(c.viability) }}
-                    >
-                      {c.star && <span className="vc-star">★</span>}
-                      {c.viability}
-                    </span>
+                    <ViabChip
+                      value={c.viability}
+                      trust={nodeTrust(c)}
+                      star={c.star}
+                      title={
+                        nodeTrust(c) === "unverified"
+                          ? `Viability ${c.viability} — unverified`
+                          : `Viability ${c.viability}`
+                      }
+                    />
                   )}
                 </button>
               ))}
@@ -148,6 +172,12 @@ export default function NodeInspector({
 
   /* ---------------------------------------------------------- gap nodes -- */
   const pt = node.pressure_test;
+  const trust = nodeTrust(node);
+  const ramp = viabilityRamp(node.viability);
+  // Unverified numbers desaturate toward the neutral grey (memo §2).
+  const inkColor =
+    trust === "unverified" ? `color-mix(in srgb, ${ramp} 42%, var(--data-neutral))` : ramp;
+  const fixture = g.tags.includes("fixture");
   return (
     <div className="inspector">
       <div className="insp-head">
@@ -158,25 +188,38 @@ export default function NodeInspector({
         <h3 className="insp-title">{g.title}</h3>
       </div>
 
+      {/* provenance banner — this gap never touched the live LLM (memo §2) */}
+      {fixture && (
+        <div className="fixture-banner" role="alert">
+          <span className="fb-badge">canned data</span>
+          <div className="fb-text">
+            This gap was served from canned fixture data — the backend could not reach the
+            LLM. Treat as placeholder, not a finding.
+          </div>
+        </div>
+      )}
+
       {/* viability headline */}
       <div className="viab-head">
         <div
-          className="viab-big"
-          style={{ borderColor: viabilityRamp(node.viability), color: viabilityRamp(node.viability) }}
+          className={`viab-big trust-${trust}`}
+          style={{ borderColor: inkColor, color: inkColor }}
+          title={METRIC_HELP.viability}
         >
           <span className="vb-num">{node.viability ?? "—"}</span>
           <span className="vb-lab">viability</span>
+          {trust === "unverified" && <span className="vb-unverified">unverified</span>}
         </div>
         <div className="viab-side">
           <div className="vs-row">
-            <span className="vs-k">Confidence</span>
+            <span className="vs-k" title={METRIC_HELP.confidence}>Confidence</span>
             <span className={`conf-pill ${node.confidence ?? "low"}`}>
               {node.confidence ?? "—"}
             </span>
           </div>
           {pt && (
             <div className="vs-row">
-              <span className="vs-k">Test rigor</span>
+              <span className="vs-k" title={METRIC_HELP.rigor}>Test rigor</span>
               <span className="rigor-pill">{pt.test_rigor}</span>
             </div>
           )}
@@ -242,7 +285,7 @@ export default function NodeInspector({
       {/* base scores */}
       <div className="detail-scorebar">
         {SCORE_KEYS.map((k) => (
-          <div className="dsb-item" key={k}>
+          <div className="dsb-item" key={k} title={SCORE_HELP[k]}>
             <div className="dsb-val" style={{ color: scoreColor(g.scores[k]) }}>
               {g.scores[k]}
             </div>
@@ -267,6 +310,10 @@ export default function NodeInspector({
       {pt && pt.lenses.length > 0 && (
         <div className="detail-block">
           <h4>Pressure test — {pt.lenses.length} adversarial lenses</h4>
+          <div className="mod-sub">
+            Each lens tried to kill this idea. A survival only counts when backed by fresh
+            evidence.
+          </div>
           {pt.summary && <div className="pt-summary">{pt.summary}</div>}
           {pt.self_critique && (
             <div className="pt-critique">
@@ -276,12 +323,24 @@ export default function NodeInspector({
           )}
           <div className="lens-list">
             {pt.lenses.map((l, i) => {
-              const meta = VERDICT_META[l.verdict] ?? VERDICT_META.weakens;
+              // A heuristic-filled verdict never wears a full-authority pill.
+              const meta = isUnevaluatedLens(l, pt.test_rigor)
+                ? { cls: "noteval", word: "Not evaluated" }
+                : VERDICT_META[l.verdict] ?? VERDICT_META.weakens;
               return (
                 <div className={`lens-item ${meta.cls}`} key={l.lens + i}>
                   <div className="lens-top">
                     <span className="lens-name">{titleCase(l.lens)}</span>
-                    <span className={`verdict-pill ${meta.cls}`}>{meta.word}</span>
+                    <span
+                      className={`verdict-pill ${meta.cls}`}
+                      title={
+                        meta.cls === "noteval"
+                          ? "This lens was filled heuristically — no real red-team pass ran."
+                          : undefined
+                      }
+                    >
+                      {meta.word}
+                    </span>
                   </div>
                   <div className="lens-arg">{l.argument}</div>
                   {l.evidence.length > 0 && (
@@ -298,6 +357,11 @@ export default function NodeInspector({
                           {SOURCE_LABEL[e.source]} ↗
                         </a>
                       ))}
+                      {l.evidence.some((e) => e.live === false) && (
+                        <span className="canned-badge" title="One or more quotes came from canned fixture data, not a live fetch.">
+                          canned data
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -380,6 +444,10 @@ export default function NodeInspector({
       {g.evidence.length > 0 && (
         <div className="detail-block">
           <h4>Evidence ({g.evidence.length})</h4>
+          <div className="mod-sub">
+            The raw quotes this case stands on. Follow the links — a claim without a live
+            source is still a hypothesis.
+          </div>
           <div className="evidence-list">
             {g.evidence.map((e, i) => {
               const date = fmtDate(e.date);
@@ -389,6 +457,11 @@ export default function NodeInspector({
                   <div className="ev-content">
                     <div className="ev-quote">{e.quote}</div>
                     <div className="ev-foot">
+                      {e.live === false && (
+                        <span className="canned-badge" title="Served from canned fixture data, not a live fetch.">
+                          canned data
+                        </span>
+                      )}
                       {date && <span>{date}</span>}
                       {e.url && (
                         <a href={e.url} target="_blank" rel="noreferrer">

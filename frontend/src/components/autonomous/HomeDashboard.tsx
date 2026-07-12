@@ -58,6 +58,10 @@ export default function HomeDashboard({ projects, onOpen, onNew, onQuickNew }: P
         <div>
           <div className="eyebrow">Autonomous mode</div>
           <h2>Your explorations</h2>
+          <div className="mod-sub">
+            Each card is a live run — open one to see its tree, or point the explorer at a
+            new domain.
+          </div>
         </div>
         <div className="home-head-actions">
           <button className="btn" onClick={onQuickNew}>⚡ Quick scan</button>
@@ -96,8 +100,9 @@ export default function HomeDashboard({ projects, onOpen, onNew, onQuickNew }: P
       {sorted.length === 0 ? (
         <div className="home-empty">
           <div className="ee-mark">◇</div>
-          <p>No explorations yet. Spawn one on any domain and walk away — it decomposes the
-          space, mines signals, hypothesizes gaps, and pressure-tests the promising ones.</p>
+          <p>No explorations yet. Start one on any domain and walk away — the explorer maps
+          the space, mines live signals, hypothesizes gaps, and red-teams the promising ones.
+          Use Quick scan for a fast first read, or New exploration for a full run.</p>
         </div>
       ) : (
         <div className="home-grid">

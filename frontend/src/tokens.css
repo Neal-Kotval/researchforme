@@ -46,9 +46,20 @@
 
   /* ---- semantic states -------------------------------------------------- */
   --live: #1863dc;         --live-tint: #e8eefb;   /* live / sprinting — blue */
-  --mock: #b7791f;         --mock-tint: #fbf3e2;   /* curbing / medium — warm amber */
+  --warn: #b7791f;         --warn-tint: #fbf3e2;   /* caution states ONLY: curbing pace, medium confidence, weakens verdicts */
   --unavailable: #c8402f;  --unavailable-tint: #fbeae6; /* danger / error */
   --empty: #a7a7a0;        --empty-tint: #f0f0eb;
+
+  /* ---- provenance (reserved — memo §2) ----------------------------------- */
+  /* Amber means exactly one thing: "this data is canned/fixture, not live". */
+  --mock: #9a6b00;         --mock-tint: #f6eed7;
+
+  /* ---- founder fit (reserved — memo §1) ---------------------------------- */
+  /* Vermillion means exactly one thing: the founder — fit score, steering-
+     derived markers, "for you". Blue stays the market; never mix the two. */
+  --fit: #d24317;
+  --fit-strong: #b03410;
+  --fit-tint: #fbe9e2;
 
   /* ---- data ramp (warm grey → blue; denser = stronger) ------------------ */
   --ramp-0: #cfcfc9;   /* low — warm grey */

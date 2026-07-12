@@ -27,6 +27,8 @@ export interface Evidence {
   url: string;
   quote: string;
   date: string | null;
+  /** Provenance: false = served from canned/fixture data, not a live fetch. */
+  live?: boolean;
 }
 
 export interface Competitor {
@@ -91,4 +93,18 @@ export const SCORE_LABELS: Record<ScoreKey, string> = {
   trend_tailwind: "Tailwind",
   feasibility: "Feasibility",
   willingness_to_pay: "WTP",
+};
+
+/** One-sentence hover definitions — every score is a hypothesis, not a fact. */
+export const SCORE_HELP: Record<ScoreKey, string> = {
+  demand_strength:
+    "How loudly the market asks for this — inferred from signal volume, not proven demand.",
+  competitive_openness:
+    "How much room incumbents leave open — read from competitor coverage, not a guarantee.",
+  trend_tailwind:
+    "Whether the underlying trend pushes this forward — a bet on direction, not timing.",
+  feasibility:
+    "How buildable this looks for a small team — an estimate, not an engineering plan.",
+  willingness_to_pay:
+    "Whether buyers plausibly pay for this — inferred from analogous spend, not from customers.",
 };

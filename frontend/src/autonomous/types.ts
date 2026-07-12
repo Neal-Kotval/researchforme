@@ -218,3 +218,36 @@ export function viabilityRamp(v: number | null): string {
   const i = Math.min(4, Math.max(0, Math.floor((v / 100) * 5)));
   return `var(--ramp-${i})`;
 }
+
+/* ------------------------------------------------------- trust encoding -- */
+// Memo §2: a number's visual weight must match how much it deserves belief.
+// earned      = high confidence + standard/deep rigor → solid, full color.
+// provisional = medium confidence → outlined numeral.
+// unverified  = low confidence OR light rigor OR untested → dashed,
+//               desaturated, smaller, labelled "unverified".
+export type TrustLevel = "earned" | "provisional" | "unverified";
+
+export function trustLevel(
+  confidence: Confidence | null,
+  rigor: TestRigor | null | undefined
+): TrustLevel {
+  if (confidence == null || confidence === "low" || rigor == null || rigor === "light") {
+    return "unverified";
+  }
+  return confidence === "high" ? "earned" : "provisional";
+}
+
+/** Trust for a whole node (gap chips in the tree, digest rows, inspector). */
+export function nodeTrust(n: TreeNode): TrustLevel {
+  return trustLevel(n.confidence, n.pressure_test?.test_rigor ?? null);
+}
+
+// A lens verdict the backend filled heuristically (LLM unreachable / skipped)
+// must never wear a full-authority Survives/Weakens pill. Backends mark these
+// in the argument text; empty evidence on a light-rigor pass means the same.
+export function isUnevaluatedLens(l: LensVerdict, rigor: TestRigor): boolean {
+  return (
+    /not evaluated|heuristic fallback/i.test(l.argument) ||
+    (l.evidence.length === 0 && rigor === "light")
+  );
+}
