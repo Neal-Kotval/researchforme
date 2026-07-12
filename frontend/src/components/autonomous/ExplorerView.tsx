@@ -583,6 +583,14 @@ function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) 
   const [questions, setQuestions] = useState<IntakeQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [intakeLoading, setIntakeLoading] = useState(false);
+  // The questions mount below the drawer's fold — without this scroll the
+  // "Refine with questions" button reads as a no-op.
+  const questionsRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (questions.length) {
+      questionsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [questions]);
 
   const lines = (s: string) =>
     s.split("\n").map((x) => x.trim()).filter(Boolean);
@@ -837,7 +845,7 @@ function NewExplorationDialog({ initialDepth, onClose, onCreate }: DialogProps) 
           </div>
 
           {questions.length > 0 && (
-            <div className="nd-questions">
+            <div className="nd-questions" ref={questionsRef}>
               {questions.map((q, i) => (
                 <div className="nd-q" key={i}>
                   <div className="nd-q-label">{q.question}</div>
