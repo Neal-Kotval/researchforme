@@ -390,11 +390,7 @@ async def test_pressure_partial_fill_keeps_earned_rigor():
     assert test.test_rigor == "standard"
 
 
-def test_high_confidence_requires_live_corroboration():
-    """Deep rigor + the gap's own evidence can reach medium at most; only real
-    tool-fetched corroboration during the test unlocks 'high'."""
-    from app.autonomous.pressure import _confidence_for
-    from app.autonomous.schemas import PressureTest
+def _grounded_gap():
     from app.schemas import Evidence, SourceName
 
     gap = _tiny_gap()
@@ -402,9 +398,119 @@ def test_high_confidence_requires_live_corroboration():
         Evidence(source=SourceName.REDDIT, url=f"https://r.example/{i}", quote="q")
         for i in range(3)
     ]
-    test = PressureTest(test_rigor="deep", summary="SURVIVED")
-    assert _confidence_for(gap, test, corroboration=0) == "medium"
-    assert _confidence_for(gap, test, corroboration=2) == "high"
+    return gap
+
+
+def _lens(key: str, verdict: str, n_evidence: int = 0, live: bool = True):
+    from app.autonomous.schemas import LensVerdict
+    from app.schemas import Evidence, SourceName
+
+    return LensVerdict(
+        lens=key,
+        verdict=verdict,  # type: ignore[arg-type]
+        argument="case made",
+        evidence=[
+            Evidence(source=SourceName.HACKERNEWS, url=f"https://hn.example/{key}/{i}",
+                     quote="q", live=live)
+            for i in range(n_evidence)
+        ],
+    )
+
+
+def _test_with(lenses, rigor="deep"):
+    from app.autonomous.pressure import _assemble
+
+    return _assemble(lenses, rigor)
+
+
+def test_high_confidence_requires_the_full_bar():
+    """'high' is earned, not near-free: standard/deep rigor actually earned,
+    >=2 LIVE corroboration items, zero kills, and a majority of lenses that
+    survive or weaken *with evidence*. Anything less is medium at most."""
+    from app.autonomous.pressure import _confidence_for
+
+    gap = _grounded_gap()
+
+    # The full bar: deep rigor, 2 live corroborations, no kills, 4/6 survive.
+    battle_tested = _test_with([
+        _lens("demand_mirage", "survives", n_evidence=1),
+        _lens("just_a_feature", "survives", n_evidence=1),
+        _lens("empty_for_a_reason", "survives"),
+        _lens("why_now_fragility", "survives"),
+        _lens("incumbent_countermove", "weakens"),
+        _lens("moat", "weakens"),
+    ])
+    corroboration = sum(len(lv.evidence) for lv in battle_tested.lenses)
+    assert _confidence_for(gap, battle_tested, corroboration) == "high"
+
+    # Only ONE live corroboration item -> medium, however well it survived.
+    thin_corroboration = _test_with([
+        _lens("demand_mirage", "survives", n_evidence=1),
+        _lens("just_a_feature", "survives"),
+        _lens("empty_for_a_reason", "survives"),
+        _lens("why_now_fragility", "survives"),
+        _lens("incumbent_countermove", "survives"),
+        _lens("moat", "survives"),
+    ])
+    assert _confidence_for(gap, thin_corroboration, corroboration=1) == "medium"
+
+    # Any kill -> not high, no matter the corroboration.
+    with_kill = _test_with([
+        _lens("demand_mirage", "kills", n_evidence=2),
+        _lens("just_a_feature", "survives", n_evidence=1),
+        _lens("empty_for_a_reason", "survives"),
+        _lens("why_now_fragility", "survives"),
+        _lens("incumbent_countermove", "survives"),
+        _lens("moat", "survives"),
+    ])
+    assert _confidence_for(gap, with_kill, corroboration=3) != "high"
+
+    # Majority evidence-free weakens (e.g. skipped-lens fills) -> not high.
+    mostly_weakened = _test_with([
+        _lens("demand_mirage", "survives", n_evidence=2),
+        _lens("just_a_feature", "weakens"),
+        _lens("empty_for_a_reason", "weakens"),
+        _lens("why_now_fragility", "weakens"),
+        _lens("incumbent_countermove", "weakens"),
+        _lens("moat", "weakens"),
+    ])
+    assert _confidence_for(gap, mostly_weakened, corroboration=2) != "high"
+
+    # Rigor downgraded to light (the model barely engaged) -> not high.
+    light = _test_with(
+        [_lens("demand_mirage", "survives", n_evidence=2)], rigor="light"
+    )
+    assert _confidence_for(gap, light, corroboration=2) != "high"
+
+    # A weaken that comes WITH evidence counts toward the supported majority.
+    weakens_with_evidence = _test_with([
+        _lens("demand_mirage", "survives", n_evidence=1),
+        _lens("just_a_feature", "weakens", n_evidence=1),
+        _lens("empty_for_a_reason", "weakens", n_evidence=1),
+        _lens("why_now_fragility", "survives"),
+        _lens("incumbent_countermove", "weakens"),
+        _lens("moat", "weakens"),
+    ])
+    assert _confidence_for(gap, weakens_with_evidence, corroboration=3) == "high"
+
+
+def test_mock_only_corroboration_cannot_reach_high():
+    """Fixture/mock-sourced corroboration (live=False after the provenance fix)
+    keeps confidence at medium: only LIVE corroboration unlocks 'high'."""
+    from app.autonomous.pressure import _confidence_for
+
+    gap = _grounded_gap()
+    mock_corroborated = _test_with([
+        _lens("demand_mirage", "survives", n_evidence=2, live=False),
+        _lens("just_a_feature", "survives", n_evidence=1, live=False),
+        _lens("empty_for_a_reason", "survives"),
+        _lens("why_now_fragility", "survives"),
+        _lens("incumbent_countermove", "survives"),
+        _lens("moat", "survives"),
+    ])
+    corroboration = sum(len(lv.evidence) for lv in mock_corroborated.lenses)
+    assert corroboration == 3
+    assert _confidence_for(gap, mock_corroborated, corroboration) == "medium"
 
 
 # --------------------------------------------------------------------------- #

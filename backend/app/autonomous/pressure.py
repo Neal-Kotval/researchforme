@@ -615,22 +615,52 @@ def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
     return viability_int, _confidence_for(gap, test, corroboration)
 
 
+# The "high" bar (all must hold, on top of the medium points): the recorded
+# rigor actually earned (standard/deep — `_effective_rigor` already downgraded
+# barely-engaged runs), at least this many LIVE corroboration evidence items
+# pulled by the lenses, zero kills, and a majority of evaluated lenses that
+# either survives or weakens *with evidence* (an evidence-free weaken — e.g. a
+# skipped-lens fill — is an unexamined axis, not support).
+_HIGH_MIN_LIVE_CORROBORATION = 2
+_HIGH_RIGORS = frozenset({"standard", "deep"})
+
+
 def _confidence_for(gap: Gap, test: PressureTest, corroboration: int) -> Confidence:
     """Low/medium/high from rigor + how grounded/corroborated the gap is.
 
     Points: rigor (deep=2, standard=1, light=0) + a point when the gap is well
     grounded (>= 3 of its own evidence items) + a point when the lenses pulled
-    live corroborating evidence of their own. 3+ → high, 2 → medium, else low.
-    "high" additionally REQUIRES live corroboration: the gap's own (possibly
-    hallucinated) evidence can lift it to medium at most. A gap resting only on
-    a heuristic light test therefore stays honest ('low').
+    corroborating evidence of their own. 2 → medium (the workhorse tier),
+    else low.
+
+    "high" is deliberately expensive — 3+ points AND all of: standard/deep
+    rigor actually earned, >= 2 LIVE corroboration items (mock/fixture fetches
+    carry live=False and cannot count), no kill verdict, and a majority of the
+    evaluated lenses surviving or weakening with evidence. The gap's own
+    (possibly hallucinated) evidence can lift it to medium at most.
     """
     points = {"deep": 2, "standard": 1, "light": 0}.get(test.test_rigor, 0)
     if len(gap.evidence) >= 3:
         points += 1
     if corroboration > 0:  # lenses corroborated with their own fetched evidence
         points += 1
-    if points >= 3 and corroboration > 0:
+
+    live_corroboration = sum(
+        1 for lv in test.lenses for ev in lv.evidence if ev.live
+    )
+    _, _, killed = _tally(test.lenses)
+    supported = sum(
+        1
+        for lv in test.lenses
+        if lv.verdict == "survives" or (lv.verdict == "weakens" and lv.evidence)
+    )
+    earns_high = (
+        test.test_rigor in _HIGH_RIGORS
+        and live_corroboration >= _HIGH_MIN_LIVE_CORROBORATION
+        and killed == 0
+        and supported * 2 > len(test.lenses)
+    )
+    if points >= 3 and earns_high:
         return "high"
     if points >= 2:
         return "medium"
