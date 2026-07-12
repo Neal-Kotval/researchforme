@@ -186,7 +186,7 @@ def _tiny_gap(sub_segment: str = "battery sensors"):
 
 
 def test_pressure_corroboration_tools_gated_by_rigor():
-    """standard/deep rigor arms the five live search_* tools; light stays tool-free."""
+    """standard/deep rigor arms the search_* tools; light stays tool-free."""
     from types import SimpleNamespace
 
     from app.autonomous.engine import make_node
@@ -210,13 +210,21 @@ def test_pressure_corroboration_tools_gated_by_rigor():
         tools, sink = corroboration_tools_for(segment, "battery sensors", project, rigor)
         assert tools is not None, f"{rigor} rigor must arm corroboration tools"
         assert sink == {}
-        assert {t.name for t in tools} == {
+        # At least one search_* tool per demand-mix source. A superset is fine:
+        # the pressure path may additionally arm the pressure-only corroboration
+        # tools (search_outcomes / search_postmortems) via
+        # build_corroboration_tools(include_pressure_only=True).
+        expected = {
             "search_reddit",
             "search_arxiv",
             "search_hackernews",
             "search_github",
             "search_newsletters",
+            "search_jobs",
+            "search_appreviews",
+            "search_regulatory",
         }
+        assert {t.name for t in tools} >= expected
 
 
 @pytest.mark.asyncio

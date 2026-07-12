@@ -301,6 +301,7 @@ def build_corroboration_tools(
     area: str,
     sub_segments: list[str],
     url_sink: Optional[dict[str, bool]] = None,
+    include_pressure_only: bool = False,
 ) -> list[ToolSpec]:
     """One live ``search_*`` corroboration tool per source, bound to ``area``.
 
@@ -311,6 +312,13 @@ def build_corroboration_tools(
     note on failure) so tool use can't crash a run. ``url_sink`` (optional)
     collects every fetched item URL -> live? so the grounding gate can accept
     tool-corroborated evidence.
+
+    ``include_pressure_only=True`` (the pressure-test path should pass it)
+    additionally exposes the pressure-only adapters — ``search_outcomes`` (YC
+    company outcomes) and ``search_postmortems`` (curated failure corpus) — so
+    the crowded / empty-for-a-reason lenses can pull outcome evidence. They are
+    deliberately absent from the default set: outcome corroboration is red-team
+    material, not demand-mix input.
     """
     schema = {
         "type": "object",
@@ -358,7 +366,44 @@ def build_corroboration_tools(
             "Search recent tech-newsletter coverage for an attention / 'why now' "
             "tailwind behind a hypothesized gap.",
         ),
+        (
+            "search_jobs",
+            SourceName.JOBS,
+            "Search job postings (RemoteOK, WeWorkRemotely, HN who-is-hiring) for "
+            "wallet-backed demand: a recurring role across distinct companies means "
+            "the pain is worth salaries.",
+        ),
+        (
+            "search_appreviews",
+            SourceName.APPREVIEWS,
+            "Pull 1-3 star iTunes reviews of the segment's top apps: paid-user "
+            "pain, weighted by how often each complaint theme recurs.",
+        ),
+        (
+            "search_regulatory",
+            SourceName.REGULATORY,
+            "Search Federal Register rules and proposed rules for a dated 'why "
+            "now' (compliance deadlines, comment windows) or a regulatory wall "
+            "explaining an empty space.",
+        ),
     ]
+    if include_pressure_only:
+        specs += [
+            (
+                "search_outcomes",
+                SourceName.OUTCOMES,
+                "Look up funded YC companies in this segment and their outcome "
+                "(Active / Acquired / Inactive / Public): direct evidence for the "
+                "crowded and empty-for-a-reason lenses.",
+            ),
+            (
+                "search_postmortems",
+                SourceName.POSTMORTEMS,
+                "Search a curated corpus of documented startup failures for "
+                "'someone already tried this and died because X' corroboration "
+                "(honest mock data — no live source exists).",
+            ),
+        ]
     return [
         ToolSpec(
             name=tool_name,

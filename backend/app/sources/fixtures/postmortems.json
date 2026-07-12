@@ -1,0 +1,338 @@
+[
+  {
+    "company": "ScaleFactor",
+    "year": 2020,
+    "segment_keywords": ["bookkeeping", "accounting", "small business", "ai", "automation", "finance"],
+    "kill_reason": "product overpromised: 'AI bookkeeping' was largely manual labor with unsustainable economics",
+    "summary": "Raised ~$100M to automate small-business bookkeeping; the 'AI' relied heavily on human accountants behind the scenes, error rates upset customers, and the cost structure never worked. Shut down in 2020.",
+    "citation_url": "https://postmortems.example.org/scalefactor"
+  },
+  {
+    "company": "Zirtual",
+    "year": 2015,
+    "segment_keywords": ["virtual assistant", "freelancers", "productivity", "services", "delegation"],
+    "kill_reason": "unit economics: W2 assistant payroll outran subscription revenue",
+    "summary": "Subscription virtual-assistant service that converted contractors to employees; payroll burn exceeded revenue and the company shut down abruptly overnight in 2015 before an asset sale.",
+    "citation_url": "https://postmortems.example.org/zirtual"
+  },
+  {
+    "company": "Homejoy",
+    "year": 2015,
+    "segment_keywords": ["home cleaning", "marketplace", "local services", "gig economy", "booking"],
+    "kill_reason": "customer retention was terrible and 1099 misclassification lawsuits blocked further funding",
+    "summary": "On-demand home-cleaning marketplace with heavy discounts that never converted to repeat customers; worker-classification lawsuits scared off investors. Shut down July 2015.",
+    "citation_url": "https://postmortems.example.org/homejoy"
+  },
+  {
+    "company": "Juicero",
+    "year": 2017,
+    "segment_keywords": ["hardware", "kitchen", "consumer", "subscription", "food", "iot"],
+    "kill_reason": "no willingness to pay: a $400 machine whose juice packs could be squeezed by hand",
+    "summary": "Wi-Fi juice press with proprietary produce packs; once shown the packs could be hand-squeezed, the premium hardware value proposition collapsed. Shut down in 2017.",
+    "citation_url": "https://postmortems.example.org/juicero"
+  },
+  {
+    "company": "Quibi",
+    "year": 2020,
+    "segment_keywords": ["video", "streaming", "mobile", "media", "entertainment", "consumer"],
+    "kill_reason": "no demand for the format: premium short-form mobile-only video solved nobody's problem",
+    "summary": "Raised $1.75B for mobile-only short premium video; launched into a market that already had free short video and shut down within six months in 2020.",
+    "citation_url": "https://postmortems.example.org/quibi"
+  },
+  {
+    "company": "MoviePass",
+    "year": 2019,
+    "segment_keywords": ["subscription", "movies", "entertainment", "consumer", "pricing"],
+    "kill_reason": "subscription price far below cost of service; every active user deepened losses",
+    "summary": "Unlimited theater tickets for $9.95/month while paying theaters full price; usage-heavy subscribers made losses scale with growth. Service collapsed in 2019.",
+    "citation_url": "https://postmortems.example.org/moviepass"
+  },
+  {
+    "company": "Shyp",
+    "year": 2018,
+    "segment_keywords": ["shipping", "logistics", "on-demand", "consumer", "couriers"],
+    "kill_reason": "unit economics: flat-fee on-demand pickup cost more to deliver than customers paid",
+    "summary": "On-demand shipping pickup/packing for consumers; the $5 flat pickup never covered courier and packing costs and a late pivot to SMBs came too late. Shut down 2018.",
+    "citation_url": "https://postmortems.example.org/shyp"
+  },
+  {
+    "company": "Washio",
+    "year": 2016,
+    "segment_keywords": ["laundry", "on-demand", "local services", "consumer", "delivery"],
+    "kill_reason": "thin-margin logistics with no moat; cheaper local incumbents undercut it",
+    "summary": "On-demand laundry pickup/delivery; margins after courier costs were thin, retention weak, and local dry cleaners with delivery matched the offer. Shut down 2016.",
+    "citation_url": "https://postmortems.example.org/washio"
+  },
+  {
+    "company": "Sprig",
+    "year": 2017,
+    "segment_keywords": ["food delivery", "meals", "on-demand", "consumer", "kitchen"],
+    "kill_reason": "full-stack meal production plus delivery never reached sustainable unit economics",
+    "summary": "Cooked and delivered its own healthy meals; owning kitchens, couriers and demand generation made every order lose money at scale. Shut down 2017.",
+    "citation_url": "https://postmortems.example.org/sprig"
+  },
+  {
+    "company": "Munchery",
+    "year": 2019,
+    "segment_keywords": ["food delivery", "meals", "subscription", "consumer"],
+    "kill_reason": "high production costs and heavy discounting; ran out of cash",
+    "summary": "Chef-prepared meal delivery that burned through ~$125M; production overhead and discount-driven demand never converged on profitability. Closed January 2019.",
+    "citation_url": "https://postmortems.example.org/munchery"
+  },
+  {
+    "company": "Beepi",
+    "year": 2017,
+    "segment_keywords": ["used cars", "marketplace", "automotive", "consumer", "ecommerce"],
+    "kill_reason": "cash-heavy inventory model with high burn; funding round collapsed",
+    "summary": "Peer-to-peer used-car marketplace holding inventory risk; ~$7M/month burn and a failed strategic round killed it in 2017.",
+    "citation_url": "https://postmortems.example.org/beepi"
+  },
+  {
+    "company": "Anki",
+    "year": 2019,
+    "segment_keywords": ["robotics", "consumer hardware", "toys", "ai"],
+    "kill_reason": "consumer-robotics hardware margins couldn't sustain the company between hit products",
+    "summary": "Sold millions of Cozmo/Vector robots but hardware margins and seasonal sales couldn't cover R&D; a bridge financing fell through in 2019.",
+    "citation_url": "https://postmortems.example.org/anki"
+  },
+  {
+    "company": "Jibo",
+    "year": 2018,
+    "segment_keywords": ["robotics", "smart home", "consumer hardware", "voice assistant"],
+    "kill_reason": "outpaced by cheap voice assistants; $899 social robot had no durable use case",
+    "summary": "Social home robot crowdfunded to fame; by ship date, $50 smart speakers did the useful parts. Wound down from 2018.",
+    "citation_url": "https://postmortems.example.org/jibo"
+  },
+  {
+    "company": "Theranos",
+    "year": 2018,
+    "segment_keywords": ["healthcare", "diagnostics", "blood testing", "labs", "medical devices"],
+    "kill_reason": "the core technology never worked; fraud collapsed the company under regulatory action",
+    "summary": "Claimed full blood panels from a finger prick; the proprietary devices could not deliver, and regulatory sanctions plus fraud charges dissolved the company in 2018.",
+    "citation_url": "https://postmortems.example.org/theranos"
+  },
+  {
+    "company": "Jawbone",
+    "year": 2017,
+    "segment_keywords": ["wearables", "fitness tracker", "consumer hardware", "health"],
+    "kill_reason": "squeezed between Fitbit and Apple; quality issues and litigation drained it",
+    "summary": "Pioneer in fitness wearables that lost the category to better-capitalized rivals; liquidated in 2017 after burning ~$900M.",
+    "citation_url": "https://postmortems.example.org/jawbone"
+  },
+  {
+    "company": "Pebble",
+    "year": 2016,
+    "segment_keywords": ["smartwatch", "wearables", "consumer hardware", "crowdfunding"],
+    "kill_reason": "platform giants entered the category; independent hardware couldn't sustain scale",
+    "summary": "Record-setting Kickstarter smartwatch maker; once Apple Watch and Android Wear shipped, sales and financing dried up. Assets sold to Fitbit in 2016.",
+    "citation_url": "https://postmortems.example.org/pebble"
+  },
+  {
+    "company": "Secret",
+    "year": 2015,
+    "segment_keywords": ["social", "anonymous", "consumer apps", "messaging"],
+    "kill_reason": "anonymity attracted harassment; engagement collapsed after the novelty faded",
+    "summary": "Anonymous sharing app that spiked then cratered as bullying dominated and retention vanished; shut down in 2015 and returned money to investors.",
+    "citation_url": "https://postmortems.example.org/secret"
+  },
+  {
+    "company": "Yik Yak",
+    "year": 2017,
+    "segment_keywords": ["social", "anonymous", "local", "college", "consumer apps"],
+    "kill_reason": "harassment-driven bans and de-anonymization updates destroyed usage",
+    "summary": "Location-based anonymous campus feed valued near $400M; school bans plus product changes that removed anonymity collapsed engagement. Shut down 2017.",
+    "citation_url": "https://postmortems.example.org/yikyak"
+  },
+  {
+    "company": "Vine",
+    "year": 2017,
+    "segment_keywords": ["video", "social", "creators", "short-form", "consumer apps"],
+    "kill_reason": "no creator monetization; talent and audience migrated to competitors",
+    "summary": "Six-second video network that never paid creators; Instagram video and Snapchat pulled its stars away and Twitter shut it down in January 2017.",
+    "citation_url": "https://postmortems.example.org/vine"
+  },
+  {
+    "company": "Rdio",
+    "year": 2015,
+    "segment_keywords": ["music", "streaming", "subscription", "consumer", "media"],
+    "kill_reason": "outmarketed by Spotify in a licensing-cost commodity market",
+    "summary": "Well-designed music streaming service that couldn't win subscribers against Spotify's free tier and marketing; filed bankruptcy in 2015, assets to Pandora.",
+    "citation_url": "https://postmortems.example.org/rdio"
+  },
+  {
+    "company": "Quirky",
+    "year": 2015,
+    "segment_keywords": ["hardware", "invention", "crowdsourcing", "consumer products", "marketplace"],
+    "kill_reason": "crowdsourced-invention model produced too many low-margin flops",
+    "summary": "Community-invention platform that manufactured whatever the crowd voted for; scattershot low-volume products burned $185M. Bankruptcy in 2015.",
+    "citation_url": "https://postmortems.example.org/quirky"
+  },
+  {
+    "company": "Powa Technologies",
+    "year": 2016,
+    "segment_keywords": ["payments", "mobile commerce", "retail", "fintech"],
+    "kill_reason": "spent like a giant on a product merchants hadn't agreed to buy",
+    "summary": "UK mobile-payments 'unicorn' whose claimed merchant deals were mostly non-binding letters of intent; collapsed into administration in 2016.",
+    "citation_url": "https://postmortems.example.org/powa"
+  },
+  {
+    "company": "Everpix",
+    "year": 2013,
+    "segment_keywords": ["photos", "cloud storage", "consumer apps", "subscription"],
+    "kill_reason": "great product, no distribution: growth too slow to raise the next round",
+    "summary": "Beloved photo organization service with strong retention but tiny user base; couldn't out-distribute free offerings from platform giants. Shut down 2013.",
+    "citation_url": "https://postmortems.example.org/everpix"
+  },
+  {
+    "company": "Aereo",
+    "year": 2014,
+    "segment_keywords": ["tv", "streaming", "broadcast", "media", "regulatory", "legal"],
+    "kill_reason": "killed by law: Supreme Court ruled its antenna-array retransmission infringed copyright",
+    "summary": "Streamed broadcast TV via per-user micro-antennas; the entire model rested on a legal theory the Supreme Court rejected in 2014. Bankruptcy followed.",
+    "citation_url": "https://postmortems.example.org/aereo"
+  },
+  {
+    "company": "Katerra",
+    "year": 2021,
+    "segment_keywords": ["construction", "real estate", "manufacturing", "b2b", "prefab"],
+    "kill_reason": "vertical integration in construction multiplied operational complexity faster than savings",
+    "summary": "SoftBank-backed attempt to industrialize construction end-to-end; factories, projects and software all underperformed at once. Bankruptcy in 2021 after ~$2B raised.",
+    "citation_url": "https://postmortems.example.org/katerra"
+  },
+  {
+    "company": "Fast",
+    "year": 2022,
+    "segment_keywords": ["checkout", "ecommerce", "payments", "fintech", "one-click"],
+    "kill_reason": "burn wildly exceeded revenue; one-click checkout was a feature incumbents bundled",
+    "summary": "One-click checkout startup spending ~$10M/month against ~$600k annual revenue; Shopify/Shop Pay and Bolt boxed it in. Shut down April 2022.",
+    "citation_url": "https://postmortems.example.org/fast"
+  },
+  {
+    "company": "Argo AI",
+    "year": 2022,
+    "segment_keywords": ["autonomous vehicles", "self-driving", "automotive", "ai", "robotics"],
+    "kill_reason": "capital intensity: full autonomy stayed perpetually years away and backers stopped funding it",
+    "summary": "Ford/VW-backed self-driving unit that consumed billions; when robotaxi timelines slipped again, both backers redirected capital to driver-assist. Closed 2022.",
+    "citation_url": "https://postmortems.example.org/argo"
+  },
+  {
+    "company": "Zume",
+    "year": 2023,
+    "segment_keywords": ["food", "robotics", "pizza", "automation", "packaging"],
+    "kill_reason": "robot-made pizza never worked operationally; pivots couldn't outrun the burn",
+    "summary": "Robotic pizza trucks (cheese slid off in transit) pivoted to sustainable packaging; ~$445M raised, shut down in 2023.",
+    "citation_url": "https://postmortems.example.org/zume"
+  },
+  {
+    "company": "Convoy",
+    "year": 2023,
+    "segment_keywords": ["freight", "trucking", "logistics", "marketplace", "b2b"],
+    "kill_reason": "digital freight brokerage margins stayed razor-thin; freight recession plus frozen capital markets",
+    "summary": "Digital freight marketplace valued at $3.8B; brokerage take rates never produced durable margins and the 2023 freight downturn ended it despite strong tech.",
+    "citation_url": "https://postmortems.example.org/convoy"
+  },
+  {
+    "company": "Olive AI",
+    "year": 2023,
+    "segment_keywords": ["healthcare", "automation", "hospital", "ai", "revenue cycle", "b2b"],
+    "kill_reason": "overpromised AI automation for hospitals; products underdelivered and churn followed",
+    "summary": "Hospital back-office 'AI workforce' valued at $4B; internal reports found much automation was brittle RPA, customers churned, and the company wound down in 2023.",
+    "citation_url": "https://postmortems.example.org/olive"
+  },
+  {
+    "company": "Babylon Health",
+    "year": 2023,
+    "segment_keywords": ["telehealth", "healthcare", "ai", "primary care", "insurance"],
+    "kill_reason": "value-based care contracts lost money per patient; AI triage never carried the economics",
+    "summary": "AI-triage plus telehealth provider that went public near $4B; capitated care costs exceeded revenue per member and the company collapsed into insolvency in 2023.",
+    "citation_url": "https://postmortems.example.org/babylon"
+  },
+  {
+    "company": "HomeHero",
+    "year": 2017,
+    "segment_keywords": ["home care", "healthcare", "caregivers", "marketplace", "seniors", "regulatory"],
+    "kill_reason": "regulatory reclassification: converting 1099 caregivers to W2 destroyed the marketplace economics",
+    "summary": "In-home senior-care marketplace; California worker-classification pressure forced a W2 model that erased its cost advantage over agencies. Shut down 2017.",
+    "citation_url": "https://postmortems.example.org/homehero"
+  },
+  {
+    "company": "Call9",
+    "year": 2019,
+    "segment_keywords": ["telehealth", "emergency care", "nursing homes", "healthcare", "reimbursement"],
+    "kill_reason": "reimbursement lagged reality: payers wouldn't sustainably pay for embedded tele-emergency care",
+    "summary": "Placed first responders + telemedicine in nursing homes to avoid ER trips; demonstrated savings accrued to payers who wouldn't fund it. Shut down 2019.",
+    "citation_url": "https://postmortems.example.org/call9"
+  },
+  {
+    "company": "Atrium",
+    "year": 2020,
+    "segment_keywords": ["legal", "law firm", "startups", "services", "b2b", "saas"],
+    "kill_reason": "software-plus-services law firm couldn't make legal work scale like software",
+    "summary": "Tech-enabled law firm for startups ($75M raised); legal services stayed labor-bound and margin-poor despite the software layer. Wound down 2020.",
+    "citation_url": "https://postmortems.example.org/atrium"
+  },
+  {
+    "company": "Brandless",
+    "year": 2020,
+    "segment_keywords": ["ecommerce", "cpg", "consumer goods", "d2c", "retail"],
+    "kill_reason": "CAC exceeded thin private-label margins; $3 products couldn't fund paid acquisition",
+    "summary": "Direct-to-consumer everyday goods at flat low prices; customer-acquisition costs dwarfed contribution margin. First SoftBank Vision Fund company to fold, 2020.",
+    "citation_url": "https://postmortems.example.org/brandless"
+  },
+  {
+    "company": "Airware",
+    "year": 2018,
+    "segment_keywords": ["drones", "enterprise", "hardware", "analytics", "construction", "mining"],
+    "kill_reason": "burned through $118M switching between drone hardware and analytics as cheap hardware commoditized",
+    "summary": "Enterprise drone platform that kept repositioning as DJI commoditized hardware; ran out of money in 2018 before analytics revenue matured.",
+    "citation_url": "https://postmortems.example.org/airware"
+  },
+  {
+    "company": "Essential",
+    "year": 2020,
+    "segment_keywords": ["smartphone", "consumer hardware", "mobile", "android"],
+    "kill_reason": "no wedge into a saturated duopoly market despite $330M and a famous founder",
+    "summary": "Andy Rubin's premium Android phone sold ~150k units into an Apple/Samsung market with zero switching pull; shut down in 2020.",
+    "citation_url": "https://postmortems.example.org/essential"
+  },
+  {
+    "company": "IRL",
+    "year": 2023,
+    "segment_keywords": ["social", "events", "messaging", "consumer apps", "gen z"],
+    "kill_reason": "fabricated traction: ~95% of claimed users were bots; trust and funding evaporated",
+    "summary": "Event-discovery-turned-messaging app valued at $1.17B; a board investigation found the vast majority of its 20M 'users' were fake. Shut down 2023.",
+    "citation_url": "https://postmortems.example.org/irl"
+  },
+  {
+    "company": "Fab.com",
+    "year": 2015,
+    "segment_keywords": ["ecommerce", "design", "flash sales", "consumer", "retail"],
+    "kill_reason": "pivoted away from what worked; inventory-heavy redesign burned $300M+",
+    "summary": "Design flash-sales site that hit a $1B valuation, then pivoted to holding inventory and conventional e-commerce; sold for parts by 2015.",
+    "citation_url": "https://postmortems.example.org/fab"
+  },
+  {
+    "company": "Solyndra",
+    "year": 2011,
+    "segment_keywords": ["solar", "energy", "cleantech", "manufacturing", "hardware"],
+    "kill_reason": "commodity price collapse: polysilicon panels got cheaper than its novel design could ever be",
+    "summary": "Cylindrical thin-film solar maker; crashing conventional panel prices erased its cost thesis. Bankruptcy in 2011 despite a $535M federal loan guarantee.",
+    "citation_url": "https://postmortems.example.org/solyndra"
+  },
+  {
+    "company": "Better Place",
+    "year": 2013,
+    "segment_keywords": ["electric vehicles", "batteries", "charging", "automotive", "infrastructure"],
+    "kill_reason": "capital-intensive battery-swap network needed automaker standardization that never came",
+    "summary": "Built battery-swap stations for EVs before EVs were common; only one car model ever supported it. Burned ~$850M, bankrupt 2013.",
+    "citation_url": "https://postmortems.example.org/betterplace"
+  },
+  {
+    "company": "Doppler Labs",
+    "year": 2017,
+    "segment_keywords": ["audio", "hearables", "consumer hardware", "wearables"],
+    "kill_reason": "shipped ahead of component maturity; returns and platform giants' AirPods squeezed it",
+    "summary": "Smart earbuds pioneer whose battery/Bluetooth compromises produced high return rates just as AirPods launched; closed 2017.",
+    "citation_url": "https://postmortems.example.org/doppler"
+  }
+]

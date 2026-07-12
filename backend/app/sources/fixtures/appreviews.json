@@ -1,0 +1,72 @@
+{
+  "_note": "Synthetic iTunes search results + customer-review RSS payloads. trackIds are 11-digit out-of-range values (real Apple ids are 9-10 digits), so the adapter-minted apps.apple.com/us/app/id... URLs can never resolve; the review id labels are plain strings, not URLs (fixture-provenance rule).",
+  "apps": [
+    {
+      "trackId": 99000000001,
+      "trackName": "LedgerPal: Small Business Books",
+      "averageUserRating": 3.9,
+      "userRatingCount": 48210,
+      "primaryGenreName": "Finance"
+    },
+    {
+      "trackId": 99000000002,
+      "trackName": "InvoiceOwl Pro",
+      "averageUserRating": 4.1,
+      "userRatingCount": 21077,
+      "primaryGenreName": "Business"
+    }
+  ],
+  "reviews": {
+    "99000000001": {
+      "feed": {
+        "entry": [
+          {
+            "im:name": {"label": "LedgerPal: Small Business Books"},
+            "im:artist": {"label": "Fixture Labs"},
+            "title": {"label": "LedgerPal: Small Business Books"}
+          },
+          {
+            "id": {"label": "fixture-review-1001"},
+            "author": {"name": {"label": "fixture_user_a"}},
+            "im:rating": {"label": "1"},
+            "im:version": {"label": "8.2.1"},
+            "updated": {"label": "2026-07-01T08:32:42-07:00"},
+            "title": {"label": "Sync keeps losing my invoices"},
+            "content": {"label": "Every time the app tries to sync with my bank feed it crashes and I have lost invoices twice. Support never answers. For this subscription price the sync should just work."}
+          },
+          {
+            "id": {"label": "fixture-review-1002"},
+            "author": {"name": {"label": "fixture_user_b"}},
+            "im:rating": {"label": "2"},
+            "im:version": {"label": "8.2.0"},
+            "updated": {"label": "2026-06-24T18:05:10-07:00"},
+            "title": {"label": "Subscription creep"},
+            "content": {"label": "They moved mileage tracking behind another subscription tier. The app is slow, the sync fails weekly, and canceling took three emails to support."}
+          },
+          {
+            "id": {"label": "fixture-review-1003"},
+            "author": {"name": {"label": "fixture_user_c"}},
+            "im:rating": {"label": "5"},
+            "im:version": {"label": "8.2.1"},
+            "updated": {"label": "2026-06-20T11:15:00-07:00"},
+            "title": {"label": "Love it"},
+            "content": {"label": "Five stars, works great for me — this entry exists so the client-side 1-3 star filter has something to drop."}
+          }
+        ]
+      }
+    },
+    "99000000002": {
+      "feed": {
+        "entry": {
+          "id": {"label": "fixture-review-2001"},
+          "author": {"name": {"label": "fixture_user_d"}},
+          "im:rating": {"label": "2"},
+          "im:version": {"label": "3.4.0"},
+          "updated": {"label": "2026-06-28T09:12:00-07:00"},
+          "title": {"label": "Crashes on export"},
+          "content": {"label": "The PDF export crashes every time on my invoices over 20 line items. A bug this basic in a paid subscription app is unacceptable, and support just sends canned replies."}
+        }
+      }
+    }
+  }
+}

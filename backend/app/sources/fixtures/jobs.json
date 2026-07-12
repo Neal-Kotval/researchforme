@@ -1,0 +1,82 @@
+{
+  "_note": "Synthetic job postings. All URLs are IANA-reserved *.example.org hosts and every HN objectID is out-of-range (99xxxxxxxx), so nothing here can ever resolve to real content (fixture-provenance rule).",
+  "remoteok": [
+    {
+      "legal": "synthetic fixture stand-in for the RemoteOK legal notice entry",
+      "last_updated": 1767225600
+    },
+    {
+      "id": "9900001",
+      "slug": "9900001-senior-integrations-engineer-acmeflow",
+      "position": "Senior Integrations Engineer",
+      "company": "Acmeflow",
+      "date": "2026-06-28T09:00:00+00:00",
+      "url": "https://remoteok.example.org/remote-jobs/9900001",
+      "tags": ["api", "integrations", "python"],
+      "location": "Remote",
+      "description": "<p>We keep hand-rolling brittle point-to-point integrations between our billing, CRM and support stack. You will own a unified sync layer because nothing off the shelf handles our compliance constraints.</p>"
+    },
+    {
+      "id": "9900002",
+      "slug": "9900002-workflow-automation-lead-brightops",
+      "position": "Workflow Automation Lead",
+      "company": "BrightOps",
+      "date": "2026-06-21T12:30:00+00:00",
+      "url": "https://remoteok.example.org/remote-jobs/9900002",
+      "tags": ["automation", "ops", "nocode"],
+      "location": "Remote (US)",
+      "description": "<p>Third automation hire this year: our ops team drowns in manual reconciliation between spreadsheets and our ERP. Existing tools stop at the demo stage.</p>"
+    },
+    {
+      "id": "9900003",
+      "slug": "9900003-compliance-tooling-engineer-ledgerly",
+      "position": "Compliance Tooling Engineer",
+      "company": "Ledgerly",
+      "date": "2026-06-14T15:45:00+00:00",
+      "url": "https://remoteok.example.org/remote-jobs/9900003",
+      "tags": ["fintech", "compliance", "golang"],
+      "location": "Remote",
+      "description": "<p>Build internal tooling for audit evidence collection. We evaluated every vendor in the space and none support our regulator's export format.</p>"
+    }
+  ],
+  "weworkremotely": [
+    {
+      "title": "Acmeflow: Customer Data Pipeline Engineer",
+      "link": "https://weworkremotely.example.org/remote-jobs/acmeflow-customer-data-pipeline-engineer",
+      "published": "Tue, 23 Jun 2026 10:00:00 +0000",
+      "description": "<p>Own the pipeline that unifies customer events across five SaaS tools. We are hiring because the connector products we tried silently drop records.</p>"
+    },
+    {
+      "title": "Northbeam Health: Patient Intake Automation Specialist",
+      "link": "https://weworkremotely.example.org/remote-jobs/northbeam-patient-intake-automation",
+      "published": "Thu, 18 Jun 2026 08:00:00 +0000",
+      "description": "<p>Digitize and automate clinic intake forms. Every off-the-shelf option fails our HIPAA workflow review, so we are building in-house.</p>"
+    }
+  ],
+  "hn_hiring": [
+    {
+      "objectID": "9900000001",
+      "author": "fixture_founder",
+      "created_at": "2026-07-02T14:00:00Z",
+      "parent_id": 9900000000,
+      "story_id": 9900000000,
+      "comment_text": "Acmeflow | Senior Integrations Engineer | Remote | Full-time. We keep hiring for the same role because reliable cross-tool sync for regulated data simply does not exist off the shelf."
+    },
+    {
+      "objectID": "9900000002",
+      "author": "fixture_cto",
+      "created_at": "2026-07-03T09:30:00Z",
+      "parent_id": 9900000000,
+      "story_id": 9900000000,
+      "comment_text": "Ledgerly | Compliance Tooling Engineer | Remote (US) | We tried three vendors for audit-evidence automation and ended up building internally; come own that platform."
+    },
+    {
+      "objectID": "9900000003",
+      "author": "fixture_reply_guy",
+      "created_at": "2026-07-03T10:00:00Z",
+      "parent_id": 9900000002,
+      "story_id": 9900000000,
+      "comment_text": "This is a reply, not a job post — the adapter must filter it out via parent_id != story_id."
+    }
+  ]
+}

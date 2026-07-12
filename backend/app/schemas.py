@@ -24,6 +24,11 @@ class SourceName(str, Enum):
     HACKERNEWS = "hackernews"
     GITHUB = "github"
     NEWSLETTER = "newsletter"
+    JOBS = "jobs"
+    APPREVIEWS = "appreviews"
+    REGULATORY = "regulatory"
+    OUTCOMES = "outcomes"
+    POSTMORTEMS = "postmortems"
 
 
 class SourceStatus(str, Enum):

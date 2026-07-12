@@ -1,0 +1,46 @@
+{
+  "_note": "Synthetic Federal Register documents. All html_urls live on the IANA-reserved federalregister.example.org host so nothing can resolve to a real rule (fixture-provenance rule). Field shapes mirror the live fields[] response, including a null abstract and null comments_close_on.",
+  "count": 4,
+  "results": [
+    {
+      "title": "Interoperability Requirements for Small-Practice Health Records",
+      "type": "Rule",
+      "abstract": "This final rule requires certified health IT used by practices with fewer than 15 clinicians to expose standardized patient-record export APIs, with a staged compliance deadline.",
+      "html_url": "https://www.federalregister.example.org/documents/2026/05/18/interop-small-practice",
+      "publication_date": "2026-05-18",
+      "effective_on": "2026-11-03",
+      "comments_close_on": null,
+      "agencies": [{"name": "Department of Health and Human Services"}]
+    },
+    {
+      "title": "Proposed Data Portability Standards for Consumer Financial Applications",
+      "type": "Proposed Rule",
+      "abstract": "The Bureau proposes standards requiring consumer financial applications to support authorized third-party data portability, including machine-readable export of transaction histories.",
+      "html_url": "https://www.federalregister.example.org/documents/2026/06/02/finapp-portability",
+      "publication_date": "2026-06-02",
+      "effective_on": null,
+      "comments_close_on": "2026-08-15",
+      "agencies": [{"name": "Consumer Financial Protection Bureau"}]
+    },
+    {
+      "title": "Recordkeeping Modernization for Independent Freight Brokers",
+      "type": "Rule",
+      "abstract": null,
+      "html_url": "https://www.federalregister.example.org/documents/2026/04/09/freight-broker-recordkeeping",
+      "publication_date": "2026-04-09",
+      "effective_on": "2027-01-01",
+      "comments_close_on": null,
+      "agencies": [{"name": "Federal Motor Carrier Safety Administration"}]
+    },
+    {
+      "title": "Proposed Accessibility Reporting Requirements for Online Scheduling Services",
+      "type": "Proposed Rule",
+      "abstract": "Proposes annual accessibility conformance reporting for online scheduling services used by public accommodations, with a small-entity phase-in.",
+      "html_url": "https://www.federalregister.example.org/documents/2026/03/22/scheduling-accessibility",
+      "publication_date": "2026-03-22",
+      "effective_on": null,
+      "comments_close_on": "2026-09-30",
+      "agencies": [{"name": "Department of Justice"}]
+    }
+  ]
+}

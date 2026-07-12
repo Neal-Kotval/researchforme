@@ -75,9 +75,13 @@ async def test_run_analysis_and_rerank(fixture_env):
     assert report.llm_mode == "fixture"
     assert report.cache_hit is False
     assert len(report.gaps) >= 1
-    # Every source produced a telemetry row (reddit, arxiv, hackernews, github,
-    # newsletter) — mock/degraded, since no creds and no network in tests.
-    assert len(report.sources) == 5
+    # Every demand-mix source produced a telemetry row (reddit, arxiv,
+    # hackernews, github, newsletter, jobs, appreviews, regulatory) —
+    # mock/degraded, since no creds and no network in tests. The two
+    # pressure-only adapters (outcomes, postmortems) are correctly absent.
+    from app.sources.registry import get_sources
+
+    assert len(report.sources) == len(get_sources())
 
     # --- at least one ranked gap with 5 competitors and valid scores ---------
     top = report.gaps[0]

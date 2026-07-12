@@ -39,6 +39,26 @@ class Settings(BaseModel):
     ]
     newsletter_max_items: int = 40
 
+    # --- Jobs (RemoteOK JSON + WeWorkRemotely RSS + HN who-is-hiring; keyless) ---
+    jobs_max_items: int = 40
+    jobs_max_requests: int = 5          # hard ceiling on external calls per fetch
+    jobs_request_delay: float = 1.0     # seconds between calls (politeness)
+
+    # --- App-store reviews (iTunes Search + customer-review RSS; keyless) ---
+    appreviews_max_apps: int = 3        # top apps (by rating count) per segment
+    appreviews_pages_per_app: int = 1   # RSS pages per app (50 reviews/page; API max 10)
+    appreviews_max_items: int = 40
+    appreviews_request_delay: float = 1.0
+
+    # --- Regulatory (Federal Register API; keyless, ~1000 req/hr soft limit) ---
+    regulatory_max_items: int = 20      # per_page (API max 1000; stay tiny + cache)
+
+    # --- Outcomes (yc-oss static YC directory; ~2 MB JSON on GitHub Pages) ---
+    outcomes_max_items: int = 25        # filtered companies surfaced per fetch
+
+    # --- Post-mortems (curated corpus; no keyless live source exists) ---
+    postmortems_max_items: int = 12
+
     # --- LLM ---
     anthropic_api_key: str | None = None
     # Force a specific LLM backend for testing: 'agent-sdk' | 'cli' | 'api' | 'fixture'
@@ -93,6 +113,29 @@ class Settings(BaseModel):
     @property
     def newsletter_live(self) -> bool:
         return bool(self.newsletter_feeds)
+
+    @property
+    def jobs_live(self) -> bool:
+        return True  # keyless (RemoteOK JSON, WeWorkRemotely RSS, HN Algolia)
+
+    @property
+    def appreviews_live(self) -> bool:
+        return True  # keyless iTunes Search + customer-review RSS
+
+    @property
+    def regulatory_live(self) -> bool:
+        return True  # keyless Federal Register API
+
+    @property
+    def outcomes_live(self) -> bool:
+        return True  # static yc-oss JSON on GitHub Pages, keyless
+
+    @property
+    def postmortems_live(self) -> bool:
+        # No keyless, stable public source exists (Failory is JS-rendered,
+        # CB Insights is one fragile editorial page). Curated corpus only —
+        # honestly reported MOCK until a real live source appears.
+        return False
 
     def resolve_llm_backend(self) -> str:
         """Pick the LLM backend. Order: explicit override -> API key -> agent SDK

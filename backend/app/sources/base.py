@@ -38,3 +38,8 @@ class Source(abc.ABC):
 
     # A short, human description used in the LLM tool manifest.
     description: str = ""
+
+    # Pressure-only adapters (e.g. outcomes, postmortems) are excluded from the
+    # default demand mix (`registry.get_sources()` / pipeline `_fetch_all`) and
+    # only consulted at pressure-test time as corroboration tools.
+    pressure_only: bool = False

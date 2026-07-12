@@ -1,6 +1,16 @@
 // Mirrors backend/app/schemas.py. Keep in sync.
 
-export type SourceName = "reddit" | "arxiv" | "hackernews" | "github" | "newsletter";
+export type SourceName =
+  | "reddit"
+  | "arxiv"
+  | "hackernews"
+  | "github"
+  | "newsletter"
+  | "jobs"
+  | "appreviews"
+  | "regulatory"
+  | "outcomes"
+  | "postmortems";
 
 /** Short, human-facing label for each signal source. */
 export const SOURCE_LABEL: Record<SourceName, string> = {
@@ -9,6 +19,11 @@ export const SOURCE_LABEL: Record<SourceName, string> = {
   hackernews: "HN",
   github: "GitHub",
   newsletter: "Newsletter",
+  jobs: "Jobs",
+  appreviews: "App reviews",
+  regulatory: "Regulatory",
+  outcomes: "Outcomes",
+  postmortems: "Post-mortems",
 };
 
 export const SCORE_KEYS = [
