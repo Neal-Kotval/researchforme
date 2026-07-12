@@ -43,6 +43,8 @@
   /* ---- highlight (chartreuse marker — reserved, sparing) ---------------- */
   --highlight: #fbff7a;
   --highlight-ink: #222220;
+  --highlight-border: #d7dd45;  /* hairline on highlighter chips/pills */
+  --highlight-tint: #f7fbe0;    /* lead-row wash (Compare) */
 
   /* ---- semantic states -------------------------------------------------- */
   --live: #1863dc;         --live-tint: #e8eefb;   /* live / sprinting — blue */

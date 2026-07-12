@@ -1,68 +1,107 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useHashRoute } from "./hooks/useHashRoute";
 import ExplorerView from "./components/autonomous/ExplorerView";
 import CommandPalette from "./components/CommandPalette";
+import PlatformShell from "./components/platform/PlatformShell";
+import PressureTestView from "./components/platform/PressureTestView";
+import CompareView from "./components/platform/CompareView";
+import AssistantView from "./components/platform/AssistantView";
+
+/** True while the user is typing somewhere a bare-key shortcut must not fire. */
+function typingInField(): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el) return false;
+  return (
+    el.tagName === "INPUT" ||
+    el.tagName === "TEXTAREA" ||
+    el.tagName === "SELECT" ||
+    el.isContentEditable
+  );
+}
 
 export default function App() {
-  const { route, navHome, navProject, navNode } = useHashRoute();
+  const { route, navHome, navProject, navNode, navView } = useHashRoute();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [newExplorationSignal, setNewExplorationSignal] = useState(0);
 
-  // ⌘K toggles the command palette.
+  // The explorer engine (project store + SSE streams) stays mounted across all
+  // views; the flat platform screens render beside it and it simply hides.
+  const flatView =
+    route.view === "pressure" || route.view === "compare" || route.view === "assistant"
+      ? route.view
+      : null;
+
+  // "New exploration" opens the drawer inside the explorer — surface it first.
+  const newExploration = useCallback(() => {
+    if (window.location.hash !== "#/" && !window.location.hash.startsWith("#/e/")) navHome();
+    setNewExplorationSignal((n) => n + 1);
+  }, [navHome]);
+
+  // ⌘K palette; bare N = new exploration; bare / = assistant (design handoff).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen((v) => !v);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey || typingInField() || paletteOpen) return;
+      if (e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        newExploration();
+      } else if (e.key === "/") {
+        e.preventDefault();
+        navView("assistant");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [newExploration, navView, paletteOpen]);
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand">
-            <div className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m10.065 12.493-6.18 1.318a.934.934 0 0 1-1.108-.702l-.537-2.15a1.07 1.07 0 0 1 .691-1.265l13.504-4.44" />
-                <path d="m13.56 11.747 4.332-.924" />
-                <path d="m16 21-3.105-6.21" />
-                <path d="M16.485 5.94a2 2 0 0 1 1.455-2.425l1.09-.272a1 1 0 0 1 1.212.727l1.515 6.06a1 1 0 0 1-.727 1.213l-1.09.272a2 2 0 0 1-2.425-1.455z" />
-                <path d="m6.158 8.633 1.114 4.456" />
-                <path d="m8 21 3.105-6.21" />
-                <circle cx="12" cy="13" r="2" />
-              </svg>
-            </div>
-            <div>
-              <div className="brand-name">Market Gap Finder</div>
-              <div className="brand-sub">Signal-driven opportunity discovery</div>
-            </div>
+    <>
+      <PlatformShell
+        route={route}
+        onNav={navView}
+        onExplore={(latestActivePid) =>
+          latestActivePid ? navProject(latestActivePid) : navHome()
+        }
+        onNewExploration={newExploration}
+      >
+        <main className={`pf-content${flatView ? " hidden" : ""}`}>
+          <div className={`shell explorer-shell${route.view === "home" ? " on-home" : ""}`}>
+            <ExplorerView
+              route={route}
+              navHome={navHome}
+              navProject={navProject}
+              navNode={navNode}
+              newExplorationSignal={newExplorationSignal}
+            />
           </div>
-          <div className="topbar-spacer" />
-        </div>
-      </header>
-
-      <main className="shell explorer-shell">
-        <ExplorerView
-          route={route}
-          navHome={navHome}
-          navProject={navProject}
-          navNode={navNode}
-          newExplorationSignal={newExplorationSignal}
-        />
-      </main>
+        </main>
+        {flatView && (
+          <main className="pf-content">
+            {flatView === "pressure" && (
+              <PressureTestView onOpenNode={navNode} onNewExploration={newExploration} />
+            )}
+            {flatView === "compare" && (
+              <CompareView onOpenNode={navNode} onNewExploration={newExploration} />
+            )}
+            {flatView === "assistant" && (
+              <AssistantView onNav={navView} onNewExploration={newExploration} />
+            )}
+          </main>
+        )}
+      </PlatformShell>
 
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         ctx={{
           jumpProject: (pid) => navProject(pid),
-          newExploration: () => setNewExplorationSignal((n) => n + 1),
+          newExploration,
         }}
       />
-    </div>
+    </>
   );
 }

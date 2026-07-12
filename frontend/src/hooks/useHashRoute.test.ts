@@ -25,6 +25,16 @@ describe("parseHash", () => {
   it("falls back to home on a malformed hash", () => {
     expect(parseHash("#/garbage/here")).toEqual({ view: "home" });
   });
+  it("parses the flat platform views", () => {
+    expect(parseHash("#/pressure-test")).toEqual({ view: "pressure" });
+    expect(parseHash("#/compare")).toEqual({ view: "compare" });
+    expect(parseHash("#/assistant")).toEqual({ view: "assistant" });
+  });
+  it("round-trips the flat platform views", () => {
+    for (const r of [{ view: "pressure" }, { view: "compare" }, { view: "assistant" }] as Route[]) {
+      expect(parseHash(routeToHash(r))).toEqual(r);
+    }
+  });
   it("decodes percent-encoded ids", () => {
     expect(parseHash("#/e/a%20b/n/n%2F1")).toEqual({
       view: "exploration",
