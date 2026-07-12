@@ -72,6 +72,7 @@ class DemandSignal(BaseModel):
     strength: float = 0.0            # normalized 0..1
     date: Optional[datetime] = None
     tags: list[str] = Field(default_factory=list)
+    live: bool = True                # provenance: False if mined from mock data
 
 
 class CapabilitySignal(BaseModel):
@@ -82,6 +83,7 @@ class CapabilitySignal(BaseModel):
     url: str = ""
     momentum: float = 0.0            # acceleration proxy, normalized 0..1
     date: Optional[datetime] = None
+    live: bool = True                # provenance: False if mined from mock data
 
 
 class SupplySignal(BaseModel):
@@ -91,6 +93,7 @@ class SupplySignal(BaseModel):
     name: str
     hint: str                        # what was said about them
     url: str = ""
+    live: bool = True                # provenance: False if mined from mock data
 
 
 class ExtractedSignals(BaseModel):
@@ -131,6 +134,7 @@ class Evidence(BaseModel):
     url: str
     quote: str
     date: Optional[str] = None       # kept as string; sources vary in precision
+    live: bool = True                # provenance: False if it traces to mock/canned data
 
 
 class Competitor(BaseModel):
@@ -175,6 +179,8 @@ class Gap(BaseModel):
     why_now: str = ""                # the recent shift that unlocks this gap
     empty_for_a_reason: bool = False # True if this is likely empty-for-a-reason
     empty_reason: str = ""           # ...and why, if so
+    grounded: bool = True            # False if every evidence item failed the grounding gate
+    evidence_dropped: int = 0        # ungrounded evidence items dropped by the gate
     novelty: int = Field(default=3, ge=1, le=5)  # creativity / non-obviousness
     sub_segment: str = ""
     tags: list[str] = Field(default_factory=list)

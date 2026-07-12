@@ -37,6 +37,7 @@ from ..schemas import (
     Gap,
     SourceName,
     SourceReport,
+    SourceStatus,
 )
 
 # How many of each signal kind to actually put in the prompt. The extractor may
@@ -44,7 +45,7 @@ from ..schemas import (
 _MAX_DEMAND = 40
 _MAX_CAPABILITY = 24
 _MAX_SUPPLY = 24
-# Cap the number of gaps we accept from a single run (spec: 4-8).
+# Cap the number of gaps we accept from a single run (spec: 0-8).
 _MAX_GAPS = 8
 # Per-tool-call item cap when summarizing a corroboration fetch back to the model.
 _TOOL_ITEM_CAP = 8
@@ -141,8 +142,10 @@ Bias hard toward company-scale ideas. If a candidate is only a feature, either
 reframe it into the genuine company around it or drop it.
 
 # OUTPUT CONTRACT — STRICT
-Return ONLY a top-level JSON array (no prose, no markdown fences) of 4-8 gap
-objects. Each object MUST have exactly this shape:
+Return ONLY a top-level JSON array (no prose, no markdown fences) of 0-8 gap
+objects — return ONLY what the evidence supports; returning fewer (or zero)
+gaps on thin evidence is correct behavior and rewarded. Never pad. Each object
+MUST have exactly this shape:
 
 {
   "title": "short punchy name for the gap",
@@ -183,9 +186,9 @@ objects. Each object MUST have exactly this shape:
   "tags": ["short", "keywords"]
 }
 
-Rules: 3-6 evidence items per gap, each with a real URL from the signals/tools.
-Up to 5 competitors, each with a specific weakness. Output the JSON array and
-NOTHING else.\
+Rules: 1-6 evidence items per gap, only items genuinely present in the signals
+or your tool results, each with its real URL. Up to 5 competitors, each with a
+specific weakness. Output the JSON array and NOTHING else.\
 """
 
 
@@ -223,12 +226,24 @@ def _summarize_items(source: SourceName, items: list, note: Optional[str]) -> st
     return "\n".join(lines)
 
 
-def _make_tool_handler(name: SourceName, area: str, sub_segments: list[str]):
+def _norm_url(url: str) -> str:
+    """Canonicalize a URL just enough for grounding-set membership checks."""
+    return (url or "").strip().rstrip("/")
+
+
+def _make_tool_handler(
+    name: SourceName,
+    area: str,
+    sub_segments: list[str],
+    url_sink: Optional[dict[str, bool]] = None,
+):
     """Build the async handler that fetches from one source for a given query.
 
     The handler NEVER raises — on any failure it returns a short text note so the
     model can adapt. `fetch` is synchronous per the Source ABC, so we run it in a
-    worker thread to stay non-blocking.
+    worker thread to stay non-blocking. When ``url_sink`` is given, every fetched
+    item URL is recorded there (mapped to whether the source ran LIVE) so the
+    grounding gate can accept tool-corroborated evidence.
     """
 
     async def _handler(args: dict) -> str:
@@ -269,19 +284,33 @@ def _make_tool_handler(name: SourceName, area: str, sub_segments: list[str]):
         items = list(getattr(result, "items", []) or [])[:limit]
         report = getattr(result, "report", None)
         note = getattr(report, "note", None) if report is not None else None
+        # Feed every fetched URL into the grounding set: a URL the model just
+        # corroborated via a tool is fair game as Evidence.
+        if url_sink is not None:
+            is_live = bool(report and getattr(report, "status", None) == SourceStatus.LIVE)
+            for it in items:
+                url = _norm_url(getattr(it, "url", "") or "")
+                if url:
+                    url_sink[url] = is_live
         return _summarize_items(name, items, note)
 
     return _handler
 
 
-def build_corroboration_tools(area: str, sub_segments: list[str]) -> list[ToolSpec]:
+def build_corroboration_tools(
+    area: str,
+    sub_segments: list[str],
+    url_sink: Optional[dict[str, bool]] = None,
+) -> list[ToolSpec]:
     """One live ``search_*`` corroboration tool per source, bound to ``area``.
 
     Public factory so callers outside synthesis (notably the autonomous
     pressure-test path, SPEC §5) can hand the same fresh-evidence tools to a
     red-team model. The handlers take the *query* from the model and keep the
     given ``area``/``sub_segments`` as scope; each NEVER raises (returns a text
-    note on failure) so tool use can't crash a run.
+    note on failure) so tool use can't crash a run. ``url_sink`` (optional)
+    collects every fetched item URL -> live? so the grounding gate can accept
+    tool-corroborated evidence.
     """
     schema = {
         "type": "object",
@@ -335,15 +364,17 @@ def build_corroboration_tools(area: str, sub_segments: list[str]) -> list[ToolSp
             name=tool_name,
             description=desc,
             input_schema=schema,
-            handler=_make_tool_handler(src, area, sub_segments),
+            handler=_make_tool_handler(src, area, sub_segments, url_sink=url_sink),
         )
         for tool_name, src, desc in specs
     ]
 
 
-def _build_tools(signals: ExtractedSignals) -> list[ToolSpec]:
+def _build_tools(
+    signals: ExtractedSignals, url_sink: Optional[dict[str, bool]] = None
+) -> list[ToolSpec]:
     """Corroboration tools scoped to a segment's mined ``ExtractedSignals``."""
-    return build_corroboration_tools(signals.area, signals.sub_segments)
+    return build_corroboration_tools(signals.area, signals.sub_segments, url_sink=url_sink)
 
 
 # --------------------------------------------------------------------------- #
@@ -361,6 +392,7 @@ def _signals_payload(signals: ExtractedSignals) -> dict[str, Any]:
             "strength": round(d.strength, 3),
             "date": d.date.date().isoformat() if d.date else None,
             "tags": d.tags,
+            "live": d.live,
         }
 
     def _cap(c):
@@ -370,6 +402,7 @@ def _signals_payload(signals: ExtractedSignals) -> dict[str, Any]:
             "url": c.url,
             "momentum": round(c.momentum, 3),
             "date": c.date.date().isoformat() if c.date else None,
+            "live": c.live,
         }
 
     def _sup(s):
@@ -378,6 +411,7 @@ def _signals_payload(signals: ExtractedSignals) -> dict[str, Any]:
             "name": s.name,
             "hint": s.hint,
             "url": s.url,
+            "live": s.live,
         }
 
     demand = sorted(signals.demand, key=lambda d: d.strength, reverse=True)[:_MAX_DEMAND]
@@ -425,8 +459,9 @@ def _build_user_prompt(
         f"{json.dumps(payload, indent=2)}\n\n"
         "TASK: Apply the core thesis and every thinking lens from your system "
         "instructions. Optionally call the search_* tools to corroborate specific "
-        "hypotheses. Then output ONLY the strict JSON array of 4-8 grounded gap "
-        "objects — most attractive first. No prose, no markdown."
+        "hypotheses. Then output ONLY the strict JSON array of 0-8 grounded gap "
+        "objects — most attractive first, only as many as the evidence supports "
+        "(an empty array is a valid answer on thin evidence). No prose, no markdown."
     )
 
 
@@ -509,8 +544,46 @@ def _extract_json_array(text: str) -> Optional[list]:
     return None
 
 
-def _validate_gaps(raw: list, warnings: list[str]) -> list[Gap]:
-    """Validate each object with Gap(**obj); drop invalid ones, noting why."""
+def _ground_evidence(gap: Gap, known_urls: dict[str, bool], warnings: list[str]) -> None:
+    """The grounding gate: drop Evidence whose URL we never actually saw.
+
+    A URL is grounded iff it appears in the mined signals or in a corroboration
+    tool fetch from this synthesis (``known_urls``: normalized url -> was the
+    source LIVE?). Kept items inherit that per-item provenance; dropped items
+    are counted on ``gap.evidence_dropped``. A gap stripped of ALL evidence keeps
+    its other fields but is flagged ``grounded=False`` so downstream can't treat
+    it as a supported finding.
+    """
+    kept: list = []
+    dropped = 0
+    for ev in gap.evidence:
+        key = _norm_url(ev.url)
+        if key in known_urls:
+            ev.live = known_urls[key]
+            kept.append(ev)
+        else:
+            dropped += 1
+    if dropped:
+        gap.evidence = kept
+        gap.evidence_dropped = dropped
+        warnings.append(
+            f"synthesis: gap '{gap.title}': dropped {dropped} ungrounded evidence "
+            "item(s) (URL not in mined signals or tool results)."
+        )
+    if not gap.evidence:
+        gap.grounded = False
+
+
+def _validate_gaps(
+    raw: list, warnings: list[str], known_urls: Optional[dict[str, bool]] = None
+) -> list[Gap]:
+    """Validate each object with Gap(**obj); drop invalid ones, noting why.
+
+    When ``known_urls`` is given (live-LLM synthesis), every surviving gap is
+    also passed through the grounding gate — see ``_ground_evidence``. Fixture
+    output is validated with ``known_urls=None`` (shape-only) since the canned
+    URLs are the demo harness, not fabrication.
+    """
     gaps: list[Gap] = []
     for i, obj in enumerate(raw):
         if len(gaps) >= _MAX_GAPS:
@@ -519,12 +592,16 @@ def _validate_gaps(raw: list, warnings: list[str]) -> list[Gap]:
             warnings.append(f"synthesis: dropped item {i} (not an object)")
             continue
         try:
-            gaps.append(Gap(**obj))
+            gap = Gap(**obj)
         except Exception as exc:  # noqa: BLE001 - pydantic ValidationError et al.
             title = obj.get("title", f"item {i}") if isinstance(obj, dict) else f"item {i}"
             # Keep the note short; full trace isn't useful in the UI.
             msg = str(exc).splitlines()[0]
             warnings.append(f"synthesis: dropped invalid gap '{title}': {msg}")
+            continue
+        if known_urls is not None:
+            _ground_evidence(gap, known_urls, warnings)
+        gaps.append(gap)
     return gaps
 
 
@@ -548,7 +625,15 @@ async def synthesize(
     constraints. Never raises for ordinary failure modes — degrades to fixtures.
     """
     warnings: list[str] = []
-    tools = _build_tools(signals)
+    # The grounding set: every URL we actually saw (normalized url -> was its
+    # source LIVE?). Seeded from the mined signals; corroboration tool fetches
+    # append to it mid-synthesis via the url_sink.
+    known_urls: dict[str, bool] = {}
+    for sig in (*signals.demand, *signals.capability, *signals.supply):
+        key = _norm_url(sig.url)
+        if key:
+            known_urls[key] = known_urls.get(key, False) or sig.live
+    tools = _build_tools(signals, url_sink=known_urls)
     user_prompt = _build_user_prompt(signals, source_reports, steering)
 
     backend = "fixture"
@@ -574,16 +659,42 @@ async def synthesize(
             warnings.append("synthesis: could not parse a JSON array from LLM output.")
         gaps: list[Gap] = []
     else:
-        gaps = _validate_gaps(raw, warnings)
+        # The grounding gate only targets live-LLM output: the fixture backend
+        # serves canned gaps whose URLs are the demo harness, not fabrication
+        # (mock adapters never mined them), so it is validated shape-only.
+        gate = None if backend == "fixture" else known_urls
+        gaps = _validate_gaps(raw, warnings, known_urls=gate)
 
-    # Fallback: if nothing valid survived, use the canned fixture synthesis so
-    # the pipeline always returns real, well-formed gaps.
-    if not gaps:
+    if not gaps and raw == []:
+        # An honest empty answer on thin evidence — surface it, don't paper over
+        # it with fixtures.
+        warnings.append(
+            "synthesis: model returned zero gaps — the evidence was too thin to "
+            "support any. This is honest behavior, not a failure."
+        )
+    elif not gaps:
+        # Fallback: nothing parsed / nothing valid — use the canned fixture
+        # synthesis so the pipeline still returns well-formed gaps.
         warnings.append("synthesis: no valid gaps from LLM; falling back to fixtures.")
         from ..llm.fixture_synthesis import FIXTURE_GAPS_JSON
 
         fixture_raw = _extract_json_array(FIXTURE_GAPS_JSON) or []
         gaps = _validate_gaps(fixture_raw, warnings)
         backend = "fixture"
+
+    # Fixture honesty: canned gaps must never masquerade as findings. Mark the
+    # payload unmistakably — a loud warning plus a 'fixture' tag and live=False
+    # evidence on every gap — whether they came from the fixture LLM backend or
+    # the zero-dependency fallback above.
+    if backend == "fixture" and gaps:
+        warnings.append(
+            "synthesis: FIXTURE gaps — canned demo output (sample area: personal "
+            "finance for freelancers), NOT findings for the requested area."
+        )
+        for g in gaps:
+            if "fixture" not in g.tags:
+                g.tags = ["fixture", *g.tags]
+            for ev in g.evidence:
+                ev.live = False
 
     return gaps, backend, warnings

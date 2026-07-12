@@ -29,6 +29,7 @@ from ..schemas import (
     ExtractedSignals,
     RawItem,
     SourceName,
+    SourceStatus,
     SupplySignal,
 )
 from ..sources.base import FetchResult
@@ -505,6 +506,15 @@ def _items(fetched: dict[SourceName, FetchResult], name: SourceName) -> list[Raw
     return list(fr.items) if fr and fr.items else []
 
 
+def _live_map(fetched: dict[SourceName, FetchResult]) -> dict[SourceName, bool]:
+    """Per-source provenance: True only if the adapter's report says LIVE."""
+    out: dict[SourceName, bool] = {}
+    for name, fr in fetched.items():
+        report = fr.report if fr else None
+        out[name] = bool(report and report.status == SourceStatus.LIVE)
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # Public entry point                                                          #
 # --------------------------------------------------------------------------- #
@@ -559,6 +569,12 @@ def extract_signals(
     kept_demand = ranked_demand[: max(0, budget)]
     remaining = max(0, budget - len(kept_demand))
     kept_cap = ranked_cap[:remaining]
+
+    # Stamp per-item provenance from each source's own report so mock-derived
+    # signals can never masquerade as live data downstream (synthesis/grounding).
+    live = _live_map(fetched)
+    for sig in (*kept_demand, *kept_cap, *supply):
+        sig.live = live.get(sig.source, False)
 
     return ExtractedSignals(
         area=area,
