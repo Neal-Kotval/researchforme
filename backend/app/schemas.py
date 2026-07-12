@@ -96,6 +96,21 @@ class SupplySignal(BaseModel):
     live: bool = True                # provenance: False if mined from mock data
 
 
+class FundingHint(BaseModel):
+    """A funding-announcement crowding hint mined from newsletter items.
+
+    Deterministic extraction (no LLM): "X raises $12M Series A ..." headlines
+    become {company, round_hint, space_tokens, url} so the pressure test's
+    'crowded' lens can see who just got funded near a candidate space.
+    """
+
+    company: str
+    round_hint: str = ""             # e.g. "series a, $12M" — whatever was stated
+    space_tokens: list[str] = Field(default_factory=list)  # what space they fund
+    url: str = ""
+    live: bool = True                # provenance: False if mined from mock data
+
+
 class ExtractedSignals(BaseModel):
     """Everything the synthesis step reasons over, per run."""
 
@@ -105,6 +120,8 @@ class ExtractedSignals(BaseModel):
     demand: list[DemandSignal] = Field(default_factory=list)
     capability: list[CapabilitySignal] = Field(default_factory=list)
     supply: list[SupplySignal] = Field(default_factory=list)
+    # Additive (Phase 3 C1): funding-round crowding hints from newsletters.
+    funding: list[FundingHint] = Field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- #

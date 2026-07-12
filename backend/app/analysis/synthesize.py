@@ -414,6 +414,15 @@ def _signals_payload(signals: ExtractedSignals) -> dict[str, Any]:
             "live": s.live,
         }
 
+    def _fund(f):
+        return {
+            "company": f.company,
+            "round_hint": f.round_hint,
+            "space_tokens": f.space_tokens,
+            "url": f.url,
+            "live": f.live,
+        }
+
     demand = sorted(signals.demand, key=lambda d: d.strength, reverse=True)[:_MAX_DEMAND]
     capability = sorted(signals.capability, key=lambda c: c.momentum, reverse=True)[:_MAX_CAPABILITY]
     supply = signals.supply[:_MAX_SUPPLY]
@@ -425,6 +434,9 @@ def _signals_payload(signals: ExtractedSignals) -> dict[str, Any]:
         "demand_signals": [_demand(d) for d in demand],
         "capability_signals": [_cap(c) for c in capability],
         "supply_signals": [_sup(s) for s in supply],
+        # Funding-round crowding hints (empty unless newsletters carried
+        # funding announcements) — evidence for the 'crowded' pressure lens.
+        "funding_signals": [_fund(f) for f in signals.funding],
     }
 
 

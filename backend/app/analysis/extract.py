@@ -27,6 +27,7 @@ from ..schemas import (
     CapabilitySignal,
     DemandSignal,
     ExtractedSignals,
+    FundingHint,
     RawItem,
     SourceName,
     SourceStatus,
@@ -40,6 +41,7 @@ _MAX_TOTAL = 40
 _MAX_DEMAND = 24
 _MAX_CAPABILITY = 10
 _MAX_SUPPLY = 8
+_MAX_FUNDING = 8  # funding hints ride alongside the ~40, not inside it
 
 # --------------------------------------------------------------------------- #
 # Demand classification (shared by Reddit + Hacker News)                       #
@@ -476,6 +478,116 @@ def _supply_from_newsletters(items: list[RawItem]) -> list[SupplySignal]:
 
 
 # --------------------------------------------------------------------------- #
+# Funding-round extraction (crowding hints for the pressure test)             #
+# --------------------------------------------------------------------------- #
+# A funding announcement needs BOTH a funding verb frame AND a dollar amount
+# or an explicit round label somewhere in the item — "raised concerns" or
+# "raised awareness" alone never qualifies.
+_FUNDING_AMOUNT_RE = re.compile(
+    r"\$\s?\d+(?:[.,]\d+)?\s?(?:[kmb]\b|million|billion)?", re.IGNORECASE
+)
+_FUNDING_ROUND_RE = re.compile(
+    r"\b(pre-?seed|seed|series\s+[a-k]|angel|bridge)\b"
+    r"(?:\s+(?:round|funding|financing|extension))?",
+    re.IGNORECASE,
+)
+# "<Company> raises/lands/secures/closes ..." — the capitalized phrase just
+# before the verb is the company name.
+_FUNDING_COMPANY_RE = re.compile(
+    r"\b([A-Z][\w.&'-]*(?:\s+[A-Z&][\w.&'-]*){0,3})(?:'s)?\s+(?:has\s+|have\s+|just\s+)?"
+    r"(?:raises|raised|raising|lands|landed|secures|secured|closes|closed|"
+    r"nabs|nabbed|bags|bagged|snags|snagged|announces|announced)\b"
+)
+# Leading determiner-ish words the company capture sometimes swallows
+# ("Why Acme raised ..." -> "Why Acme").
+_FUNDING_COMPANY_LEAD_STOP = frozenset(
+    {"why", "how", "the", "a", "an", "after", "before", "as", "when", "while",
+     "breaking", "exclusive", "report", "today", "this", "that"}
+)
+# Filler dropped when deriving the space tokens from the headline.
+_FUNDING_SPACE_STOPWORDS = frozenset(
+    {"the", "and", "for", "its", "their", "with", "from", "into", "that",
+     "this", "will", "has", "have", "just", "new", "more", "round", "rounds",
+     "funding", "financing", "extension", "seed", "pre-seed", "preseed",
+     "series", "million", "billion", "led", "raise", "raises", "raised",
+     "raising", "lands", "landed", "secures", "secured", "closes", "closed",
+     "nabs", "nabbed", "bags", "bagged", "snags", "snagged", "announces",
+     "announced", "startup", "company", "ventures", "capital", "investors"}
+)
+
+
+def _funding_space_tokens(title: str, company: str) -> list[str]:
+    """Lowercased what-space-is-this tokens: the headline minus the company,
+    funding vocabulary, amounts, and filler."""
+    scrubbed = _FUNDING_AMOUNT_RE.sub(" ", title)
+    company_tokens = {t.lower() for t in re.findall(r"[\w'-]+", company)}
+    tokens: list[str] = []
+    for raw in re.findall(r"[A-Za-z][\w'-]*", scrubbed):
+        tok = raw.lower()
+        if (
+            len(tok) < 3
+            or tok in company_tokens
+            or tok in _FUNDING_SPACE_STOPWORDS
+        ):
+            continue
+        if tok not in tokens:
+            tokens.append(tok)
+    return tokens[:6]
+
+
+def _funding_from_newsletters(items: list[RawItem]) -> list[FundingHint]:
+    """Newsletter funding announcements -> structured crowding hints.
+
+    Deterministic and conservative: no company name, or no amount/round label,
+    means no hint (null over invented). De-duped by lowercased company.
+    """
+    hints: list[FundingHint] = []
+    seen: set[str] = set()
+    for item in sorted(items, key=lambda i: i.weight, reverse=True):
+        title = (item.title or "").strip()
+        blob = f"{title}\n{(item.body or '').strip()[:400]}"
+
+        amount_m = _FUNDING_AMOUNT_RE.search(blob)
+        round_m = _FUNDING_ROUND_RE.search(blob)
+        if not amount_m and not round_m:
+            continue
+
+        company = ""
+        for m in _FUNDING_COMPANY_RE.finditer(blob):
+            words = m.group(1).split()
+            while words and words[0].lower() in _FUNDING_COMPANY_LEAD_STOP:
+                words = words[1:]
+            candidate = " ".join(words).strip(".,)(")
+            if candidate and candidate.lower() not in _SUPPLY_STOPWORDS:
+                company = candidate
+                break
+        if not company:
+            continue
+
+        key = company.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+
+        parts: list[str] = []
+        if round_m:
+            parts.append(re.sub(r"\s+", " ", round_m.group(1).lower()))
+        if amount_m:
+            parts.append(re.sub(r"\s+", "", amount_m.group(0)))
+        hints.append(
+            FundingHint(
+                company=company,
+                round_hint=", ".join(parts),
+                space_tokens=_funding_space_tokens(title, company),
+                url=item.url,
+            )
+        )
+        if len(hints) >= _MAX_FUNDING:
+            break
+    return hints
+
+
+# --------------------------------------------------------------------------- #
 # Budget trimming                                                              #
 # --------------------------------------------------------------------------- #
 def _cap_demand(signals: list[DemandSignal]) -> list[DemandSignal]:
@@ -570,11 +682,17 @@ def extract_signals(
     remaining = max(0, budget - len(kept_demand))
     kept_cap = ranked_cap[:remaining]
 
+    # --- funding: newsletter funding announcements -> crowding hints for the
+    #     pressure test. Rides alongside the ~40 budget (own cap of 8). ------
+    funding = _funding_from_newsletters(newsletter_items)
+
     # Stamp per-item provenance from each source's own report so mock-derived
     # signals can never masquerade as live data downstream (synthesis/grounding).
     live = _live_map(fetched)
     for sig in (*kept_demand, *kept_cap, *supply):
         sig.live = live.get(sig.source, False)
+    for hint in funding:
+        hint.live = live.get(SourceName.NEWSLETTER, False)
 
     return ExtractedSignals(
         area=area,
@@ -583,4 +701,5 @@ def extract_signals(
         demand=kept_demand,
         capability=kept_cap,
         supply=supply,
+        funding=funding,
     )
