@@ -481,6 +481,156 @@ async def test_intake_degrades_to_static_questions():
 
 
 # --------------------------------------------------------------------------- #
+# Founder fit (Phase 1) — an orthogonal 0..100 "is this space for YOU" score   #
+# from the steering context. Null means "no steering or scoring unavailable"   #
+# — a fit is NEVER fabricated.                                                 #
+# --------------------------------------------------------------------------- #
+def _steered_project():
+    from types import SimpleNamespace
+
+    from app.autonomous.schemas import SteeringContext
+
+    return SimpleNamespace(
+        steering=SteeringContext(
+            brief="Ex-firmware engineer, 10y embedded, small audience in TinyML.",
+            advantages=["deep MCU/firmware expertise"],
+            constraints=["solo founder", "no capital for hardware"],
+        ),
+        intake={},
+    )
+
+
+@pytest.mark.asyncio
+async def test_founder_fit_scored_when_steering_present():
+    """A parseable fit object lands as (int 0..100, reason)."""
+    from app.autonomous.fit import score_founder_fit
+
+    captured: dict = {}
+
+    class _Client:
+        async def complete(self, prompt, **kwargs):  # noqa: ANN001
+            captured["prompt"] = prompt
+            captured["system"] = kwargs.get("system")
+
+            class R:
+                text = '{"fit": 72, "fit_reason": "Squarely on the firmware expertise advantage."}'
+            return R()
+
+    fit, reason = await score_founder_fit(
+        _tiny_gap(), 80, _steered_project(), _Client(), "claude-haiku-4-5-20251001"
+    )
+    assert fit == 72
+    assert "firmware expertise" in reason
+    # The call is grounded in the steering block and instructs founder-not-market.
+    assert "FOUNDER STEERING" in captured["prompt"]
+    assert "deep MCU/firmware expertise" in captured["prompt"]
+    assert "not the market" in captured["system"]
+
+
+@pytest.mark.asyncio
+async def test_founder_fit_none_when_steering_empty():
+    """Empty steering → (None, "") without spending an LLM call."""
+    from types import SimpleNamespace
+
+    from app.autonomous.fit import score_founder_fit
+    from app.autonomous.schemas import SteeringContext
+
+    class _MustNotBeCalled:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            raise AssertionError("no LLM call may be made without steering")
+
+    bare = SimpleNamespace(steering=SteeringContext(), intake={})
+    assert await score_founder_fit(_tiny_gap(), 80, bare, _MustNotBeCalled(), "m") == (None, "")
+
+
+@pytest.mark.asyncio
+async def test_founder_fit_degrades_to_none_never_fabricates():
+    """LLM failure or unparseable output → (None, ""), never a made-up score."""
+    from app.autonomous.fit import score_founder_fit
+
+    class _Fail:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            raise RuntimeError("llm down")
+
+    class _Garbage:
+        async def complete(self, *a, **k):  # noqa: ANN002, ANN003
+            class R:
+                text = "I think it fits pretty well, maybe a 70?"
+            return R()
+
+    project = _steered_project()
+    assert await score_founder_fit(_tiny_gap(), 80, project, _Fail(), "m") == (None, "")
+    assert await score_founder_fit(_tiny_gap(), 80, project, _Garbage(), "m") == (None, "")
+
+
+def test_founder_fit_parse_clamps_and_strips_fences():
+    from app.autonomous.fit import _parse_fit
+
+    assert _parse_fit('```json\n{"fit": 150, "fit_reason": "over"}\n```') == (100, "over")
+    assert _parse_fit('noise {"fit": -3, "fit_reason": "under"} noise') == (0, "under")
+    assert _parse_fit('{"fit": true, "fit_reason": "bool is not a score"}') == (None, "")
+    assert _parse_fit('{"fit_reason": "no score at all"}') == (None, "")
+    assert _parse_fit("") == (None, "")
+
+
+def test_node_fit_round_trips_through_json():
+    """The Node schema carries fit/fit_reason through a serialize→parse cycle."""
+    from app.autonomous.schemas import Node, NodeKind
+
+    node = Node(
+        id="n1", project_id="p1", kind=NodeKind.GAP, title="g",
+        viability=80, fit=55, fit_reason="Right skills, wrong capital profile.",
+    )
+    again = Node.model_validate_json(node.model_dump_json())
+    assert again.fit == 55
+    assert again.fit_reason == "Right skills, wrong capital profile."
+    # And the default is honest: no steering → no fit.
+    bare = Node(id="n2", project_id="p1", kind=NodeKind.GAP, title="g2")
+    assert bare.fit is None and bare.fit_reason == ""
+
+
+@pytest.mark.asyncio
+async def test_worker_attaches_fit_to_scored_gaps(fixture_env, tmp_path, monkeypatch):
+    """A steered fixture run stamps fit on every scored GAP node (wiring test)."""
+    from app.autonomous import service as service_mod
+    from app.autonomous.governor import UsageGovernor
+    from app.autonomous.schemas import (
+        Budget,
+        CreateProjectRequest,
+        NodeKind,
+        ProjectStatus,
+        SteeringContext,
+    )
+    from app.autonomous.service import ExplorerService
+    from app.autonomous.store import TreeStore
+
+    async def _fake_fit(gap, viability, project, client, model):  # noqa: ANN001
+        return 66, "Leans on the founder's stated advantage."
+
+    monkeypatch.setattr(service_mod, "score_founder_fit", _fake_fit)
+
+    store = TreeStore(path=str(tmp_path / "fit.db"))
+    service = ExplorerService(store, UsageGovernor())
+    project = service.create(
+        CreateProjectRequest(
+            domain="bookkeeping tools for freelancers",
+            budget=Budget(max_nodes=25, milestone_tokens=0),
+            steering=SteeringContext(brief="Ex-accountant turned engineer."),
+            autostart=False,
+        )
+    )
+    project.status = ProjectStatus.RUNNING
+    store.save_project(project)
+    await asyncio.wait_for(service._run(project.id), timeout=60)
+
+    gaps = [n for n in store.get_nodes(project.id) if n.kind == NodeKind.GAP]
+    assert gaps, "expected scored GAP nodes"
+    for n in gaps:
+        assert n.fit == 66
+        assert "advantage" in n.fit_reason
+
+
+# --------------------------------------------------------------------------- #
 # Boot reconciliation — a project persisted as RUNNING has no worker after a   #
 # server restart; it must not present as live forever. Regression for the      #
 # 2026-07-12 audit's "stale Sprinting status" finding.                         #

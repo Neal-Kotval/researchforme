@@ -93,6 +93,11 @@ class Node(BaseModel):
     viability: Optional[int] = None            # 0..100, post pressure-test
     confidence: Optional[Confidence] = None
     pressure_test: Optional[PressureTest] = None
+    # Founder fit (orthogonal to viability): 0..100 "is this space for YOU",
+    # scored from the project's steering context. None = no steering provided
+    # or scoring unavailable — never fabricated. Mirrors types.ts.
+    fit: Optional[int] = None
+    fit_reason: str = ""
     star: bool = False
     pinned: bool = False                       # user-pinned (boosts priority)
 

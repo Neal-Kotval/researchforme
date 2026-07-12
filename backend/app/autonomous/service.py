@@ -53,7 +53,9 @@ from .engine import (
     node_priority,
     root_node,
 )
+from .fit import score_founder_fit
 from .governor import UsageGovernor, get_governor
+from .intake import steering_context_block
 from .pressure import adversarial_self_critique, pressure_test, score_viability
 from .schemas import (
     Budget,
@@ -118,6 +120,7 @@ _IDLE_SLEEP = 0.5
 _BASE_STRUCTURAL = 700
 _BASE_SEGMENT = 2500
 _BASE_PRESSURE = 1500
+_BASE_FIT = 900  # founder-fit judge: steering block + gap payload, tiny output
 
 # States a project rests in permanently until a user action restarts it.
 _TERMINAL: frozenset[ProjectStatus] = frozenset(
@@ -537,6 +540,19 @@ class ExplorerService:
                     test.self_critique = await adversarial_self_critique(
                         child.gap, viability, test, self.client, project.pressure_model
                     )
+
+                # Founder fit (orthogonal to viability): one cheap-model call
+                # grading "is this space for YOU" against the steering context.
+                # Skipped entirely (fit stays None) when no steering was given;
+                # degrades to None on any LLM/parse failure — never fabricated.
+                if steering_context_block(project):
+                    fit, fit_reason = await score_founder_fit(
+                        child.gap, viability, project, self.client,
+                        project.decompose_model,
+                    )
+                    child.fit = fit
+                    child.fit_reason = fit_reason
+                    step_tokens += self._est(_BASE_FIT, len(fit_reason))
 
                 child.pressure_test = test
                 child.viability = viability
