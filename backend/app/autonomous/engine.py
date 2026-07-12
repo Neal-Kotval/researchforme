@@ -320,9 +320,14 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
         "least 2 children must come from a non-obvious angle. For each, give a short "
         "specific title, a one-line rationale for why it might be an under-served gap, "
         "and 3 search keywords. For children born of a contrarian or against-consensus "
-        'angle, include the literal keyword "contrarian" as an extra keyword.\n\n'
+        'angle, include the literal keyword "contrarian" as an extra keyword.\n'
+        'Also declare, for EACH child: "market" — one line naming who specifically '
+        "buys this, and whether that buyer sits inside the ROOT DOMAIN — and "
+        '"in_domain" — true only if the child\'s actual buyers are in the ROOT '
+        "DOMAIN. Be honest: an adjacent-industry child must say in_domain: false.\n\n"
         "Return ONLY a JSON array (no prose, no fences) shaped like:\n"
-        '[{"title": "...", "rationale": "one line", "keywords": ["a", "b", "c"]}]'
+        '[{"title": "...", "rationale": "one line", "keywords": ["a", "b", "c"], '
+        '"market": "who specifically buys this", "in_domain": true}]'
     )
 
 
@@ -363,10 +368,12 @@ def _root_domain_tokens(project: Project) -> set[str]:
 def _drifts_off_domain(title: str, keywords: list[str], root_tokens: set[str]) -> bool:
     """True when a child shares ZERO significant tokens with the root scope.
 
-    Programmatic complement to the prompt anchor: decomposition sometimes
-    generalizes 'clinic back-office pain' into generic SMB (Etsy sellers,
-    freelancer cash flow) and never returns. Zero-overlap children are flagged
-    (never dropped) so ``node_priority`` prefers on-domain branches.
+    TIEBREAKER only (token overlap is not semantic drift — on-domain children
+    with fresh vocabulary would false-positive): the primary signal is the
+    child's own declared ``in_domain`` (see ``_declared_in_domain``); this
+    cheap check decides when the declaration is missing/unparseable, and gates
+    re-entry from under an ``off_domain`` parent. Flagged children are never
+    dropped — ``node_priority`` just prefers on-domain branches.
     """
     if not root_tokens:
         return False
@@ -376,6 +383,26 @@ def _drifts_off_domain(title: str, keywords: list[str], root_tokens: set[str]) -
     if not child_tokens:
         return False  # nothing to judge — benefit of the doubt
     return not (child_tokens & root_tokens)
+
+
+def _declared_in_domain(obj: dict) -> bool | None:
+    """The child's own ``in_domain`` declaration, or None when missing/unusable.
+
+    The decomposition prompt requires each child to state its buyer
+    (``market``) and whether that buyer sits in the root domain (``in_domain``).
+    Accepts a real boolean or an unambiguous true/false string; anything else
+    returns None so the token tiebreaker decides instead.
+    """
+    value = obj.get("in_domain")
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        low = value.strip().lower()
+        if low in ("true", "yes"):
+            return True
+        if low in ("false", "no"):
+            return False
+    return None
 
 
 def _child_keywords(obj: dict, title: str) -> list[str]:
@@ -394,10 +421,17 @@ def _children_from_raw(
 ) -> list[Node]:
     """Turn parsed decomposition objects into prioritized child nodes (dedup titles).
 
-    Children with zero keyword/title overlap with the root domain's scope get
-    the ``off_domain`` marker keyword, which ``node_priority`` penalizes.
+    Off-domain flagging (the ``off_domain`` marker keyword, which
+    ``node_priority`` penalizes) is driven by the child's own ``in_domain``
+    declaration — the model states its intent explicitly. The token-overlap
+    check is a tiebreaker only, used when the declaration is missing or
+    unparseable. A child under an ``off_domain`` parent inherits the marker
+    unless it re-declares ``in_domain: true`` AND passes the token tiebreaker,
+    so drift can't launder itself through a domain-titled parent. The no-LLM
+    fallback path (``_fallback_children``) never flags, as before.
     """
     root_tokens = _root_domain_tokens(project)
+    parent_off_domain = _OFF_DOMAIN_KEYWORD in (node.keywords or [])
     children: list[Node] = []
     seen: set[str] = set()
     for obj in raw:
@@ -420,7 +454,22 @@ def _children_from_raw(
             or ""
         ).strip()
         keywords = _child_keywords(obj, title)
-        if _drifts_off_domain(title, keywords, root_tokens):
+        declared = _declared_in_domain(obj)
+        market = str(obj.get("market") or "").strip()
+        # The tiebreaker judges the child's full stated identity: title,
+        # keywords, and the declared buyer line (when present).
+        tiebreak_off = _drifts_off_domain(
+            f"{title} {market}".strip(), keywords, root_tokens
+        )
+        if parent_off_domain:
+            # Inheritance: escape only by re-declaring in-domain AND passing
+            # the token tiebreaker (no drift laundering).
+            off = not (declared is True and not tiebreak_off)
+        elif declared is not None:
+            off = not declared  # the declaration is the primary signal
+        else:
+            off = tiebreak_off  # missing/unparseable -> tiebreaker decides
+        if off:
             keywords = [*keywords, _OFF_DOMAIN_KEYWORD]
         child = make_node(
             project.id,
