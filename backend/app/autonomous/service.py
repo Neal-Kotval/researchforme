@@ -70,7 +70,9 @@ from .schemas import (
     Project,
     ProjectStats,
     ProjectStatus,
+    Stage,
     SteeringContext,
+    Triage,
 )
 from .store import TreeStore, get_store
 
@@ -342,6 +344,65 @@ class ExplorerService:
         self.store.upsert_node(node)
         self._emit(project_id, EventType.NODE_UPDATED, node=node)
         return self._get_or_raise(project_id)
+
+    # ------------------------------------------------------------------ #
+    # User sensors (Phase 2 S1/S2 + the C2 watched flag)                  #
+    # ------------------------------------------------------------------ #
+    def _owned_node(self, project_id: str, node_id: str) -> Node:
+        """Fetch a node, insisting it belongs to this project (else KeyError)."""
+        node = self.store.get_node(node_id)
+        if node is None or node.project_id != project_id:
+            raise KeyError(f"unknown node {node_id!r} in project {project_id!r}")
+        return node
+
+    def _touch_node(self, project_id: str, node: Node) -> Project:
+        """Persist a sensor mutation and emit ``node_updated``."""
+        node.updated_at = _now()
+        self.store.upsert_node(node)
+        self._emit(project_id, EventType.NODE_UPDATED, node=node)
+        return self._get_or_raise(project_id)
+
+    def set_triage(
+        self,
+        project_id: str,
+        node_id: str,
+        triage: Optional[Triage],
+        triage_reason: str = "",
+    ) -> Project:
+        """Record the user's interested/passed verdict on a node (S1).
+
+        ``triage=None`` clears the verdict; the reason is cleared with it — a
+        reason without a verdict is meaningless downstream (graveyard,
+        preference distillation).
+        """
+        node = self._owned_node(project_id, node_id)
+        node.triage = triage
+        node.triage_reason = triage_reason if triage is not None else ""
+        return self._touch_node(project_id, node)
+
+    def set_stage(
+        self,
+        project_id: str,
+        node_id: str,
+        stage: Optional[Stage],
+        learnings: str = "",
+    ) -> Project:
+        """Move a gap through the look-into checklist (S2).
+
+        ``stage=None`` clears the checklist position; ``learnings`` is always
+        taken from the request so the user can keep notes even while clearing.
+        """
+        node = self._owned_node(project_id, node_id)
+        node.stage = stage
+        node.learnings = learnings
+        return self._touch_node(project_id, node)
+
+    def watch_node(self, project_id: str, node_id: str, watched: bool) -> Project:
+        """Flag/unflag a node for Space Watch sweeps (C2 field only —
+        the sweep itself lives in ``autonomous/watch.py``)."""
+        node = self._owned_node(project_id, node_id)
+        node.watched = watched
+        return self._touch_node(project_id, node)
 
     def set_budget(self, project_id: str, budget: Budget) -> Project:
         """Replace the project's budget (ceilings, pace, star threshold, milestones)."""

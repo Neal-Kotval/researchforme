@@ -205,7 +205,7 @@ async def delete_project(pid: str) -> dict:
 
 
 # --------------------------------------------------------------------------- #
-# Control (pause / resume / budget / pace / pin)                              #
+# Control (pause / resume / budget / pace / pin / triage / stage / watch)     #
 # --------------------------------------------------------------------------- #
 @router.post("/projects/{pid}/control", response_model=Project)
 async def control_project(pid: str, req: ControlRequest) -> Project:
@@ -247,6 +247,26 @@ async def control_project(pid: str, req: ControlRequest) -> Project:
                 )
             return service.pin_node(
                 pid, req.node_id, action is ControlAction.PIN_NODE
+            )
+        if action is ControlAction.SET_TRIAGE:
+            if not req.node_id:
+                raise HTTPException(
+                    status_code=400, detail="set_triage requires a 'node_id'."
+                )
+            return service.set_triage(pid, req.node_id, req.triage, req.triage_reason)
+        if action is ControlAction.SET_STAGE:
+            if not req.node_id:
+                raise HTTPException(
+                    status_code=400, detail="set_stage requires a 'node_id'."
+                )
+            return service.set_stage(pid, req.node_id, req.stage, req.learnings)
+        if action in (ControlAction.WATCH_NODE, ControlAction.UNWATCH_NODE):
+            if not req.node_id:
+                raise HTTPException(
+                    status_code=400, detail=f"{action.value} requires a 'node_id'."
+                )
+            return service.watch_node(
+                pid, req.node_id, action is ControlAction.WATCH_NODE
             )
         # Enum coverage is exhaustive; guard anyway for forward-compat.
         raise HTTPException(status_code=400, detail=f"Unknown action: {action}.")

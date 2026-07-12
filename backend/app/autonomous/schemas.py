@@ -75,6 +75,15 @@ class PressureTest(BaseModel):
 # --------------------------------------------------------------------------- #
 # The tree node                                                               #
 # --------------------------------------------------------------------------- #
+# User-sensor vocabularies (Phase 2, docs/strategy/phase234-build.md S1/S2).
+# Triage is the cheap interested/pass verdict; Stage tracks a gap the user is
+# actively looking into. Both mirror types.ts.
+Triage = Literal["interested", "passed"]
+Stage = Literal[
+    "found", "interviewing", "smoke_testing", "verdict_build", "verdict_pass"
+]
+
+
 class Node(BaseModel):
     id: str
     project_id: str
@@ -100,6 +109,13 @@ class Node(BaseModel):
     fit_reason: str = ""
     star: bool = False
     pinned: bool = False                       # user-pinned (boosts priority)
+
+    # User sensors (S1/S2/C2) — set only via control actions, never by the LLM.
+    triage: Optional[Triage] = None            # interested/passed; None = untriaged
+    triage_reason: str = ""                    # taxonomy slug or free text
+    stage: Optional[Stage] = None              # look-into checklist position
+    learnings: str = ""                        # what the user found out so far
+    watched: bool = False                      # Space Watch sweeps re-check this node
 
     # Bookkeeping.
     child_ids: list[str] = Field(default_factory=list)
@@ -309,6 +325,10 @@ class ControlAction(str, Enum):
     SET_PACE = "set_pace"
     PIN_NODE = "pin_node"
     UNPIN_NODE = "unpin_node"
+    SET_TRIAGE = "set_triage"                  # S1: interested/passed (+reason)
+    SET_STAGE = "set_stage"                    # S2: look-into checklist (+learnings)
+    WATCH_NODE = "watch_node"                  # C2: flag for Space Watch sweeps
+    UNWATCH_NODE = "unwatch_node"
 
 
 class ControlRequest(BaseModel):
@@ -316,3 +336,9 @@ class ControlRequest(BaseModel):
     budget: Optional[Budget] = None
     pace: Optional[Pace] = None
     node_id: Optional[str] = None
+    # set_triage payload — triage=None clears the verdict (and its reason).
+    triage: Optional[Triage] = None
+    triage_reason: str = ""
+    # set_stage payload — stage=None clears the checklist position.
+    stage: Optional[Stage] = None
+    learnings: str = ""
