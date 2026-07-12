@@ -59,6 +59,7 @@ class Settings(BaseModel):
     reddit_post_limit: int = 60
     arxiv_max_results: int = 40
     arxiv_months_back: int = 18
+    reddit_months_back: int = 18  # freshness floor: live posts older than this are dropped
 
     # --- Keyless Reddit (no OAuth app): public JSON + web-search discovery ---
     # Rate-limit discipline: a hard cap on external requests per run, a polite

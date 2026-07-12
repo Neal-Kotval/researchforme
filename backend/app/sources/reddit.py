@@ -27,7 +27,7 @@ import json
 import re
 import time
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -280,6 +280,11 @@ class RedditSource(Source):
             data.get("url") or ""
         )
         created = self._epoch_to_dt(data.get("created_utc"))
+        # Freshness floor (mirrors HN's 18-month cutoff): stale complaints are
+        # dropped outright, not just down-weighted — an old upvoted rant must
+        # never anchor a "why now". Dateless posts are kept (weight handles them).
+        if created is not None and created < self._freshness_floor():
+            return None
         ups = float(data.get("ups") or data.get("score") or 0)
 
         return RawItem(
@@ -551,6 +556,16 @@ class RedditSource(Source):
             if t and t.lower() not in {x.lower() for x in terms}:
                 terms.append(t)
         return terms
+
+    @staticmethod
+    def _freshness_floor() -> datetime:
+        """Oldest acceptable post date for the live/keyless paths (config-driven).
+
+        The mock fixture path bypasses this on purpose so old fixture dates keep
+        the offline pipeline working end-to-end.
+        """
+        months = get_settings().reddit_months_back
+        return datetime.now(timezone.utc) - timedelta(days=months * 30)
 
     def _weight(self, ups: float, created: datetime | None) -> float:
         """Upvotes as the base signal, gently boosted for recency.

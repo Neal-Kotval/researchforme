@@ -191,7 +191,8 @@ def scope_area(area: str, sub_segments: list[str]) -> Scope:
 
     - Keywords: the whole area phrase first (best single search term), then its
       significant tokens, then light synonym expansions, then any words drawn
-      from the sub-segments. De-duplicated and capped to 4-8 terms.
+      from caller-supplied sub-segments (derived defaults frame the audience
+      but are never used as search terms). De-duplicated and capped to 4-8 terms.
     - Sub-segments: caller-supplied ones win; otherwise 3 are derived from cue
       words in the area via ``_derive_sub_segments``.
 
@@ -211,10 +212,16 @@ def scope_area(area: str, sub_segments: list[str]) -> Scope:
     candidates.extend(tokens)            # individual content words
     candidates.extend(_expand_synonyms(tokens))  # light recall expansion
 
-    # Pull the meaningful tokens out of each sub-segment so the query reflects
-    # who we're hunting for (e.g. "freelancers", "small businesses").
-    for seg in segments:
-        candidates.extend(t for t in _tokenize(seg) if t not in _STOPWORDS and len(t) > 2)
+    # Pull the meaningful tokens out of caller-supplied sub-segments so the
+    # query reflects who we're hunting for. Derived DEFAULT segments are kept
+    # for audience framing only — injecting their generic tokens (e.g.
+    # "freelancers", "small businesses") would dilute a niche area query into
+    # generic SMB chatter.
+    if provided:
+        for seg in segments:
+            candidates.extend(
+                t for t in _tokenize(seg) if t not in _STOPWORDS and len(t) > 2
+            )
 
     keywords = _dedupe_keep_order(candidates)
 
