@@ -45,6 +45,10 @@ class Settings(BaseModel):
     llm_backend: str | None = None
     claude_cli_path: str = "claude"
     llm_model: str = "claude-opus-4-8"
+    # Sampling temperature for the 'api' backend (env LLM_TEMPERATURE). None =
+    # provider default. NOTE: recent models (Opus 4.7+/Fable 5) reject the
+    # parameter outright, so it is only sent when explicitly set.
+    llm_temperature: float | None = None
 
     # --- Cache ---
     cache_path: str = "cache.db"
@@ -121,6 +125,17 @@ def resolve_model(requested: str | None) -> str:
     return get_settings().llm_model
 
 
+def _env_float(name: str) -> float | None:
+    """Parse an optional float env var; a malformed value degrades to None."""
+    raw = os.getenv(name)
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
@@ -136,6 +151,7 @@ def get_settings() -> Settings:
         llm_backend=os.getenv("LLM_BACKEND"),
         claude_cli_path=os.getenv("CLAUDE_CLI_PATH", "claude"),
         llm_model=os.getenv("LLM_MODEL", Settings().llm_model),
+        llm_temperature=_env_float("LLM_TEMPERATURE"),
         cache_path=os.getenv("CACHE_PATH", "cache.db"),
         reddit_use_web_search=os.getenv("REDDIT_USE_WEB_SEARCH", "1") not in ("0", "false", "False"),
     )

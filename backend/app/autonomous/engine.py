@@ -221,9 +221,40 @@ _DECOMPOSE_SYSTEM = """\
 You are the decomposition step of an autonomous market-gap explorer. Given a node
 in an exploration tree, you break it into distinct, non-overlapping children a
 founder could specialize in — cheaply and widely. You do NOT evaluate gaps here;
-you only carve the space. Be concrete and MECE (mutually exclusive, collectively
-exhaustive). Output ONLY the requested JSON array — no prose, no markdown fences.\
+you only carve the space. Avoid the single obvious textbook split of the space:
+at least 2 of your children must come from a non-obvious angle (a neglected
+workflow, an underserved buyer or geography, a contrarian read of where the
+market is going). Be concrete. Output ONLY the requested JSON array — no prose,
+no markdown fences.\
 """
+
+# Ordinary-practitioner personas rotated deterministically per node (by hash of
+# the node id) so sibling decompositions don't all converge on the same
+# consensus carve-up. Deliberately mundane vantage points, not visionary ones.
+_DECOMPOSE_PERSONAS: list[str] = [
+    "a bookkeeper who lives inside this workflow every day and knows where the "
+    "spreadsheets and workarounds pile up",
+    "a plant manager responsible for keeping this running on the ground, "
+    "skeptical of tools that ignore the shop floor",
+    "an operator serving customers in an underserved geography where the "
+    "mainstream tools don't quite fit",
+    "a contrarian operator who thinks the mainstream approach to this market "
+    "is dead and the real opportunities are elsewhere",
+    "a front-line support lead who sees every complaint and edge case the "
+    "product teams never hear about",
+    "a small-firm owner who buys these tools out of their own pocket and "
+    "abandons anything that takes a week to set up",
+]
+
+
+def _persona_for(node: Node) -> str:
+    """Pick the decomposition persona for a node — deterministic by node id.
+
+    Stable hash (not the salted builtin ``hash``) so reruns of the same tree
+    rotate identically; distinct nodes land on different vantage points.
+    """
+    digest = hashlib.sha256((node.id or "").encode("utf-8")).digest()
+    return _DECOMPOSE_PERSONAS[digest[0] % len(_DECOMPOSE_PERSONAS)]
 
 # How many structural children to keep from one decomposition (SPEC: 4-8).
 _MAX_STRUCTURAL_CHILDREN = 8
@@ -245,6 +276,11 @@ def _child_kind_for(node: Node) -> tuple[NodeKind, int]:
 def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
     """User prompt handing the model the node + its context to carve up."""
     lines = [f"ROOT DOMAIN: {project.domain}"]
+    lines.append(
+        f"YOUR VANTAGE POINT: carve this space as {_persona_for(node)}. "
+        "Let that vantage point pick which children exist at all — not just "
+        "the wording."
+    )
     if project.sub_segments:
         lines.append(f"SUB-SEGMENTS OF INTEREST: {', '.join(project.sub_segments)}")
     steer_block = steering_context_block(project)
@@ -259,9 +295,11 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
         "\n".join(lines)
         + f"\n\nBreak the node above into 4-8 distinct, non-overlapping {child_label} "
         "a founder could specialize in. They must be *children* of it (not restatements) "
-        "and must not overlap each other. For each, give a short specific title, a "
-        "one-line rationale for why it might be an under-served gap, and 3 search "
-        "keywords.\n\n"
+        "and must not overlap each other. Avoid the single obvious textbook split; at "
+        "least 2 children must come from a non-obvious angle. For each, give a short "
+        "specific title, a one-line rationale for why it might be an under-served gap, "
+        "and 3 search keywords. For children born of a contrarian or against-consensus "
+        'angle, include the literal keyword "contrarian" as an extra keyword.\n\n'
         "Return ONLY a JSON array (no prose, no fences) shaped like:\n"
         '[{"title": "...", "rationale": "one line", "keywords": ["a", "b", "c"]}]'
     )

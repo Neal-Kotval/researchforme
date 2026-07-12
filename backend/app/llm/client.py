@@ -111,15 +111,23 @@ class ClaudeClient:
         max_turns: int = 8,
         timeout: int = 240,
         model: Optional[str] = None,
+        temperature: Optional[float] = None,
     ) -> LLMResult:
         # Per-call model override; falls back to the configured default.
         model = model or self.settings.llm_model
+        # Per-call temperature override; falls back to the configured default.
+        # None = provider default. Only the 'api' backend can honor it: the
+        # agent-sdk and cli backends expose no sampling controls (see below).
+        if temperature is None:
+            temperature = self.settings.llm_temperature
         order = self._fallback_order()
         last_err: Optional[Exception] = None
         for backend in order:
             try:
                 if backend == "api":
-                    return await self._via_api(prompt, system, tools, max_turns, timeout, model)
+                    return await self._via_api(
+                        prompt, system, tools, max_turns, timeout, model, temperature
+                    )
                 if backend == "agent-sdk":
                     return await self._via_agent_sdk(prompt, system, tools, max_turns, timeout, model)
                 if backend == "cli":
@@ -157,6 +165,9 @@ class ClaudeClient:
         timeout: int,
         model: str,
     ) -> LLMResult:
+        # NOTE: ClaudeAgentOptions exposes no temperature/sampling parameter —
+        # the agent SDK samples at the harness default. Temperature only takes
+        # effect on the 'api' backend.
         from claude_agent_sdk import (  # type: ignore
             ClaudeAgentOptions,
             create_sdk_mcp_server,
@@ -222,6 +233,8 @@ class ClaudeClient:
     async def _via_cli(
         self, prompt: str, system: Optional[str], timeout: int, model: str
     ) -> LLMResult:
+        # NOTE: `claude -p` has no temperature/sampling flag — the CLI backend
+        # cannot honor LLM_TEMPERATURE. Temperature only takes effect on 'api'.
         cli = self.settings.claude_cli_path
         args = [cli, "-p", "--output-format", "json", "--model", model]
         if system:
@@ -261,6 +274,7 @@ class ClaudeClient:
         max_turns: int,
         timeout: int,
         model: str,
+        temperature: Optional[float] = None,
     ) -> LLMResult:
         from anthropic import AsyncAnthropic  # type: ignore
 
@@ -277,6 +291,10 @@ class ClaudeClient:
         messages: list[dict] = [{"role": "user", "content": prompt}]
         calls = 0
 
+        # Only send temperature when explicitly set — None means provider
+        # default, and recent models reject the parameter entirely.
+        sampling: dict = {} if temperature is None else {"temperature": temperature}
+
         for _ in range(max_turns):
             resp = await asyncio.wait_for(
                 client.messages.create(
@@ -285,6 +303,7 @@ class ClaudeClient:
                     system=system or "",
                     tools=api_tools or None,
                     messages=messages,
+                    **sampling,
                 ),
                 timeout=timeout,
             )
