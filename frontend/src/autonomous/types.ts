@@ -287,6 +287,17 @@ export function fitViabScore(n: Pick<TreeNode, "viability" | "fit">): number {
   return n.fit != null ? (n.viability * n.fit) / 100 : n.viability;
 }
 
+/* -------------------------------------------------- display sanitation -- */
+// The backend rides its prompt-facing steering block ("== FOUNDER STEERING
+// (honour all of this) == …") on the root node's rationale so decomposition
+// stays steered. That block is machine-facing — never show it to the founder.
+const STEERING_BLOCK = /\n?== FOUNDER STEERING[\s\S]*$/;
+
+/** A node rationale safe to render: prompt machinery stripped. */
+export function displayRationale(rationale: string | null | undefined): string {
+  return (rationale ?? "").replace(STEERING_BLOCK, "").trim();
+}
+
 /* ------------------------------------------------------- trust encoding -- */
 // Memo §2: a number's visual weight must match how much it deserves belief.
 // earned      = high confidence + standard/deep rigor → solid, full color.

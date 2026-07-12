@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listProjects } from "../autonomous/api";
 import type { Project } from "../autonomous/types";
+import { statusMeta } from "./autonomous/statusMeta";
 
 export interface PaletteCtx {
   jumpProject: (pid: string) => void;
@@ -49,7 +50,7 @@ export default function CommandPalette({
     const projCmds: Cmd[] = projects.map((p) => ({
       id: `p:${p.id}`,
       label: p.domain,
-      hint: `${p.status}${p.stats.gaps ? ` · ${p.stats.gaps} gaps` : ""}${p.stats.stars ? ` · ${p.stats.stars}★` : ""}`,
+      hint: `${statusMeta(p).word}${p.stats.gaps ? ` · ${p.stats.gaps} gaps` : ""}${p.stats.stars ? ` · ${p.stats.stars}★` : ""}`,
       icon: "▸",
       run: () => ctx.jumpProject(p.id),
     }));

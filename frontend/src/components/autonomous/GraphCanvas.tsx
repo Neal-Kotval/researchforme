@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, type CSSProperties } from "react";
 import {
   ReactFlow,
   Background,
@@ -17,7 +17,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
-import { viabilityRamp, type TreeNode } from "../../autonomous/types";
+import { nodeTrust, viabilityRamp, type TreeNode } from "../../autonomous/types";
 
 interface Props {
   nodes: Record<string, TreeNode>;
@@ -59,11 +59,25 @@ function GraphNode({ data }: NodeProps) {
       <Handle type="target" position={Position.Top} className="gnode-handle" />
       <div className="gnode-row">
         <span className="gnode-kind">{node.star && <span className="gnode-star">★</span>}{KIND_LABEL[node.kind] ?? node.kind}</span>
-        {viab != null && (
-          <span className="gnode-viab" style={{ background: viabilityRamp(viab), color: viab >= 55 ? "#fff" : "var(--text)" }}>
-            {viab}
-          </span>
-        )}
+        {viab != null && (() => {
+          // Trust encoding (memo §2) reaches the canvas too: only an earned
+          // score wears the solid ramp fill; unverified goes dashed + faded.
+          const trust = nodeTrust(node);
+          const ramp = viabilityRamp(viab);
+          const style =
+            trust === "earned"
+              ? { background: ramp, color: viab >= 55 ? "#fff" : "var(--text)" }
+              : ({ "--chip-ramp": ramp } as CSSProperties);
+          return (
+            <span
+              className={`gnode-viab trust-${trust}`}
+              style={style}
+              title={trust === "unverified" ? `Viability ${viab} — unverified` : `Viability ${viab}`}
+            >
+              {viab}
+            </span>
+          );
+        })()}
         {live && <span className="gnode-pulse" aria-hidden />}
       </div>
       <div className="gnode-title">{node.title}</div>

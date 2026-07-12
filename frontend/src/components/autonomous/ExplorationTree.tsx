@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { fitViabScore, nodeTrust, viabilityRamp, type TreeNode } from "../../autonomous/types";
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
+import { displayRationale, fitViabScore, nodeTrust, viabilityRamp, type TreeNode } from "../../autonomous/types";
 import FitChip from "./FitChip";
 import ViabChip from "./ViabChip";
 
@@ -340,7 +340,7 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
                 onSelect(n.id);
               }}
               onKeyDown={(e) => onRowKey(e, row)}
-              title={n.rationale || n.title}
+              title={displayRationale(n.rationale) || n.title}
             >
               <span className="tr-tick" style={{ background: tick }} aria-hidden />
               {row.hasChildren ? (
@@ -378,8 +378,8 @@ export default function ExplorationTree({ nodes, rootId, selectedId, onSelect }:
                       {av != null && (
                         <span
                           className="viab-chip avg"
-                          style={{ background: viabilityRamp(av) }}
-                          title={`Average viability of scored sub-ideas: ${av}/100`}
+                          style={{ "--chip-ramp": viabilityRamp(av) } as CSSProperties}
+                          title={`Average viability of scored sub-ideas: ${av}/100 — a rollup, not an earned score`}
                         >
                           ⌀{av}
                         </span>

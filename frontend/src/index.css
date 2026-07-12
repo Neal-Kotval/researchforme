@@ -837,8 +837,10 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 /* Aggregate (avg-of-sub-ideas) chip on macro/structural rows — lighter + outlined
    so it reads as a rollup, not a leaf gap's own score. Same 0..100 ramp/scale. */
 .viab-chip.avg {
-  min-width: 30px; font-size: 10.5px; font-weight: 680; color: var(--text);
-  text-shadow: none; opacity: 0.92; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  min-width: 30px; font-size: 10.5px; font-weight: 680;
+  background: transparent; color: var(--chip-ramp, var(--data-neutral));
+  border: 1px solid color-mix(in srgb, var(--chip-ramp, var(--data-neutral)) 55%, var(--border-strong));
+  text-shadow: none; box-shadow: none;
 }
 
 /* ---- trust encoding (memo §2) — a chip's weight matches earned belief ---- */
@@ -1039,7 +1041,6 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .rc-model-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 4px 0; }
 .rcm-stage { color: var(--text-faint); font-weight: 560; }
 .rcm-val { color: var(--text); font-weight: 620; }
-.rc-model-picker { opacity: 0.75; }
 
 /* ---- usage meter --------------------------------------------------------- */
 .usage-meter {
@@ -1599,6 +1600,17 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .gnode-kind { font-size: 9.5px; font-weight: 640; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); display: inline-flex; align-items: center; gap: 4px; }
 .gnode-star { color: var(--accent); font-size: 10px; }
 .gnode-viab { margin-left: auto; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: var(--r-pill); font-variant-numeric: tabular-nums; min-width: 24px; text-align: center; }
+/* Trust encoding on canvas chips (memo §2) — mirrors .viab-chip treatments. */
+.gnode-viab.trust-provisional {
+  background: transparent; color: var(--chip-ramp, var(--data-neutral));
+  border: 1px solid var(--chip-ramp, var(--data-neutral)); font-weight: 640;
+}
+.gnode-viab.trust-unverified {
+  background: transparent;
+  color: color-mix(in srgb, var(--chip-ramp, var(--data-neutral)) 42%, var(--data-neutral));
+  border: 1px dashed color-mix(in srgb, var(--chip-ramp, var(--data-neutral)) 42%, var(--data-neutral));
+  font-size: 10px; font-weight: 600;
+}
 .gnode-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-left: auto; animation: gnode-pulse 1.3s ease-in-out infinite; }
 .gnode-row .gnode-viab + .gnode-pulse { margin-left: 4px; }
 .gnode-title { font-size: 12px; font-weight: 560; color: var(--text); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -1625,6 +1637,10 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .ss-mode.sprinting { color: var(--accent-strong); }
 .ss-mode.sprinting .ss-dot { background: var(--accent); animation: gnode-pulse 1.4s ease-in-out infinite; }
 .ss-mode.curbing .ss-dot { background: var(--warn); }
+.ss-mode.paused .ss-dot { background: var(--text-ghost); }
+.ss-mode.done .ss-dot { background: var(--empty); }
+.ss-mode.error { color: var(--unavailable); }
+.ss-mode.error .ss-dot { background: var(--unavailable); }
 
 /* On the Nodes tab, let the canvas fill the viewport height (no thin slice). */
 .exp-canvas-card { height: calc(100vh - 250px); min-height: 460px; }

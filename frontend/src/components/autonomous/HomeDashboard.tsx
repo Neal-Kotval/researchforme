@@ -120,6 +120,11 @@ export default function HomeDashboard({
     for (const p of heroSources) {
       for (const n of trees[p.id] ?? []) {
         if ((n.kind === "gap" || n.kind === "gap_candidate") && n.viability != null) {
+          // "Survived the red team" is the hero's promise (memo §4) — a killed
+          // or zero-viability idea never deserves the top of the dashboard.
+          const pt = n.pressure_test;
+          const killed = pt != null && pt.lenses.length > 0 && pt.survived === 0;
+          if (n.viability <= 0 || killed) continue;
           out.push({ node: n, pid: p.id, domain: p.domain });
         }
       }

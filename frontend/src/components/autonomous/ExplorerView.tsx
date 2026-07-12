@@ -35,6 +35,7 @@ import LiveActivity, { type Sample } from "./LiveActivity";
 import GlobalUsageBar from "./GlobalUsageBar";
 import HomeDashboard from "./HomeDashboard";
 import ProjectDigest from "./ProjectDigest";
+import { statusMeta } from "./statusMeta";
 import type { Route } from "../../hooks/useHashRoute";
 
 /* -------------------------------------------------------------------- depth -- */
@@ -386,6 +387,13 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
 
   /* ------------------------------------------------------------------ view -- */
   const project = active?.project ?? null;
+  // One node count everywhere: the hydrated client tree is the authoritative set
+  // (server-side stats.nodes can drift on old runs); fall back to stats only
+  // before the SSE snapshot lands so the strip never flashes 0.
+  const nodeCount = active
+    ? Object.keys(active.nodes).length || active.project.stats.nodes
+    : 0;
+  const projectMeta = project ? statusMeta(project) : null;
 
   return (
     <div className="explorer">
@@ -451,10 +459,10 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                 </div>
                 {/* slim always-visible live status (the heavy graphs live in Overview) */}
                 <div className="exp-statstrip">
-                  <span className={`ss-mode ${project.stats.mode}`}>
-                    <span className="ss-dot" />{project.stats.mode}
+                  <span className={`ss-mode ${projectMeta!.dot}`}>
+                    <span className="ss-dot" />{projectMeta!.word}
                   </span>
-                  <span className="ss-stat"><b>{project.stats.nodes}</b> nodes</span>
+                  <span className="ss-stat"><b>{nodeCount}</b> nodes</span>
                   <span className="ss-stat"><b>{project.stats.gaps}</b> gaps</span>
                   {project.stats.stars > 0 && <span className="ss-stat star"><b>{project.stats.stars}</b>★</span>}
                   <span className="ss-stat"><b>{project.stats.max_viability}</b> top</span>
@@ -479,7 +487,7 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                     className={`exp-tab${!selectedNode && view === "nodes" ? " active" : ""}`}
                     onClick={() => { selectNode(null); setView("nodes"); }}
                   >
-                    Nodes <span className="exp-tab-n">{Object.keys(active!.nodes).length}</span>
+                    Nodes <span className="exp-tab-n">{nodeCount}</span>
                   </button>
                 </div>
                 <div className="exp-tab-controls">

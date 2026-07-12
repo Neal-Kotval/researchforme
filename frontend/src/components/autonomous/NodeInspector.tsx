@@ -5,6 +5,7 @@ import {
   SOURCE_LABEL,
 } from "../../types";
 import {
+  displayRationale,
   isUnevaluatedLens,
   nodeTrust,
   viabilityRamp,
@@ -121,7 +122,14 @@ export default function NodeInspector({
             </button>
           )}
         </div>
-        {node.rationale && <Markdown className="detail-thesis md-clamp" text={node.rationale} />}
+        {displayRationale(node.rationale) && (
+          <Markdown className="detail-thesis md-clamp" text={displayRationale(node.rationale)} />
+        )}
+        {node.rationale !== null && displayRationale(node.rationale) !== (node.rationale ?? "").trim() && (
+          <div className="insp-note">
+            Steered by your founder brief — every step under this branch honours it.
+          </div>
+        )}
 
         {node.keywords.length > 0 && (
           <div className="detail-block">

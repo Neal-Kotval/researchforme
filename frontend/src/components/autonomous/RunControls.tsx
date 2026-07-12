@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import ModelPicker from "../ModelPicker";
 import { modelLabel } from "../../types";
 import type { Budget, Pace, Project } from "../../autonomous/types";
 import type { ControlRequest } from "../../autonomous/api";
@@ -245,9 +244,6 @@ export default function RunControls({ project, busy, onControl, compact }: Props
             <span className="rcm-stage">Pressure-test</span>
             <span className="rcm-val">{modelLabel(project.pressure_model)}</span>
           </div>
-        </div>
-        <div className="rc-model-picker">
-          <ModelPicker value={project.pressure_model} onChange={() => {}} compact disabled />
         </div>
       </div>
     </div>

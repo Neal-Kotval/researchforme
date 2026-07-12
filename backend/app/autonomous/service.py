@@ -631,7 +631,9 @@ class ExplorerService:
         if b.max_tokens and s.tokens_spent >= b.max_tokens:
             return ("budget_spent", f"Budget spent: {s.tokens_spent}/{b.max_tokens} tokens.")
         if b.max_nodes and s.nodes >= b.max_nodes:
-            return ("max_nodes", f"Node cap reached: {s.nodes}/{b.max_nodes} nodes.")
+            # The last expansion can overshoot the cap by a batch of children, so
+            # never render the confusing "54/40" fraction — just name the cap.
+            return ("max_nodes", f"Node cap reached ({b.max_nodes} nodes).")
         if b.time_limit_minutes and (time.monotonic() - run_start) >= b.time_limit_minutes * 60:
             return ("time_limit", f"Time limit reached: {b.time_limit_minutes} min.")
         return None
