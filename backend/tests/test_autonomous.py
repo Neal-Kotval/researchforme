@@ -239,6 +239,80 @@ async def test_pressure_test_forwards_tools_to_client():
 
 
 # --------------------------------------------------------------------------- #
+# Pressure-test integrity — a model that engages only some lenses must not     #
+# earn free "survives" verdicts from the gap's own self-reported scores, nor   #
+# keep the requested rigor's confidence credit. Regression for the audit's     #
+# self-reference-loop finding.                                                 #
+# --------------------------------------------------------------------------- #
+@pytest.mark.asyncio
+async def test_pressure_partial_fill_weakens_and_downgrades_rigor():
+    """Skipped lenses fill as 'weakens', and recorded rigor reflects the
+    actually-evaluated lens count (1 of 6 at deep -> light)."""
+    from app.autonomous.pressure import pressure_test
+
+    class _FakeResult:
+        text = '[{"lens":"demand_mirage","verdict":"survives","argument":"real WTP"}]'
+
+    class _FakeClient:
+        async def complete(self, prompt, **kwargs):  # noqa: ANN001
+            return _FakeResult()
+
+    test = await pressure_test(
+        _tiny_gap(), "ctx", _FakeClient(), "claude-opus-4-8", "deep"
+    )
+    assert len(test.lenses) == 6, "deep rigor still records all six lenses"
+    assert test.survived == 1 and test.weakened == 5 and test.killed == 0
+    filled = [lv for lv in test.lenses if lv.lens != "demand_mirage"]
+    for lv in filled:
+        assert lv.verdict == "weakens"
+        assert "not evaluated" in lv.argument
+    assert test.test_rigor == "light", "1 evaluated lens must not keep deep credit"
+
+
+@pytest.mark.asyncio
+async def test_pressure_partial_fill_keeps_earned_rigor():
+    """Evaluating 4 of 6 deep lenses earns standard rigor, not deep or light."""
+    import json as _json
+
+    from app.autonomous.pressure import pressure_test
+
+    verdicts = [
+        {"lens": k, "verdict": "survives", "argument": "holds"}
+        for k in ("demand_mirage", "just_a_feature", "empty_for_a_reason", "moat")
+    ]
+
+    class _FakeResult:
+        text = _json.dumps(verdicts)
+
+    class _FakeClient:
+        async def complete(self, prompt, **kwargs):  # noqa: ANN001
+            return _FakeResult()
+
+    test = await pressure_test(
+        _tiny_gap(), "ctx", _FakeClient(), "claude-opus-4-8", "deep"
+    )
+    assert test.survived == 4 and test.weakened == 2
+    assert test.test_rigor == "standard"
+
+
+def test_high_confidence_requires_live_corroboration():
+    """Deep rigor + the gap's own evidence can reach medium at most; only real
+    tool-fetched corroboration during the test unlocks 'high'."""
+    from app.autonomous.pressure import _confidence_for
+    from app.autonomous.schemas import PressureTest
+    from app.schemas import Evidence, SourceName
+
+    gap = _tiny_gap()
+    gap.evidence = [
+        Evidence(source=SourceName.REDDIT, url=f"https://r.example/{i}", quote="q")
+        for i in range(3)
+    ]
+    test = PressureTest(test_rigor="deep", summary="SURVIVED")
+    assert _confidence_for(gap, test, corroboration=0) == "medium"
+    assert _confidence_for(gap, test, corroboration=2) == "high"
+
+
+# --------------------------------------------------------------------------- #
 # SPEC §6.1 — rate-limit signalling. Regression for audit HIGH #2: the client  #
 # now fires an observer hook on a 429-shaped error and the governor registers   #
 # its note_rate_limit there, so the "authoritative live signal" is actually     #

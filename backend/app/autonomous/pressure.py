@@ -3,16 +3,17 @@
 A ``GapCandidate`` produced by the synthesis pipeline is only a *hypothesis*.
 Before it earns a viability score (and a ⭐), it is dragged through a gauntlet of
 independent **kill-lenses** — each one trying to *destroy* the gap, not confirm
-it (the adversarial-verify pattern). A gap that walks out the far side of five
+it (the adversarial-verify pattern). A gap that walks out the far side of six
 lenses still standing is a very different animal from one nobody tried to kill.
 
 Three things happen here:
 
-1. **The lenses.** Five sharp, single-purpose adversaries (``LENSES``): is the
+1. **The lenses.** Six sharp, single-purpose adversaries (``LENSES``): is the
    white space *empty for a reason*? could an *incumbent* close it in a weekend?
    is the demand a *mirage* of loud complaints with no wallet? is the *why-now*
-   hand-waved? is there any *moat* once it works? Rigor picks how many run:
-   ``deep`` = all 5, ``standard`` = 3, ``light`` = the 2 cheapest.
+   hand-waved? is there any *moat* once it works? is it *just a feature*, not a
+   company? Rigor picks how many run:
+   ``deep`` = all 6, ``standard`` = 4, ``light`` = the 3 cheapest.
 
 2. **The run.** ``pressure_test`` hands the gap + its branch context to the LLM
    (optionally with the same ``search_*`` corroboration tools synthesis uses) and
@@ -20,6 +21,9 @@ Three things happen here:
    extractor ``synthesize`` uses. It **degrades, never raises**: if the call
    fails or nothing parses, it synthesizes a *neutral light* PressureTest derived
    purely from the gap's own 1..5 scores, so scoring still works with NO real LLM.
+   Lenses the model *skipped* (partial output) fill as honest ``weakens`` and the
+   recorded rigor is downgraded to what was actually evaluated — a gap never
+   earns free survivals or rigor credit from its own self-reported scores.
 
 3. **The score.** ``score_viability`` blends the five base scores with the lens
    outcomes — rewarding survivals, penalizing weakens, and hard-penalizing any
@@ -41,7 +45,7 @@ from .schemas import Confidence, LensVerdict, PressureTest, TestRigor
 
 
 # --------------------------------------------------------------------------- #
-# The five kill-lenses. Each is an *independent adversary* whose job is to      #
+# The six kill-lenses. Each is an *independent adversary* whose job is to       #
 # prove its own kill-question "yes". Order is canonical (SPEC §5 table); the    #
 # rigor-based subset is chosen from `_LENS_PRIORITY`, cheapest/most-decisive    #
 # first, so light ⊂ standard ⊂ deep.                                            #
@@ -316,6 +320,9 @@ def _lens_base_score(gap: Gap, key: str) -> int:
         "demand_mirage": s.willingness_to_pay,         # real WTP ⇒ not a mirage
         "why_now_fragility": s.trend_tailwind,         # strong tailwind ⇒ survives
         "moat": gap.novelty,                            # novelty ⇒ defensibility
+        # A gap that doesn't claim (or has no) standalone-company framing should
+        # weaken under this lens, not coast through on a missing-key default.
+        "just_a_feature": 4 if (gap.company and gap.company.standalone) else 2,
     }.get(key, 3)
 
 
@@ -345,6 +352,41 @@ def _neutral_verdict(gap: Gap, key: str) -> LensVerdict:
             f"{score}/5 on the gap's own scores, so it {verdict} a neutral test."
         ),
     )
+
+
+def _unevaluated_verdict(key: str) -> LensVerdict:
+    """Fill for a lens the model skipped: an honest ``weakens``, never a free pass.
+
+    Deliberately NOT derived from the gap's own self-reported scores — a model
+    that engages only one lens must not collect free survivals for the rest.
+    """
+    return LensVerdict(
+        lens=key,
+        verdict="weakens",
+        argument=(
+            f"Lens '{key}' was not evaluated by the model; an unexamined axis "
+            "counts against the gap, not for it."
+        ),
+    )
+
+
+_RIGOR_ORDER: tuple[TestRigor, ...] = ("light", "standard", "deep")
+
+
+def _effective_rigor(requested: TestRigor, evaluated: int) -> TestRigor:
+    """The rigor actually *earned*: capped by how many lenses the model evaluated.
+
+    A deep run where the model returned only 1 usable verdict was, in truth, a
+    light test — recording it as deep would launder unearned confidence credit
+    into ``_confidence_for``. Never upgrades past the requested rigor.
+    """
+    earned: TestRigor = "light"
+    for rigor in _RIGOR_ORDER:
+        if evaluated >= _RIGOR_COUNT[rigor]:
+            earned = rigor
+    if _RIGOR_ORDER.index(earned) < _RIGOR_ORDER.index(requested):
+        return earned
+    return requested
 
 
 def _tally(lenses: list[LensVerdict]) -> tuple[int, int, int]:
@@ -398,7 +440,7 @@ async def pressure_test(
 ) -> PressureTest:
     """Attack ``gap`` from the rigor-appropriate lenses → a ``PressureTest``.
 
-    ``rigor`` picks the subset (``deep`` = 5, ``standard`` = 3, ``light`` = 2).
+    ``rigor`` picks the subset (``deep`` = 6, ``standard`` = 4, ``light`` = 3).
     ``tools`` are the optional ``search_*`` corroboration tools (as built by
     ``synthesize._build_tools``) so a lens can pull fresh evidence.
 
@@ -434,13 +476,14 @@ async def pressure_test(
         if not by_key:
             return _neutral_pressure_test(gap, "light")
 
-        # Fill any lens the model skipped with a neutral per-lens verdict, keeping
-        # the requested rigor since the LLM *did* run the gauntlet.
+        # Fill any lens the model skipped as an honest "weakens" (never a free
+        # survive derived from the gap's own scores), and downgrade the recorded
+        # rigor to the lens count the model actually evaluated.
         assembled = [
-            by_key.get(lens["key"]) or _neutral_verdict(gap, lens["key"])
+            by_key.get(lens["key"]) or _unevaluated_verdict(lens["key"])
             for lens in lenses
         ]
-        return _assemble(assembled, rig)
+        return _assemble(assembled, _effective_rigor(rig, len(by_key)))
     except Exception:  # noqa: BLE001 - absolute last-resort guard; never raise
         return _neutral_pressure_test(gap, "light")
 
@@ -545,15 +588,17 @@ def _confidence_for(gap: Gap, test: PressureTest, corroboration: int) -> Confide
     Points: rigor (deep=2, standard=1, light=0) + a point when the gap is well
     grounded (>= 3 of its own evidence items) + a point when the lenses pulled
     live corroborating evidence of their own. 3+ → high, 2 → medium, else low.
-    A gap resting only on a heuristic light test therefore stays honest ('low').
+    "high" additionally REQUIRES live corroboration: the gap's own (possibly
+    hallucinated) evidence can lift it to medium at most. A gap resting only on
+    a heuristic light test therefore stays honest ('low').
     """
     points = {"deep": 2, "standard": 1, "light": 0}.get(test.test_rigor, 0)
     if len(gap.evidence) >= 3:
         points += 1
     if corroboration > 0:  # lenses corroborated with their own fetched evidence
         points += 1
-    if points >= 3:
+    if points >= 3 and corroboration > 0:
         return "high"
-    if points == 2:
+    if points >= 2:
         return "medium"
     return "low"
