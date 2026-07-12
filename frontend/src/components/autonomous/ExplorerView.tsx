@@ -476,6 +476,10 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                     node={selectedNode}
                     childNodes={selectedChildren}
                     onSelectChild={selectNode}
+                    busy={busy}
+                    onTogglePin={(nodeId, pinned) =>
+                      onControl({ action: pinned ? "pin_node" : "unpin_node", node_id: nodeId })
+                    }
                   />
                 </div>
               ) : view === "nodes" ? (

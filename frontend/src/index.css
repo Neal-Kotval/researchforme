@@ -822,7 +822,10 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
 .insp-head { margin-bottom: 12px; }
 .insp-kind { font-size: 11px; font-weight: 650; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
 .insp-kind .ik-star { color: var(--accent-strong); }
+.insp-kind .ik-pin { color: var(--primary); }
 .insp-title { font-size: 19px; line-height: 1.2; letter-spacing: -0.02em; margin-top: 5px; }
+.pin-btn { margin-top: 10px; padding: 5px 11px; font-size: 12.5px; }
+.pin-btn.pinned { color: var(--primary); border-color: var(--primary); }
 .insp-note { font-size: 12.5px; color: var(--text-faint); line-height: 1.5; }
 .chip-wrap { display: flex; gap: 7px; flex-wrap: wrap; }
 

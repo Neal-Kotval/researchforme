@@ -2,12 +2,9 @@
 // Endpoints (proxied through Vite to FastAPI on :8000, mounted under /api):
 //   POST   /api/projects              -> Project        (create + optional autostart)
 //   GET    /api/projects              -> Project[]      (tab bar, newest first)
-//   GET    /api/projects/{id}         -> Project
-//   GET    /api/projects/{id}/tree    -> TreeSnapshot   (hydration)
 //   POST   /api/projects/{id}/control -> Project        (pause/resume/budget/pace/pin)
 //   DELETE /api/projects/{id}         -> {ok:true}
 //   GET    /api/projects/{id}/events  -> SSE stream     (snapshot + live ExplorerEvents)
-import { ApiError } from "../api";
 import type {
   Budget,
   ControlAction,
@@ -22,7 +19,13 @@ import type {
   TreeSnapshot,
 } from "./types";
 
-export { ApiError };
+/** A structured API error carrying the HTTP status so callers can branch. */
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
@@ -94,16 +97,6 @@ export function setUsagePolicy(policy: UsagePolicy): Promise<GlobalUsage> {
     headers: JSON_HEADERS,
     body: JSON.stringify(policy),
   });
-}
-
-/** One project's metadata + live stats. */
-export function getProject(pid: string): Promise<Project> {
-  return request<Project>(`/api/projects/${encodeURIComponent(pid)}`);
-}
-
-/** Full tree snapshot the UI hydrates from before folding live events. */
-export function getTree(pid: string): Promise<TreeSnapshot> {
-  return request<TreeSnapshot>(`/api/projects/${encodeURIComponent(pid)}/tree`);
 }
 
 export interface ControlRequest {

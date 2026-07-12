@@ -10,6 +10,9 @@ interface Props {
   node: TreeNode | null;
   childNodes?: TreeNode[];
   onSelectChild?: (id: string) => void;
+  /** Pin/unpin a queued branch so the frontier expands it next (SPEC §4.1). */
+  onTogglePin?: (nodeId: string, pinned: boolean) => void;
+  busy?: boolean;
 }
 
 const VERDICT_META: Record<string, { cls: string; word: string }> = {
@@ -43,7 +46,13 @@ function fmtDate(d: string | null): string | null {
  * test_rigor. For structural nodes it shows the branch rationale, keywords, and a
  * child summary (SPEC §10.2).
  */
-export default function NodeInspector({ node, childNodes = [], onSelectChild }: Props) {
+export default function NodeInspector({
+  node,
+  childNodes = [],
+  onSelectChild,
+  onTogglePin,
+  busy = false,
+}: Props) {
   if (!node) {
     return (
       <div className="inspector-empty">
@@ -59,11 +68,31 @@ export default function NodeInspector({ node, childNodes = [], onSelectChild }: 
 
   /* ---------------------------------------------------- structural nodes -- */
   if (!gapish || !g) {
+    // Pinning only reorders the frontier, which holds queued structural nodes —
+    // so the toggle is offered exactly there and read-only everywhere else.
+    const pinnable = node.state === "queued" && !!onTogglePin;
     return (
       <div className="inspector">
         <div className="insp-head">
-          <div className="insp-kind">{titleCase(node.kind)}</div>
+          <div className="insp-kind">
+            {node.pinned && <span className="ik-pin">⚑ Pinned · </span>}
+            {titleCase(node.kind)}
+          </div>
           <h3 className="insp-title">{node.title}</h3>
+          {(pinnable || node.pinned) && (
+            <button
+              className={`btn btn-ghost pin-btn${node.pinned ? " pinned" : ""}`}
+              disabled={busy || (!pinnable && !node.pinned)}
+              onClick={() => onTogglePin?.(node.id, !node.pinned)}
+              title={
+                node.pinned
+                  ? "Remove the priority boost from this branch"
+                  : "Boost this branch to the front of the exploration queue"
+              }
+            >
+              {node.pinned ? "⚑ Unpin branch" : "⚑ Explore next"}
+            </button>
+          )}
         </div>
         {node.rationale && <Markdown className="detail-thesis md-clamp" text={node.rationale} />}
 
