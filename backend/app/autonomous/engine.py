@@ -39,8 +39,10 @@ from ..analysis.synthesize import _extract_json_array, synthesize
 from ..llm.client import ClaudeClient
 from ..schemas import Gap, SourceReport, SourceStatus
 from ..sources.registry import get_sources
+from .graveyard import graveyard_context_block
 from .intake import steering_context_block
 from .schemas import Node, NodeKind, Project
+from .store import TreeStore
 
 
 # --------------------------------------------------------------------------- #
@@ -289,8 +291,15 @@ def _child_kind_for(node: Node) -> tuple[NodeKind, int]:
     return child_kind, child_depth
 
 
-def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
-    """User prompt handing the model the node + its context to carve up."""
+def _decompose_prompt(
+    node: Node, project: Project, child_label: str, graveyard: str = ""
+) -> str:
+    """User prompt handing the model the node + its context to carve up.
+
+    ``graveyard`` is the pre-rendered S3 anti-portfolio block (spaces the
+    founder already rejected across every project) — injected beside the
+    steering block so decomposition stops re-proposing buried spaces.
+    """
     lines = [f"ROOT DOMAIN: {project.domain}"]
     lines.append(
         "ANCHOR: every child MUST remain inside the ROOT DOMAIN above, no matter "
@@ -307,6 +316,8 @@ def _decompose_prompt(node: Node, project: Project, child_label: str) -> str:
     steer_block = steering_context_block(project)
     if steer_block:
         lines.append(steer_block)
+    if graveyard:
+        lines.append(graveyard)
     lines.append(f"NODE TO DECOMPOSE ({node.kind.value}): {node.title}")
     if node.rationale:
         lines.append(f"WHY THIS BRANCH MIGHT MATTER: {node.rationale}")
@@ -541,21 +552,37 @@ def _fallback_children(
 
 
 async def expand_structural(
-    node: Node, project: Project, client: ClaudeClient, model: str
+    node: Node,
+    project: Project,
+    client: ClaudeClient,
+    model: str,
+    store: TreeStore | None = None,
 ) -> list[Node]:
     """Decompose a Domain/SubArea into child sub-areas (or Segments at depth ≥ 2).
 
     Cheap, wide LLM call (SPEC §4.2). DEGRADES to a deterministic
     ``scope_area``-keyword decomposition when the model is missing or its output
     is unparseable, so a tree always forms. Never raises.
+
+    When a ``store`` handle is threaded in (the service passes its own), the S3
+    graveyard block — spaces the founder already rejected across every project —
+    is injected into the prompt beside the steering block. No store → no
+    injection, and a graveyard failure degrades to none.
     """
     child_kind, child_depth = _child_kind_for(node)
+
+    graveyard = ""
+    if store is not None:
+        try:
+            graveyard = graveyard_context_block(store, project.domain)
+        except Exception:  # noqa: BLE001 - the memory seam must never block expansion.
+            graveyard = ""
 
     raw: list = []
     try:
         child_label = "sub-areas" if child_kind is NodeKind.SUBAREA else "concrete segments"
         result = await client.complete(
-            _decompose_prompt(node, project, child_label),
+            _decompose_prompt(node, project, child_label, graveyard),
             system=_DECOMPOSE_SYSTEM,
             model=model,
             max_turns=1,

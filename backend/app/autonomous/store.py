@@ -142,6 +142,33 @@ class TreeStore:
         nodes.sort(key=lambda n: n.created_at)
         return nodes
 
+    def rejected_gaps(self) -> list[tuple[Node, Optional[str]]]:
+        """Cross-project killed-or-passed nodes for the graveyard (S3).
+
+        Pure store-level SQL over ``ap_nodes`` (no LLM): a node is rejected when
+        the user triaged it ``passed``, its viability scored ≤ 40, or any
+        pressure lens killed it (``pressure_test.killed > 0``). Returns each
+        node with its project's domain (None if the project row is gone).
+        Unparseable rows are skipped — degrade, don't crash.
+        """
+        with self._lock, self._conn() as conn:
+            rows = conn.execute(
+                """SELECT n.value, json_extract(p.value, '$.domain')
+                   FROM ap_nodes n
+                   LEFT JOIN ap_projects p ON p.id = n.project_id
+                   WHERE json_extract(n.value, '$.triage') = 'passed'
+                      OR (json_extract(n.value, '$.viability') IS NOT NULL
+                          AND json_extract(n.value, '$.viability') <= 40)
+                      OR COALESCE(json_extract(n.value, '$.pressure_test.killed'), 0) > 0"""
+            ).fetchall()
+        out: list[tuple[Node, Optional[str]]] = []
+        for value, domain in rows:
+            try:
+                out.append((Node.model_validate(json.loads(value)), domain))
+            except Exception:  # noqa: BLE001 - one bad row must not sink the list.
+                continue
+        return out
+
     # ------------------------------------------------------------------ #
     # Events (append-only log + live fan-out)                            #
     # ------------------------------------------------------------------ #

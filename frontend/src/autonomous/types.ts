@@ -137,6 +137,23 @@ export interface TreeSnapshot {
   last_seq: number;
 }
 
+/** One rejected space in the cross-project anti-portfolio (GET /api/graveyard).
+ *  Internal items are killed/passed gap nodes; `external: true` marks curated
+ *  post-mortem corpus entries, which carry no project of their own.
+ *  Mirrors backend app/autonomous/schemas.py `GraveyardItem`. */
+export interface GraveyardItem {
+  project_id: string | null;
+  project_domain: string | null;
+  node_id: string;
+  title: string;
+  thesis_first_line: string;
+  viability: number | null;
+  kill_lenses: string[];
+  triage_reason: string;
+  updated_at: string | null;
+  external: boolean;
+}
+
 export type UsageLevel = "low" | "medium" | "high" | "heavy";
 
 /** Shared governor snapshot for the global usage bar (GET /api/usage). */

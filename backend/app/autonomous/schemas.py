@@ -317,6 +317,27 @@ class ScoutResponse(BaseModel):
     generated_at: datetime = Field(default_factory=_now)
 
 
+class GraveyardItem(BaseModel):
+    """One rejected space in the cross-project anti-portfolio (S3).
+
+    Internal items are gap nodes that were killed (any lens kill OR viability
+    ≤ 40) or user-passed (``triage == "passed"``); external items come from the
+    curated post-mortem corpus (S4) and are flagged ``external: true`` with no
+    project of their own. Mirrors types.ts.
+    """
+
+    project_id: Optional[str] = None           # None for external post-mortems
+    project_domain: Optional[str] = None
+    node_id: str
+    title: str
+    thesis_first_line: str = ""
+    viability: Optional[int] = None
+    kill_lenses: list[str] = Field(default_factory=list)
+    triage_reason: str = ""
+    updated_at: Optional[datetime] = None
+    external: bool = False                     # post-mortem corpus entry (S4)
+
+
 class ControlAction(str, Enum):
     PAUSE = "pause"
     RESUME = "resume"

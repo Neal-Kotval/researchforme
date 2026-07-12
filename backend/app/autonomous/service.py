@@ -564,8 +564,11 @@ class ExplorerService:
                     node, project, self.client, project.synth_model
                 )
             else:  # DOMAIN / SUBAREA — structural decomposition.
+                # Thread the store handle so the S3 graveyard block (rejected
+                # spaces across every project) reaches the decompose prompt.
                 children = await expand_structural(
-                    node, project, self.client, project.decompose_model
+                    node, project, self.client, project.decompose_model,
+                    store=self.store,
                 )
         except Exception:  # noqa: BLE001 - expansion is contractually non-raising,
             children = []   # but guard anyway so one bad node can't stop the run.

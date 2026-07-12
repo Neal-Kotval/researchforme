@@ -39,6 +39,7 @@ from ..autonomous.schemas import (
     ControlRequest,
     CreateProjectRequest,
     ExplorerEvent,
+    GraveyardItem,
     IntakeRequest,
     IntakeResponse,
     Project,
@@ -83,6 +84,32 @@ def set_usage_policy(req: UsagePolicyRequest) -> dict:
     gov = get_governor()
     gov.set_policy(daily_cap_tokens=req.daily_cap_tokens, limit_pct=req.limit_pct)
     return gov.snapshot()
+
+
+# --------------------------------------------------------------------------- #
+# Anti-portfolio graveyard (Phase 2 S3 + the S4 corpus merge)                  #
+# --------------------------------------------------------------------------- #
+@router.get("/graveyard", response_model=list[GraveyardItem])
+def get_graveyard(
+    q: str = Query(default="", description="Every-token-must-match text filter."),
+    limit: int = Query(default=50, ge=1, le=500),
+) -> list[GraveyardItem]:
+    """Cross-project list of rejected gaps, merged with the post-mortem corpus.
+
+    Killed (any pressure-lens kill OR viability ≤ 40) or user-passed nodes from
+    every project — pure store-level SQL, no LLM — plus curated post-mortem
+    corpus entries flagged ``external: true``.
+    """
+    from ..autonomous.graveyard import graveyard_items
+
+    try:
+        return graveyard_items(get_store(), q=q, limit=limit)
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("get_graveyard failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not read the graveyard: {type(exc).__name__}.",
+        ) from exc
 
 
 # --------------------------------------------------------------------------- #
