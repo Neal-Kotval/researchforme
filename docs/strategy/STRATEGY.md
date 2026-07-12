@@ -93,6 +93,11 @@ before their consumers.
 9. **Anti-portfolio graveyard** (S): searchable killed/passed archive; injected into
    decomposition as "already rejected — don't re-propose; flag if the kill reason
    expired" (P3: kills whose reason expired are themselves a discovery channel).
+9b. **Dead-startup archaeology corpus** (S/M): ingest failure post-mortems (CB
+   Insights-style autopsies, shutdown lists) keyed by segment. A space that was tried
+   and died is graveyard evidence with a named kill reason — and a kill reason that
+   has since *expired* (missing API now exists, regulation changed) is a first-class
+   discovery signal for Space Watch. Not training data: retrieval evidence.
 10. **Look-into checklist on stars** (S): Found → Interviewing → Smoke-testing →
     Verdict; makes real-world outcomes machine-readable.
 
@@ -108,6 +113,14 @@ before their consumers.
     structural gap), regulatory/policy changes (Federal Register API — the most
     reliable why-now generator), funding-round extraction from existing newsletter
     feeds (seed = validation; mega-round = crowding evidence for the kill-lens).
+13b. **Funded-company outcomes adapter** (M): YC directory + funding databases queried
+    at pressure-test time — "how many funded companies attacked this segment, and what
+    happened to them?" Funded corpses = the strongest `empty_for_a_reason` evidence;
+    thriving incumbents = crowding evidence. Explicitly NOT training data: outcome
+    labels confound idea with team, arrive 5–10 years late under expired "why now"
+    conditions, and pivots (Slack, Twitch, Brex) make idea→outcome labels wrong. Use
+    as retrieval for the lenses + reference-class few-shots ("sounded dumb, won" /
+    "sounded great, died" — the Bessemer/eBay calibration) in the pressure prompt.
 14. **Idle-headroom scavenger** (S): governor "ample" + no active run → deepen
     shallowest ⭐ branch, upgrade light tests to deep, or run a Scout pass.
 
@@ -134,6 +147,11 @@ before their consumers.
   fit/viability — the only real score, available once Phase 2 sensors exist.
 - **Freshness**: median age of evidence behind starred ideas; Space Watch should push
   it down.
+- **Market-validation backtest**: periodically check whether the engine's past starred
+  spaces correspond to companies founded/funded *after* the run (via the outcomes
+  adapter). Delayed but real: "does the engine notice things the market later
+  validates?" The one honest use of funded-vs-not data — as an eval set, never as
+  training labels.
 
 ## 6. What NOT to build
 

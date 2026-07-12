@@ -95,7 +95,22 @@ seed rounds in a space = demand validation; a mega-round = crowding evidence for
 **Seam:** extraction layer over the newsletters adapter + the corroboration seam in
 `pressure.py`.
 
-### 2.5 Search-demand trend curves — S/M
+### 2.5 Funded-company outcomes adapter (YC directory + funding data) — M
+Queried at pressure-test time: "how many funded companies attacked this segment, and
+what happened to them?" Funded corpses = the strongest `empty_for_a_reason` evidence;
+thriving incumbents = crowding evidence for the `crowded` lens. Also supplies
+reference-class few-shots for the pressure prompt ("sounded dumb, won" / "sounded
+great, died"). Explicitly NOT training data — outcome labels confound idea with team,
+arrive 5–10 years late, and pivots make idea→outcome labels wrong. Retrieval +
+eval-set only (see STRATEGY.md §5 market-validation backtest).
+
+### 2.6 Dead-startup post-mortem corpus — S/M
+Failure autopsies (CB Insights-style post-mortems, shutdown lists) keyed by segment,
+feeding the anti-portfolio graveyard (4.3) and Space Watch (3.1): a documented kill
+reason that has since expired (missing API now exists, regulation changed) is a
+first-class discovery signal.
+
+### 2.7 Search-demand trend curves — S/M
 Google Trends via pytrends (keyless, rate-limit-fragile — survivable under the
 governor + mock-fallback contract). Attach a 12-month slope to segment keywords;
 slope feeds `_priority` signal density and the trend score.
