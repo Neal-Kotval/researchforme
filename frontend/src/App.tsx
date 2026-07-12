@@ -11,6 +11,7 @@ import HomeView from "./components/platform/HomeView";
 import ExploreView from "./components/platform/ExploreView";
 import PressureTestView from "./components/platform/PressureTestView";
 import CompareView from "./components/platform/CompareView";
+import GraveyardView from "./components/platform/GraveyardView";
 import AssistantView from "./components/platform/AssistantView";
 
 /** True while the user is typing somewhere a bare-key shortcut must not fire. */
@@ -103,6 +104,9 @@ export default function App() {
           )}
           {route.view === "compare" && (
             <CompareView onOpenNode={navNode} onNewExploration={openNew} />
+          )}
+          {route.view === "graveyard" && (
+            <GraveyardView onOpenNode={navNode} />
           )}
           {route.view === "assistant" && (
             <AssistantView onNav={navView} onActed={refresh} />

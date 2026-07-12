@@ -31,8 +31,11 @@ describe("parseHash", () => {
     expect(parseHash("#/compare")).toEqual({ view: "compare" });
     expect(parseHash("#/assistant")).toEqual({ view: "assistant" });
   });
+  it("parses the graveyard route", () => {
+    expect(parseHash("#/graveyard")).toEqual({ view: "graveyard" });
+  });
   it("round-trips the flat platform views", () => {
-    for (const r of [{ view: "explore" }, { view: "pressure" }, { view: "compare" }, { view: "assistant" }] as Route[]) {
+    for (const r of [{ view: "explore" }, { view: "pressure" }, { view: "compare" }, { view: "assistant" }, { view: "graveyard" }] as Route[]) {
       expect(parseHash(routeToHash(r))).toEqual(r);
     }
   });

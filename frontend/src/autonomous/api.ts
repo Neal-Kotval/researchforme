@@ -11,9 +11,13 @@ import type {
   CreateProjectRequest,
   ExplorerEvent,
   GlobalUsage,
+  GraveyardItem,
   IntakeQuestion,
   UsagePolicy,
   Pace,
+  PortfolioItem,
+  Preferences,
+  PreferencesState,
   Project,
   ResearchPackResponse,
   ScoutResponse,
@@ -21,6 +25,8 @@ import type {
   Stage,
   TreeSnapshot,
   Triage,
+  UpdatePreferencesRequest,
+  WatchedNodeStatus,
 } from "./types";
 
 /** A structured API error carrying the HTTP status so callers can branch. */
@@ -115,6 +121,49 @@ export function setUsagePolicy(policy: UsagePolicy): Promise<GlobalUsage> {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(policy),
+  });
+}
+
+/** Every scored gap across projects (H1) — the Compare 2×2 dataset. Pure
+ *  store rollup, no LLM. `fit: null` gaps belong in the no-steering strip. */
+export function getPortfolio(): Promise<PortfolioItem[]> {
+  return request<PortfolioItem[]>("/api/portfolio");
+}
+
+/** The cross-project anti-portfolio (S3): killed/passed gaps merged with the
+ *  curated post-mortem corpus (`external: true`). Store-level SQL, no LLM. */
+export function getGraveyard(q = "", limit = 100): Promise<GraveyardItem[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (q.trim()) params.set("q", q.trim());
+  return request<GraveyardItem[]>(`/api/graveyard?${params}`);
+}
+
+/** Watched nodes + the last alert each (C2) — the dashboard "Recent signals"
+ *  block. Pure store reads; sweeps happen elsewhere (POST /api/watch/sweep). */
+export function getWatchStatus(): Promise<WatchedNodeStatus[]> {
+  return request<WatchedNodeStatus[]>("/api/watch");
+}
+
+/** The single learned-preferences row (or null) + the triage-verdict count
+ *  that gates the dashboard distill card (H3). No LLM. */
+export function getPreferences(): Promise<PreferencesState> {
+  return request<PreferencesState>("/api/preferences");
+}
+
+/** ONE user-initiated cheap-model pass over the triage verdicts → a PENDING
+ *  proposal (H3). Nothing steers a run until the user confirms it. A backend
+ *  that can't distill honestly answers 503 — never an invented preference. */
+export function distillPreferences(): Promise<Preferences> {
+  return request<Preferences>("/api/preferences/distill", { method: "POST" });
+}
+
+/** Confirm (`status: "active"`, possibly with edited text) or dismiss the
+ *  proposal. Only active text is ever injected into prompts. */
+export function updatePreferences(req: UpdatePreferencesRequest): Promise<Preferences> {
+  return request<Preferences>("/api/preferences", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(req),
   });
 }
 

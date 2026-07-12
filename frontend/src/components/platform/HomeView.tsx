@@ -5,6 +5,8 @@ import { ACTIVE_STATUSES } from "../../hooks/useProjects";
 import FitChip from "../autonomous/FitChip";
 import ViabChip from "../autonomous/ViabChip";
 import { usePressureTestedIdeas } from "./usePressureTestedIdeas";
+import PreferenceDistillCard from "./PreferenceDistillCard";
+import RecentSignals from "./RecentSignals";
 
 interface Props {
   projects: Project[];
@@ -274,6 +276,12 @@ export default function HomeView({
           </div>
         )}
       </section>
+
+      {/* 4 — distill the triage record into steering (H3, review-before-apply) */}
+      <PreferenceDistillCard />
+
+      {/* 5 — Recent signals: what moved on the watched spaces (C2) */}
+      <RecentSignals onOpenNode={onOpenNode} />
     </div>
   );
 }
