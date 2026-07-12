@@ -138,6 +138,34 @@ export function deleteProject(pid: string): Promise<{ ok: boolean }> {
   });
 }
 
+/* ------------------------------------------------------------- assistant -- */
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
+/** One tool call the assistant actually ran (rendered as a command block). */
+export interface AssistantAction {
+  tool: string; // dotted display form, e.g. "gap.explore.start"
+  args: Record<string, unknown>;
+  result: string; // compact JSON the tool returned
+}
+
+export interface AssistantReply {
+  reply: string;
+  actions: AssistantAction[];
+  backend: string;
+}
+
+/** One conversational turn against the platform's tool layer (agent-sdk). */
+export function assistantChat(messages: AssistantMessage[]): Promise<AssistantReply> {
+  return request<AssistantReply>("/api/assistant/chat", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ messages }),
+  });
+}
+
 export interface SubscribeOptions {
   /** Replay events with seq greater than this cursor on connect. */
   after?: number;

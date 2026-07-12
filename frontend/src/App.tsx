@@ -105,7 +105,7 @@ export default function App() {
             <CompareView onOpenNode={navNode} onNewExploration={openNew} />
           )}
           {route.view === "assistant" && (
-            <AssistantView onNav={navView} onNewExploration={openNew} />
+            <AssistantView onNav={navView} onActed={refresh} />
           )}
         </main>
       </PlatformShell>

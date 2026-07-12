@@ -1,44 +1,96 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  assistantChat,
+  ApiError,
+  type AssistantAction,
+  type AssistantMessage,
+} from "../../autonomous/api";
+import Markdown from "../autonomous/Markdown";
 
 interface Msg {
   role: "you" | "assistant";
   text: string;
+  actions?: AssistantAction[];
+  error?: boolean;
 }
 
 interface Props {
-  onNav: (view: "home" | "pressure" | "compare" | "assistant") => void;
-  onNewExploration: () => void;
+  onNav: (view: "home" | "explore" | "pressure" | "compare" | "assistant") => void;
+  /** Tool calls mutate runs — let the App-level projects poll catch up now. */
+  onActed: () => void;
+}
+
+/** Tools that change platform state (vs. read-only lookups). */
+const MUTATING = new Set(["gap.explore.start", "gap.run.pause", "gap.run.resume"]);
+
+/** Render a recorded tool call as its dotted-CLI form. */
+function CommandBlock({ action }: { action: AssistantAction }) {
+  return (
+    <div className="as-cmd">
+      <span className="as-cmd-chip">✓ ran</span>
+      <span>
+        <span className="as-cmd-verb">{action.tool}</span>
+        {Object.entries(action.args).map(([k, v]) => (
+          <span key={k}>
+            {" "}--{k}{" "}
+            <span className="as-cmd-arg">
+              {typeof v === "string" ? `"${v}"` : String(v)}
+            </span>
+          </span>
+        ))}
+      </span>
+    </div>
+  );
 }
 
 /**
  * The chat control surface (design handoff §5): a centered thread + a fixed
- * composer, with the platform's tool layer rendered inline as command blocks.
- * The conversational backend isn't wired yet — the surface is honest about
- * that and routes you to the working flows instead of pretending.
+ * composer. Each turn runs one agent query on the backend whose MCP tools are
+ * the platform's real tool layer — every command block below is a call that
+ * actually executed, never a mock.
  */
-export default function AssistantView({ onNav, onNewExploration }: Props) {
+export default function AssistantView({ onNav, onActed }: Props) {
   const [draft, setDraft] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [pending, setPending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [msgs.length]);
+  }, [msgs.length, pending]);
 
-  const send = () => {
+  const send = async () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || pending) return;
     setDraft("");
-    setMsgs((m) => [
-      ...m,
-      { role: "you", text },
-      {
-        role: "assistant",
-        text:
-          "The conversational backend isn't wired up yet, so I can't act on that from here. " +
-          "Everything I'd do runs through the tool layer below — start a run from Home, or check the shortlist in Compare.",
-      },
-    ]);
+    const nextMsgs: Msg[] = [...msgs, { role: "you", text }];
+    setMsgs(nextMsgs);
+    setPending(true);
+    try {
+      const history: AssistantMessage[] = nextMsgs.map((m) => ({
+        role: m.role === "you" ? "user" : "assistant",
+        text: m.text,
+      }));
+      const res = await assistantChat(history);
+      setMsgs((m) => [...m, { role: "assistant", text: res.reply, actions: res.actions }]);
+      if (res.actions.some((a) => MUTATING.has(a.tool))) onActed();
+    } catch (e) {
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "assistant",
+          error: true,
+          text:
+            e instanceof ApiError
+              ? e.message
+              : "The assistant did not answer — is the backend running?",
+        },
+      ]);
+    } finally {
+      setPending(false);
+      inputRef.current?.focus();
+    }
   };
 
   return (
@@ -48,32 +100,13 @@ export default function AssistantView({ onNav, onNewExploration }: Props) {
           <div>
             <div className="as-label assistant"><span className="pf-dot" />Assistant</div>
             <div className="as-prose">
-              I drive the whole platform through its tool layer — starting hunts, red-teaming
-              candidates, and ranking survivors. A typical run looks like this:
-            </div>
-            <div className="as-cmd">
-              <span className="as-cmd-chip">tool</span>
-              <span>
-                <span className="as-cmd-verb">gap.explore.start</span> --space{" "}
-                <span className="as-cmd-arg">"independent HVAC"</span> --cap{" "}
-                <span className="as-cmd-arg">$10.00</span>
-              </span>
-            </div>
-            <div className="as-cmd">
-              <span className="as-cmd-chip">tool</span>
-              <span>
-                <span className="as-cmd-verb">gap.redteam.run</span> --idea{" "}
-                <span className="as-cmd-arg">hvac-pm-copilot</span> --rigor{" "}
-                <span className="as-cmd-arg">deep</span>
-              </span>
-            </div>
-            <div className="as-prose">
-              Chat-driven control lands soon. Until then:{" "}
-              <button className="as-link" onClick={onNewExploration}>New exploration</button> starts a
-              hunt, <button className="as-link" onClick={() => onNav("pressure")}>Pressure-test</button>{" "}
-              shows the red team's findings, and{" "}
-              <button className="as-link" onClick={() => onNav("compare")}>Compare</button> ranks the
-              survivors.
+              I drive the platform through its tool layer — starting hunts, pausing and
+              resuming runs, and ranking the survivors. Try{" "}
+              <em>"find me something in independent HVAC, keep it under 200k tokens"</em> or{" "}
+              <em>"what survived the red team?"</em> — every command I run shows up below,{" "}
+              and results land on{" "}
+              <button className="as-link" onClick={() => onNav("explore")}>Explore</button> and{" "}
+              <button className="as-link" onClick={() => onNav("compare")}>Compare</button>.
             </div>
           </div>
 
@@ -86,9 +119,19 @@ export default function AssistantView({ onNav, onNewExploration }: Props) {
             ) : (
               <div key={i}>
                 <div className="as-label assistant"><span className="pf-dot" />Assistant</div>
-                <div className="as-prose">{m.text}</div>
+                {m.actions?.map((a, j) => <CommandBlock key={j} action={a} />)}
+                <div className={`as-prose${m.error ? " error" : ""}`} role={m.error ? "alert" : undefined}>
+                  {m.error ? <>⚠︎ {m.text}</> : <Markdown text={m.text} />}
+                </div>
               </div>
             )
+          )}
+
+          {pending && (
+            <div aria-live="polite">
+              <div className="as-label assistant"><span className="pf-dot pulse" />Assistant</div>
+              <div className="as-prose as-thinking">Working — running the tool layer…</div>
+            </div>
           )}
           <div ref={endRef} />
         </div>
@@ -97,13 +140,15 @@ export default function AssistantView({ onNav, onNewExploration }: Props) {
       <div className="as-composer">
         <div className="as-composer-inner">
           <input
+            ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ask the assistant, or type / for a command…"
+            placeholder="Ask the assistant, or tell it what to hunt…"
             aria-label="Message the assistant"
+            disabled={pending}
           />
-          <button className="btn btn-primary btn-sm" onClick={send}>
+          <button className="btn btn-primary btn-sm" onClick={send} disabled={pending || !draft.trim()}>
             Send<span className="pf-kbd-dark">↵</span>
           </button>
         </div>

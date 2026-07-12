@@ -259,7 +259,9 @@
 }
 .pf-content.hidden { display: none; }
 
-.pf-view { padding: 26px 30px 40px; width: 100%; max-width: 1080px; }
+/* Width-capped per the handoff, but centered in the content region so wide
+   monitors don't read as a half-empty screen. */
+.pf-view { padding: 26px 30px 40px; width: 100%; max-width: 1080px; margin-inline: auto; }
 .pf-view.w880 { max-width: 880px; }
 .pf-view.w940 { max-width: 940px; }
 
@@ -750,6 +752,14 @@
   max-width: 520px;
 }
 .as-prose { font-size: 13.5px; color: var(--text-dim); line-height: 1.6; }
+.as-prose.error { color: var(--unavailable); }
+.as-thinking { color: var(--text-faint); font-style: italic; }
+.as-prose p { margin: 0 0 8px; }
+.as-prose p:last-child { margin-bottom: 0; }
+.as-cmd + .as-cmd { margin-top: 8px; }
+.as-cmd:first-child + .as-prose, .as-cmd + .as-prose { margin-top: 11px; }
+.as-label + .as-cmd { margin-top: 0; }
+.as-cmd { margin-bottom: 0; }
 .as-prose + .as-cmd, .as-cmd + .as-prose, .as-card + .as-prose, .as-cmd + .as-card { margin-top: 11px; }
 .as-link {
   color: var(--highlight-ink);

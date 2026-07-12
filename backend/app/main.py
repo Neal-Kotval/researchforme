@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers.analyze import router as analyze_router
+from .routers.assistant import router as assistant_router
 from .routers.projects import router as projects_router
 
 app = FastAPI(
@@ -37,6 +38,8 @@ app.add_middleware(
 app.include_router(analyze_router, prefix="/api")
 # Autonomous exploration endpoints share the same /api prefix (e.g. /api/projects).
 app.include_router(projects_router, prefix="/api")
+# The Assistant control surface (POST /api/assistant/chat).
+app.include_router(assistant_router, prefix="/api")
 
 
 @app.on_event("startup")
