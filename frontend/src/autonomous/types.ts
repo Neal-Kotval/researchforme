@@ -218,6 +218,32 @@ export interface WatchSweepResult {
   alerts: WatchAlert[];
 }
 
+export type PreferenceStatus = "pending" | "active" | "dismissed";
+
+/** The distilled learned-preferences row (H3) — POST /api/preferences/distill
+ *  writes a pending proposal; only `status: "active"` text is ever injected
+ *  into prompts. Mirrors backend `Preferences`. */
+export interface Preferences {
+  learned_preferences: string;
+  status: PreferenceStatus;
+  updated_at: string;
+}
+
+/** What GET /api/preferences returns; `triage_count` backs the dashboard
+ *  "distill what your passes say" card threshold (>=8 verdicts).
+ *  Mirrors backend `PreferencesState`. */
+export interface PreferencesState {
+  preferences: Preferences | null;
+  triage_count: number;
+}
+
+/** Review/edit/confirm/dismiss payload for POST /api/preferences.
+ *  Mirrors backend `UpdatePreferencesRequest`. */
+export interface UpdatePreferencesRequest {
+  learned_preferences: string;
+  status: "active" | "dismissed";
+}
+
 export type UsageLevel = "low" | "medium" | "high" | "heavy";
 
 /** Shared governor snapshot for the global usage bar (GET /api/usage). */

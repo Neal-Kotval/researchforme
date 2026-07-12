@@ -42,6 +42,8 @@ from ..autonomous.schemas import (
     GraveyardItem,
     IntakeRequest,
     IntakeResponse,
+    Preferences,
+    PreferencesState,
     Project,
     ResearchPackResponse,
     ScoutRequest,
@@ -49,6 +51,7 @@ from ..autonomous.schemas import (
     SortResearchRequest,
     SortedResearch,
     TreeSnapshot,
+    UpdatePreferencesRequest,
     WatchSweepResult,
     WatchedNodeStatus,
 )
@@ -155,6 +158,94 @@ def sweep_watch() -> WatchSweepResult:
         raise HTTPException(
             status_code=500,
             detail=f"Watch sweep failed: {type(exc).__name__}.",
+        ) from exc
+
+
+# --------------------------------------------------------------------------- #
+# Preference distillation (Phase 4 H3)                                        #
+# --------------------------------------------------------------------------- #
+@router.get("/preferences", response_model=PreferencesState)
+def get_preferences() -> PreferencesState:
+    """The single learned-preferences row (or null) + the triage-verdict count.
+
+    Pure store reads — no LLM. ``triage_count`` backs the dashboard "distill
+    what your passes say" card threshold.
+    """
+    store = get_store()
+    try:
+        return PreferencesState(
+            preferences=store.get_preferences(),
+            triage_count=len(store.triaged_nodes()),
+        )
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("get_preferences failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not read preferences: {type(exc).__name__}.",
+        ) from exc
+
+
+@router.post("/preferences", response_model=Preferences)
+def update_preferences(req: UpdatePreferencesRequest) -> Preferences:
+    """Review/edit/confirm/dismiss the learned preferences (H3).
+
+    Confirm = ``status: "active"`` (the ONLY status ever injected into
+    prompts, possibly with user-edited text); reject = ``status: "dismissed"``.
+    Activating empty text is a 400 — there is nothing to inject.
+    """
+    text = req.learned_preferences.strip()
+    if req.status == "active" and not text:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot activate empty preferences — supply the text to apply.",
+        )
+    try:
+        prefs = Preferences(learned_preferences=text, status=req.status)
+        get_store().save_preferences(prefs)
+        return prefs
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("update_preferences failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not save preferences: {type(exc).__name__}.",
+        ) from exc
+
+
+@router.post("/preferences/distill", response_model=Preferences)
+async def distill_preferences_route() -> Preferences:
+    """ONE cheap-model pass over the accumulated triage verdicts → a PENDING
+    proposal (H3). Nothing is applied until the user confirms it.
+
+    Zero triage verdicts is a 400 (there is nothing to distill from). A
+    backend that can't produce a real distillation (the fixture backend
+    included) is an honest 503 — NEVER an invented preference.
+    """
+    from ..autonomous.preferences import PreferencesUnavailable, distill_preferences
+    from ..llm.client import get_client
+
+    store = get_store()
+    triaged = store.triaged_nodes()
+    if not triaged:
+        raise HTTPException(
+            status_code=400,
+            detail="No triage verdicts yet — mark some gaps interested/passed first.",
+        )
+    try:
+        text = await distill_preferences(triaged, get_client())
+        prefs = Preferences(learned_preferences=text, status="pending")
+        store.save_preferences(prefs)
+        return prefs
+    except PreferencesUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("distill_preferences failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not distill preferences: {type(exc).__name__}.",
         ) from exc
 
 

@@ -400,6 +400,45 @@ class ResearchPackResponse(BaseModel):
     cached: bool = False
 
 
+PreferenceStatus = Literal["pending", "active", "dismissed"]
+
+
+class Preferences(BaseModel):
+    """The distilled learned-preferences row (H3) — single row in ``ap_preferences``.
+
+    ``POST /api/preferences/distill`` writes a ``pending`` proposal; the user
+    reviews / edits / confirms via ``POST /api/preferences``. ONLY
+    ``status == "active"`` text is ever injected into prompts (under the
+    "LEARNED PREFERENCES (user-confirmed)" heading in
+    ``steering_context_block``). Mirrors types.ts.
+    """
+
+    learned_preferences: str = ""
+    status: PreferenceStatus = "pending"
+    updated_at: datetime = Field(default_factory=_now)
+
+
+class PreferencesState(BaseModel):
+    """What ``GET /api/preferences`` returns (H3).
+
+    ``preferences`` is None until a distillation (or manual save) has produced
+    the single row; ``triage_count`` backs the dashboard "distill what your
+    passes say" card threshold (≥8 triage verdicts). Mirrors types.ts."""
+
+    preferences: Optional[Preferences] = None
+    triage_count: int = 0
+
+
+class UpdatePreferencesRequest(BaseModel):
+    """The review/edit/confirm/dismiss payload for ``POST /api/preferences``.
+
+    ``status`` is the user's verdict on the (possibly edited) text: confirm =
+    ``active``, reject = ``dismissed``. Mirrors types.ts."""
+
+    learned_preferences: str = ""
+    status: Literal["active", "dismissed"]
+
+
 class ControlAction(str, Enum):
     PAUSE = "pause"
     RESUME = "resume"

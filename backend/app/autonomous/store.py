@@ -2,8 +2,9 @@
 
 The :class:`TreeStore` is the single source of truth for projects, their
 exploration trees, and the per-project event log that drives the live SSE
-stream. It is deliberately small: three SQLite tables (``ap_projects``,
-``ap_nodes``, ``ap_events``) that store each pydantic model as JSON via
+stream. It is deliberately small: four SQLite tables (``ap_projects``,
+``ap_nodes``, ``ap_events``, and the single-row ``ap_preferences``) that store
+each pydantic model as JSON via
 ``model_dump(mode="json")`` and rebuild it with ``model_validate``.
 
 Design notes:
@@ -34,7 +35,7 @@ import threading
 from typing import AsyncIterator, Optional
 
 from ..config import get_settings
-from .schemas import ExplorerEvent, Node, Project, TreeSnapshot
+from .schemas import ExplorerEvent, Node, Preferences, Project, TreeSnapshot
 
 
 class TreeStore:
@@ -72,6 +73,12 @@ class TreeStore:
             )
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS ap_nodes_project ON ap_nodes (project_id)"
+            )
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS ap_preferences (
+                       id    INTEGER PRIMARY KEY CHECK (id = 1),
+                       value TEXT NOT NULL
+                   )"""
             )
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS ap_events (
@@ -192,6 +199,55 @@ class TreeStore:
                 continue
         out.sort(key=lambda pair: pair[0].created_at)
         return out
+
+    def triaged_nodes(self) -> list[tuple[Node, Optional[str]]]:
+        """Cross-project nodes carrying a triage verdict — the H3 distill corpus.
+
+        Pure store-level SQL over ``ap_nodes`` (no LLM): every node the user
+        marked interested or passed, each paired with its project's domain
+        (None if the project row is gone). Unparseable rows are skipped —
+        degrade, don't crash.
+        """
+        with self._lock, self._conn() as conn:
+            rows = conn.execute(
+                """SELECT n.value, json_extract(p.value, '$.domain')
+                   FROM ap_nodes n
+                   LEFT JOIN ap_projects p ON p.id = n.project_id
+                   WHERE json_extract(n.value, '$.triage') IS NOT NULL"""
+            ).fetchall()
+        out: list[tuple[Node, Optional[str]]] = []
+        for value, domain in rows:
+            try:
+                out.append((Node.model_validate(json.loads(value)), domain))
+            except Exception:  # noqa: BLE001 - one bad row must not sink the list.
+                continue
+        out.sort(key=lambda pair: pair[0].created_at)
+        return out
+
+    # ------------------------------------------------------------------ #
+    # Preferences (H3 — single ap_preferences row)                        #
+    # ------------------------------------------------------------------ #
+    def get_preferences(self) -> Optional[Preferences]:
+        """The single learned-preferences row, or None (unset / unparseable)."""
+        with self._lock, self._conn() as conn:
+            row = conn.execute(
+                "SELECT value FROM ap_preferences WHERE id=1"
+            ).fetchone()
+        if not row:
+            return None
+        try:
+            return Preferences.model_validate(json.loads(row[0]))
+        except Exception:  # noqa: BLE001 - degrade, don't crash.
+            return None
+
+    def save_preferences(self, prefs: Preferences) -> None:
+        """Upsert the single learned-preferences row (id is always 1)."""
+        payload = json.dumps(prefs.model_dump(mode="json"))
+        with self._lock, self._conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO ap_preferences (id, value) VALUES (1, ?)",
+                (payload,),
+            )
 
     # ------------------------------------------------------------------ #
     # Events (append-only log + live fan-out)                            #

@@ -151,6 +151,19 @@ def steering_context_block(project: Any) -> str:
     if intake_block:
         parts.append(intake_block)
 
+    # H3: distilled preferences the user CONFIRMED (status == "active") steer
+    # every prompt; a pending proposal or dismissed row injects nothing.
+    # Lazy import + broad guard: prompt building must never break over prefs.
+    try:
+        from .preferences import learned_preferences_block
+        from .store import get_store
+
+        prefs_block = learned_preferences_block(get_store())
+    except Exception:  # noqa: BLE001 - degrade to no-prefs, never crash a prompt.
+        prefs_block = ""
+    if prefs_block:
+        parts.append(prefs_block)
+
     if not parts:
         return ""
     return "== FOUNDER STEERING (honour all of this) ==\n" + "\n\n".join(parts)
