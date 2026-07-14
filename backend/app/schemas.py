@@ -27,6 +27,7 @@ class SourceName(str, Enum):
     JOBS = "jobs"
     APPREVIEWS = "appreviews"
     REGULATORY = "regulatory"
+    STACKEXCHANGE = "stackexchange"
     OUTCOMES = "outcomes"
     POSTMORTEMS = "postmortems"
 

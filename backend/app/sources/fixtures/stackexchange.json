@@ -1,0 +1,4 @@
+[
+  {"source":"stackexchange","id":"se-fixture-1","title":"How do I verify a fused GPU kernel is still numerically correct?","body":"I rewrote an attention kernel and outputs differ at long sequence lengths. No good tooling.","url":"https://stackoverflow.example.org/q/00000001","weight":880.0,"meta":{"views":4200,"score":18,"answers":0,"is_answered":false,"site":"stackoverflow","kind":"unanswered_pain"}},
+  {"source":"stackexchange","id":"se-fixture-2","title":"Why is there no standard benchmark for serving-config performance across engines?","body":"Every team hand-rolls this. Is there a tool?","url":"https://stackoverflow.example.org/q/00000002","weight":640.0,"meta":{"views":2600,"score":11,"answers":1,"is_answered":false,"site":"stackoverflow","kind":"unanswered_pain"}}
+]

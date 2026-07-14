@@ -53,6 +53,9 @@ class Settings(BaseModel):
     # --- Regulatory (Federal Register API; keyless, ~1000 req/hr soft limit) ---
     regulatory_max_items: int = 20      # per_page (API max 1000; stay tiny + cache)
 
+    # --- Stack Exchange (keyless search; ~300 req/day/IP; unmet-demand sensing) ---
+    stackexchange_hits: int = 30        # SO questions surfaced per fetch
+
     # --- Outcomes (yc-oss static YC directory; ~2 MB JSON on GitHub Pages) ---
     outcomes_max_items: int = 25        # filtered companies surfaced per fetch
 

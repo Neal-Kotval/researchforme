@@ -32,6 +32,7 @@ from .outcomes import OutcomesSource
 from .postmortems import PostmortemsSource
 from .reddit import RedditSource
 from .regulatory import RegulatorySource
+from .stackexchange import StackExchangeSource
 
 
 def _build_sources() -> list[Source]:
@@ -54,6 +55,7 @@ def _build_sources() -> list[Source]:
         JobsSource(),
         AppReviewsSource(),
         RegulatorySource(),
+        StackExchangeSource(),
         OutcomesSource(),
         PostmortemsSource(),
     ]
