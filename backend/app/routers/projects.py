@@ -363,6 +363,26 @@ def get_portfolio() -> list[PortfolioItem]:
         ) from exc
 
 
+@router.get("/starred", response_model=list[PortfolioItem])
+def get_starred() -> list[PortfolioItem]:
+    """Every idea the USER starred, across every project (W-1) — the shortlist.
+
+    Reads ``user_star``, never the engine's ``star``: this is the founder's own
+    taste, and it is the entry point for importing ideas into a project. Pure
+    store-level rollup, no LLM.
+    """
+    from ..autonomous.portfolio import starred_items
+
+    try:
+        return starred_items(get_store())
+    except Exception as exc:  # noqa: BLE001 - clean 500, no stack trace.
+        logger.exception("get_starred failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not read the starred ideas: {type(exc).__name__}.",
+        ) from exc
+
+
 @router.post("/projects/{pid}/rerun", response_model=Project)
 def rerun_project(pid: str, req: RerunRequest | None = None) -> Project:
     """Clone a project into a fresh linked run (C3).

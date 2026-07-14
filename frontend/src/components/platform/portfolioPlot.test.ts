@@ -17,6 +17,8 @@ function item(over: Partial<PortfolioItem>): PortfolioItem {
     fit: 60,
     confidence: "high",
     star: false,
+    user_star: false,
+    kind: "gap",
     triage: null,
     stage: null,
     updated_at: null,

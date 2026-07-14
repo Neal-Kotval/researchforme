@@ -531,7 +531,11 @@ export interface PortfolioItem {
   viability: number | null;
   fit: number | null;
   confidence: Confidence | null;
+  /** The engine's threshold verdict (viability cleared star_threshold). */
   star: boolean;
+  /** The founder's own shortlist star — what #/starred lists. */
+  user_star: boolean;
+  kind: NodeKind | null;
   triage: Triage | null;
   stage: Stage | null;
   updated_at: string | null;

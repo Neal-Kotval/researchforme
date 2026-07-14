@@ -140,6 +140,11 @@ export function getGraveyard(q = "", limit = 100): Promise<GraveyardItem[]> {
 
 /** Watched nodes + the last alert each (C2) — the dashboard "Recent signals"
  *  block. Pure store reads; sweeps happen elsewhere (POST /api/watch/sweep). */
+/** Every idea the user starred, across projects — the shortlist (W-1). */
+export function getStarred(): Promise<PortfolioItem[]> {
+  return request<PortfolioItem[]>("/api/starred");
+}
+
 export function getWatchStatus(): Promise<WatchedNodeStatus[]> {
   return request<WatchedNodeStatus[]>("/api/watch");
 }

@@ -4,7 +4,7 @@ import type { GlobalUsage, Project } from "../../autonomous/types";
 import type { Route } from "../../hooks/useHashRoute";
 
 /** Which sidebar item a route lights up. */
-export type PlatformView = "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard";
+export type PlatformView = "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard" | "starred";
 
 export function routeToPlatformView(route: Route): PlatformView {
   switch (route.view) {
@@ -14,6 +14,7 @@ export function routeToPlatformView(route: Route): PlatformView {
     case "compare": return "compare";
     case "assistant": return "assistant";
     case "graveyard": return "graveyard";
+    case "starred": return "starred";
     default: return "home";
   }
 }
@@ -25,6 +26,7 @@ const VIEW_META: Record<PlatformView, { title: string; sub: string }> = {
   compare: { title: "Compare", sub: "Weigh the survivors by fit × viability. Every score carries its provenance." },
   assistant: { title: "Assistant", sub: "Drive the whole platform in plain language, through its tool layer." },
   graveyard: { title: "Graveyard", sub: "Every space that was killed or passed — and why. Check here before re-chasing an idea." },
+  starred: { title: "Starred ideas", sub: "Your shortlist across every exploration — what you starred, not what the engine scored highly. Select ideas to export into a project." },
 };
 
 function fmtTok(n: number): string {
@@ -48,6 +50,7 @@ const IconGhost = () => (
     <path d="M14.5 10.5h.01" />
   </svg>
 );
+const IconStar = () => (<svg {...ic}><path d="m12 4 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8L12 4Z" /></svg>);
 const IconPlus = () => (<svg {...ic} width={14} height={14} strokeWidth={2.1}><path d="M12 5v14M5 12h14" /></svg>);
 const IconChatSm = () => (<svg {...ic} width={14} height={14} strokeWidth={1.8}><path d="M4 5h16v11H8l-4 4V5Z" /></svg>);
 
@@ -139,6 +142,7 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
 
         <div className="pf-navlabel">Workspace</div>
         <nav className="pf-nav">
+          {navItem("starred", "Starred", <IconStar />)}
           {navItem("graveyard", "Graveyard", <IconGhost />)}
           {navItem("assistant", "Assistant", <IconChat />, <span className="pf-kbd">/</span>)}
         </nav>

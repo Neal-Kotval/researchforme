@@ -517,7 +517,9 @@ class PortfolioItem(BaseModel):
     viability: Optional[int] = None
     fit: Optional[int] = None
     confidence: Optional[Confidence] = None
-    star: bool = False
+    star: bool = False                         # engine's threshold verdict
+    user_star: bool = False                    # the founder's own shortlist (W-1)
+    kind: Optional[NodeKind] = None            # starred nodes need not be gaps
     triage: Optional[Triage] = None
     stage: Optional[Stage] = None
     updated_at: Optional[datetime] = None
