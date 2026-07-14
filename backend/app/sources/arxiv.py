@@ -28,7 +28,9 @@ from ..config import get_settings
 from ..schemas import RawItem, SourceName, SourceReport, SourceStatus
 from .base import FetchResult, Source
 
-_ARXIV_API = "http://export.arxiv.org/api/query"
+# HTTPS on purpose: the http:// endpoint 301-redirects, and httpx does not follow
+# redirects by default — that silently downgraded every live fetch to the fixture.
+_ARXIV_API = "https://export.arxiv.org/api/query"
 _FIXTURE = Path(__file__).parent / "fixtures" / "arxiv.json"
 _HTTP_TIMEOUT = 15.0
 
@@ -104,7 +106,8 @@ class ArxivSource(Source):
             "max_results": max(1, int(max_results)),
         }
         resp = httpx.get(_ARXIV_API, params=params, timeout=_HTTP_TIMEOUT,
-                         headers={"User-Agent": "market-gap-finder/0.1"})
+                         headers={"User-Agent": "market-gap-finder/0.1"},
+                         follow_redirects=True)
         resp.raise_for_status()
 
         feed = feedparser.parse(resp.text)
@@ -186,18 +189,47 @@ def _clean_terms(terms: list[str]) -> list[str]:
     return seen[:6]
 
 
-def _build_search_query(terms: list[str]) -> str:
-    """OR together phrase-quoted keyword matches over title+abstract.
+# Words carrying no retrieval signal inside an AND-of-words clause.
+_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "is",
+    "it", "its", "no", "not", "of", "on", "or", "that", "the", "there", "this",
+    "to", "why", "with", "new", "using", "based",
+}
 
-    Example: all:"llm agents" OR all:"on-device inference"
+
+def _term_clause(term: str) -> str:
+    """One term → an arXiv clause that can actually match.
+
+    An exact-phrase clause (``all:"protein language model latent space"``) hits
+    zero papers for anything longer than a few words, and the engine feeds us
+    long descriptive keywords — which silently emptied the source. So we OR the
+    phrase together with an AND-of-its-content-words form, which matches papers
+    discussing the same concept in different wording:
+
+        all:"surgical imitation learning"
+        OR (all:"surgical" AND all:"imitation" AND all:"learning")
     """
+    phrase = re.sub(r'["\\]', " ", term)
+    phrase = re.sub(r"\s+", " ", phrase).strip()
+    if not phrase:
+        return ""
+
+    words = [w for w in re.findall(r"[A-Za-z0-9+#-]{2,}", phrase)
+             if w.lower() not in _STOPWORDS]
+    # Keep the AND-clause tight; too many required words is as brittle as a phrase.
+    words = words[:4]
+    if len(words) < 2:
+        return f'all:"{phrase}"'
+
+    conjunction = " AND ".join(f'all:"{w}"' for w in words)
+    return f'(all:"{phrase}" OR ({conjunction}))'
+
+
+def _build_search_query(terms: list[str]) -> str:
+    """OR together one matchable clause per keyword, over title+abstract."""
     if not terms:
         return "all:artificial intelligence"
-    clauses = []
-    for t in terms:
-        phrase = re.sub(r'["\\]', " ", t).strip()
-        if phrase:
-            clauses.append(f'all:"{phrase}"')
+    clauses = [c for c in (_term_clause(t) for t in terms) if c]
     return " OR ".join(clauses) or "all:artificial intelligence"
 
 
