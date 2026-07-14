@@ -97,7 +97,9 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
     let alive = true;
     const tick = () => getUsage().then((u) => alive && setUsage(u)).catch(() => {});
     tick();
-    const id = window.setInterval(tick, 15_000);
+    // 6s: the rate is a trailing-60s average, so this is live enough to watch the
+    // pace move without hammering the endpoint.
+    const id = window.setInterval(tick, 6_000);
     return () => { alive = false; window.clearInterval(id); };
   }, []);
 
@@ -156,22 +158,59 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
           </nav>
         </div>
 
+        {/* Token pace — the app's own consumption, from measured governor numbers
+            (rate is trailing-60s; projection is that rate held for a day). These
+            are the app's LLM spend, NOT the Claude subscription's 5h/7d windows,
+            which the harness never exposes to the app — so we show what is real. */}
         <div className="pf-usage">
           <div className="pf-usage-row">
-            <span className="pf-usage-label">Today's usage</span>
-            <span className="pf-usage-pct">{pct != null ? `${pct}%` : "—"}</span>
+            <span className="pf-usage-label">Token pace</span>
+            {usage && (
+              <span className={`pf-usage-mode m-${usage.in_backoff ? "backoff" : usage.mode}`}>
+                {usage.in_backoff
+                  ? `backoff ${Math.ceil(usage.backoff_remaining_s)}s`
+                  : usage.mode}
+              </span>
+            )}
           </div>
-          <div className="pf-usage-track">
-            <span
-              className={`pf-usage-fill${usage && (usage.usage_level === "high" || usage.usage_level === "heavy") ? " hot" : ""}`}
-              style={{ width: `${pct ?? 0}%` }}
-            />
-          </div>
-          <div className="pf-usage-cap">
-            {usage
-              ? `${fmtTok(usage.daily_spent)}${usage.effective_cap ? ` / ${fmtTok(usage.effective_cap)}` : ""} tok · today`
-              : "usage unavailable"}
-          </div>
+
+          {usage ? (
+            <>
+              <div className="pf-pace-grid">
+                <div className="pf-pace-cell">
+                  <b className={`pf-pace-num lvl-${usage.usage_level}`}>
+                    {fmtTok(usage.rate_per_min)}
+                  </b>
+                  <span className="pf-pace-unit">tok/min now</span>
+                </div>
+                <div className="pf-pace-cell">
+                  <b className="pf-pace-num">~{fmtTok(usage.projected_24h)}</b>
+                  <span className="pf-pace-unit">/day at this pace</span>
+                </div>
+              </div>
+
+              {usage.effective_cap ? (
+                <>
+                  <div className="pf-usage-track">
+                    <span
+                      className={`pf-usage-fill${usage.usage_level === "high" || usage.usage_level === "heavy" ? " hot" : ""}`}
+                      style={{ width: `${pct ?? 0}%` }}
+                    />
+                  </div>
+                  <div className="pf-usage-cap">
+                    {fmtTok(usage.daily_spent)} / {fmtTok(usage.effective_cap)} today
+                    {pct != null ? ` · ${pct}%` : ""}
+                  </div>
+                </>
+              ) : (
+                <div className="pf-usage-cap">
+                  {fmtTok(usage.daily_spent)} today · no cap set
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="pf-usage-cap">usage unavailable</div>
+          )}
         </div>
       </aside>
 

@@ -169,6 +169,30 @@
 .pf-usage-fill.hot { background: var(--warn); }
 .pf-usage-cap { font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 7px; }
 
+/* ---- token pace panel (bottom-left) ------------------------------------- */
+/* Mode pill: sprinting/curbing/paused, or a live backoff countdown. */
+.pf-usage-mode {
+  font-family: var(--mono); font-size: 9.5px; font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 1px 6px; border-radius: var(--r-xs);
+  border: 1px solid var(--border); color: var(--text-dim); background: var(--surface);
+}
+.pf-usage-mode.m-sprinting { color: var(--live); border-color: color-mix(in srgb, var(--live) 40%, var(--border)); }
+.pf-usage-mode.m-curbing   { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
+.pf-usage-mode.m-backoff   { color: var(--unavailable); border-color: color-mix(in srgb, var(--unavailable) 45%, var(--border)); }
+
+.pf-pace-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 9px; }
+.pf-pace-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pf-pace-num {
+  font-family: var(--mono); font-size: 15px; font-weight: var(--fw-semibold);
+  line-height: 1.1; color: var(--text); letter-spacing: -0.01em;
+}
+/* The live rate carries the traffic-light: green normal, amber high, red heavy. */
+.pf-pace-num.lvl-low, .pf-pace-num.lvl-medium { color: var(--text); }
+.pf-pace-num.lvl-high  { color: var(--warn); }
+.pf-pace-num.lvl-heavy { color: var(--unavailable); }
+.pf-pace-unit { font-family: var(--mono); font-size: 9px; color: var(--text-faint); white-space: nowrap; }
+
 .pf-user {
   display: flex;
   align-items: center;
