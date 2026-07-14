@@ -134,24 +134,27 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
           </div>
         </div>
 
-        <div className="pf-navlabel">Flow</div>
-        <nav className="pf-nav">
-          {navItem("home", "Home", <IconHome />)}
-          {navItem("explore", "Explore", <IconExplore />,
-            anyRunning ? <span className="pf-nav-live">live</span> : undefined)}
-          {navItem("pressure", "Pressure-test", <IconShield />)}
-          {navItem("compare", "Compare", <IconBars />)}
-        </nav>
+        {/* Scrollable so the logo stays pinned at the top and the usage meter at
+            the bottom; the nav in between scrolls when the viewport is too short
+            to hold every item (which it can be, now that Workspace has grown). */}
+        <div className="pf-side-scroll">
+          <div className="pf-navlabel">Flow</div>
+          <nav className="pf-nav">
+            {navItem("home", "Home", <IconHome />)}
+            {navItem("explore", "Explore", <IconExplore />,
+              anyRunning ? <span className="pf-nav-live">live</span> : undefined)}
+            {navItem("pressure", "Pressure-test", <IconShield />)}
+            {navItem("compare", "Compare", <IconBars />)}
+          </nav>
 
-        <div className="pf-navlabel">Workspace</div>
-        <nav className="pf-nav">
-          {navItem("library", "Library", <IconLibrary />)}
-          {navItem("starred", "Starred", <IconStar />)}
-          {navItem("graveyard", "Graveyard", <IconGhost />)}
-          {navItem("assistant", "Assistant", <IconChat />, <span className="pf-kbd">/</span>)}
-        </nav>
-
-        <div className="pf-side-spacer" />
+          <div className="pf-navlabel">Workspace</div>
+          <nav className="pf-nav">
+            {navItem("library", "Library", <IconLibrary />)}
+            {navItem("starred", "Starred", <IconStar />)}
+            {navItem("graveyard", "Graveyard", <IconGhost />)}
+            {navItem("assistant", "Assistant", <IconChat />, <span className="pf-kbd">/</span>)}
+          </nav>
+        </div>
 
         <div className="pf-usage">
           <div className="pf-usage-row">
