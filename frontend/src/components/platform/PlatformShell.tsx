@@ -170,14 +170,6 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
               : "usage unavailable"}
           </div>
         </div>
-
-        <div className="pf-user">
-          <div className="pf-avatar">A</div>
-          <div>
-            <div className="pf-user-name">Solo founder</div>
-            <div className="pf-user-sub">1 seat · sprint plan</div>
-          </div>
-        </div>
       </aside>
 
       <div className="pf-main">

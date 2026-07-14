@@ -112,7 +112,7 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
   if (docs === null && !error) return <div className="gy-empty">Opening {slug}…</div>;
 
   return (
-    <div className="workspace">
+    <div className="pf-view workspace">
       <div className="ws-bar">
         <button className="btn btn-ghost" onClick={onBack}>
           ← Library

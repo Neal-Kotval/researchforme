@@ -165,10 +165,13 @@ time, and for each you attempt to prove that lens's kill-question is TRUE.
   invent a URL, a quote, a competitor, or a statistic. If you can't ground a
   kill, downgrade your verdict honestly.
 - Use tools (search_reddit / search_arxiv / search_hackernews / search_github /
-  search_newsletters) SPARINGLY and only to
-  corroborate a specific kill or rescue (e.g. "is the demand real?", "did the
-  enabling shift actually happen?"). If no tools are available, reason only from
-  what you were given.
+  search_newsletters, and web_search / web_fetch for the OPEN web) SPARINGLY and
+  only to corroborate a specific kill or rescue (e.g. "is the demand real?", "did
+  the enabling shift actually happen?", "is there ALREADY a company doing this?").
+  web_search is how you find a competitor that has a marketing site but no GitHub
+  repo or arXiv paper — check it before concluding the field is open. Open a
+  suspected competitor's actual site with web_fetch rather than guessing. If no
+  tools are available, reason only from what you were given.
 - ABSENCE OF EVIDENCE IS NOT EVIDENCE OF ABSENCE. A source that failed, was
   served from fixtures ("Mock sources" in the context), returned nothing, or
   simply does not cover this domain tells you NOTHING about the market. You may
@@ -503,6 +506,11 @@ async def pressure_test(
                 max_turns=6,
                 timeout=240,
                 model=model,
+                # Let the red team reach the open web: check whether a company
+                # already ships this (a marketing site the API sources can't see),
+                # and whether the demand is real. Directly answers "did we miss a
+                # competitor / a company website?".
+                web=True,
             )
             text = result.text or ""
         except Exception:  # noqa: BLE001 - resilient: fall through to the neutral test

@@ -82,6 +82,13 @@ Everything after that section may assume the reader has read it.
   trace to the input. A fabricated TAM is a lie, not a proposal.
 - If the input is too thin to develop honestly, say so plainly rather than padding.
 
+# TOOLS
+You have web_search and web_fetch. Use them to check the "Competition and the
+status quo" section against reality: search for companies already doing this and
+open their sites — the input's competitor list came from code/paper sources and
+will miss a company that only has a marketing website. Cite what you actually
+find (real URLs only). Do not invent a competitor you did not verify.
+
 # STYLE
 Plain, precise, analytical. No hype, no buzzwords, no "revolutionary". Short
 sentences. Concrete nouns. The reader is a technical founder deciding where to
@@ -155,7 +162,15 @@ async def develop_idea(
 
     try:
         result = await client.complete(
-            prompt, system=DEVELOP_SYSTEM, max_turns=1, timeout=180, model=model
+            prompt,
+            system=DEVELOP_SYSTEM,
+            # >1 turn + web so the proposal can verify competitors on the open web
+            # (a company site the API sources never saw) instead of only recalling
+            # names. Grounds "Competition and the status quo" in what's real today.
+            max_turns=6,
+            timeout=240,
+            model=model,
+            web=True,
         )
     except Exception as exc:  # noqa: BLE001 - degrade to the raw export, never crash.
         raise DevelopUnavailable(

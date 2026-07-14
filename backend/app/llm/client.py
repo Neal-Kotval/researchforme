@@ -112,6 +112,7 @@ class ClaudeClient:
         timeout: int = 240,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
+        web: bool = False,
     ) -> LLMResult:
         # Per-call model override; falls back to the configured default.
         model = model or self.settings.llm_model
@@ -129,7 +130,9 @@ class ClaudeClient:
                         prompt, system, tools, max_turns, timeout, model, temperature
                     )
                 if backend == "agent-sdk":
-                    return await self._via_agent_sdk(prompt, system, tools, max_turns, timeout, model)
+                    return await self._via_agent_sdk(
+                        prompt, system, tools, max_turns, timeout, model, web
+                    )
                 if backend == "cli":
                     return await self._via_cli(prompt, system, timeout, model)
                 if backend == "fixture":
@@ -164,6 +167,7 @@ class ClaudeClient:
         max_turns: int,
         timeout: int,
         model: str,
+        web: bool = False,
     ) -> LLMResult:
         # NOTE: ClaudeAgentOptions exposes no temperature/sampling parameter —
         # the agent SDK samples at the harness default. Temperature only takes
@@ -196,6 +200,13 @@ class ClaudeClient:
             mcp_servers["gapfinder"] = create_sdk_mcp_server(
                 name="gapfinder", version="0.1.0", tools=sdk_tools
             )
+
+        # Built-in server tools: let the model reach the OPEN web, not just our
+        # curated API adapters. This is what lets the red team open a competitor's
+        # actual website / pricing page and check whether a company already exists —
+        # the gap our fixed sources (arXiv/GitHub/HN/jobs) structurally cannot see.
+        if web:
+            allowed += ["web_search", "web_fetch"]
 
         options = ClaudeAgentOptions(
             system_prompt=system,

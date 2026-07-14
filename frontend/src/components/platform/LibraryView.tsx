@@ -77,7 +77,7 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
   if (projects === null) return <div className="gy-empty">Reading the library…</div>;
 
   return (
-    <div className="library-view">
+    <div className="pf-view w940 library-view">
       <div className="lib-bar">
         <span className="lib-root" title="Your projects are plain markdown files here — open them in any editor, or put them in git.">
           {root || "…"}

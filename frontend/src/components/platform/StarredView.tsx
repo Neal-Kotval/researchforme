@@ -188,7 +188,7 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
   }
 
   return (
-    <div className="starred-view">
+    <div className="pf-view w940 starred-view">
       <div className="starred-bar">
         <span className="sb-count">
           {selected.size > 0
