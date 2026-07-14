@@ -8,6 +8,7 @@ import {
   type LibraryDoc,
 } from "../../autonomous/api";
 import Markdown from "../autonomous/Markdown";
+import ProjectChat from "./ProjectChat";
 
 interface Props {
   slug: string;
@@ -51,6 +52,21 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [consolidating, setConsolidating] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // The assistant may edit documents; re-read the list and the open doc from disk.
+  const reloadFromDisk = useCallback(async () => {
+    try {
+      setDocs(await listLibraryDocs(slug));
+      if (active) {
+        const d = await readLibraryDoc(slug, active);
+        setContent(d.content);
+        setMtime(d.mtime);
+      }
+    } catch {
+      /* a transient read failure shouldn't break the workspace */
+    }
+  }, [slug, active]);
 
   const openDoc = useCallback(
     async (path: string) => {
@@ -147,6 +163,13 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
               {consolidating ? "Consolidating…" : "⋈ Consolidate ideas"}
             </button>
           )}
+          <button
+            className={`btn btn-ghost${chatOpen ? " on" : ""}`}
+            title="Chat about this project — the assistant can read and edit its documents"
+            onClick={() => setChatOpen((v) => !v)}
+          >
+            💬 Chat
+          </button>
           {active && !editing && (
             <button
               className="btn btn-ghost"
@@ -177,7 +200,7 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
           horizontal strip is an unreadable scroll, and the long generated titles
           made it worse. The rail separates the project's own documents from its
           ideas, scales down the list, and gives each idea room for a real name. */}
-      <div className="ws-split">
+      <div className={`ws-split${chatOpen ? " with-chat" : ""}`}>
         <nav className="ws-rail" aria-label="Project documents">
           <div className="wr-group">
             <div className="wr-head">Project</div>
@@ -226,6 +249,10 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
             <Markdown className="ws-doc" text={stripFrontmatter(content)} />
           )}
         </div>
+
+        {chatOpen && (
+          <ProjectChat slug={slug} projectTitle={slug} onDocsChanged={() => void reloadFromDisk()} />
+        )}
       </div>
     </div>
   );

@@ -1221,7 +1221,7 @@
 /* The rail: project documents above, imported ideas below. Scales to a project
    with many ideas in a way a horizontal tab strip never could. */
 .ws-split {
-  display: grid; grid-template-columns: 216px 1fr;
+  display: grid; grid-template-columns: 216px minmax(0, 1fr);
   border: 1px solid var(--border); border-top: 0;
   border-radius: 0 0 var(--r-lg) var(--r-lg); overflow: hidden;
 }
@@ -1259,6 +1259,43 @@
   min-height: 380px; overflow-x: auto;
 }
 .ws-doc { max-width: 74ch; }
+
+/* ---- project chat (W-6) ------------------------------------------------- */
+.ws-split.with-chat { grid-template-columns: 216px minmax(0, 1fr) 340px; }
+.pc-panel {
+  display: flex; flex-direction: column; min-height: 0;
+  border-left: 1px solid var(--border); background: var(--surface-3);
+}
+.pc-head {
+  flex: none; padding: 10px 14px; font-size: 11px; font-weight: var(--fw-semibold);
+  letter-spacing: 0.03em; color: var(--text-dim); border-bottom: 1px solid var(--border);
+}
+.pc-thread { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+.pc-hint { font-size: 12px; color: var(--text-faint); line-height: 1.55; }
+.pc-hint em { color: var(--text-dim); font-style: italic; }
+.pc-msg { display: flex; flex-direction: column; gap: 3px; }
+.pc-role { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); }
+.pc-text { font-size: 12.5px; line-height: 1.5; color: var(--text); white-space: pre-wrap; }
+.pc-you .pc-text { color: var(--text-dim); }
+.pc-msg.err .pc-text { color: var(--unavailable); }
+.pc-typing { color: var(--text-faint); }
+.pc-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.pc-action {
+  font-family: var(--mono); font-size: 9.5px; color: var(--accent-strong);
+  border: 1px solid var(--accent-tint-2); border-radius: var(--r-xs); padding: 0 5px;
+}
+.pc-composer { flex: none; display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--border); }
+.pc-input {
+  flex: 1; min-width: 0; font: inherit; font-size: 12.5px; padding: 7px 9px;
+  color: var(--text); background: var(--bg);
+  border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+}
+.pc-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+@media (max-width: 900px) {
+  .ws-split.with-chat { grid-template-columns: 1fr; }
+  .pc-panel { border-left: 0; border-top: 1px solid var(--border); max-height: 420px; }
+}
 .ws-editor {
   width: 100%; min-height: 440px; resize: vertical;
   font-family: var(--mono); font-size: 12.5px; line-height: 1.65;

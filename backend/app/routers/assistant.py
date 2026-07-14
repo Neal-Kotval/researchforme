@@ -40,6 +40,9 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+    # When set, the chat is scoped to a library project: its documents enter the
+    # context and the assistant gains doc.* tools to read and write them (W-6).
+    project_slug: Optional[str] = None
 
 
 class ChatAction(BaseModel):
@@ -205,6 +208,79 @@ def _build_tools(actions: list[ChatAction]) -> list[ToolSpec]:
     ]
 
 
+def _build_project_tools(slug: str, actions: list[ChatAction]) -> list[ToolSpec]:
+    """doc.* tools scoped to one library project (W-6).
+
+    These let the assistant read and edit the project's markdown — 'add what we
+    learned to the plan' lands as a real diff in a file the user owns. Every path
+    goes through the same library guard, so nothing here can write outside the
+    project's directory.
+    """
+    from .. import library as lib
+
+    def _spec(name: str, display: str, description: str, schema: dict, fn) -> ToolSpec:  # noqa: ANN001
+        async def handler(args: dict) -> str:
+            try:
+                out = _compact(await fn(args))
+            except lib.LibraryError as exc:
+                out = _compact({"error": str(exc)})
+            except Exception as exc:  # noqa: BLE001 - the model should see failures
+                logger.exception("assistant doc tool %s failed", name)
+                out = _compact({"error": f"{type(exc).__name__}: {exc}"})
+            actions.append(ChatAction(tool=display, args=args, result=out))
+            return out
+
+        return ToolSpec(name=name, description=description, input_schema=schema, handler=handler)
+
+    async def doc_list(_args: dict) -> list[dict]:
+        return [{"path": d.path, "title": d.title} for d in lib.list_docs(slug)]
+
+    async def doc_read(args: dict) -> dict:
+        text, _mtime = lib.read_doc(slug, args["path"])
+        _meta, body = lib.parse_frontmatter(text)
+        return {"path": args["path"], "content": body.strip()}
+
+    async def doc_write(args: dict) -> dict:
+        # Force-write (no mtime precondition) — the assistant is acting on the
+        # user's behalf in the same session, not racing an external editor.
+        d = lib.write_doc(slug, args["path"], args["content"])
+        return {"path": d.path, "title": d.title, "written": True}
+
+    async def doc_append(args: dict) -> dict:
+        # Append a section to an existing doc — the common 'add to the plan' move,
+        # without making the model re-emit the whole file.
+        try:
+            existing, _ = lib.read_doc(slug, args["path"])
+        except lib.LibraryError:
+            existing = ""
+        joined = existing.rstrip() + "\n\n" + args["content"].strip() + "\n" if existing else args["content"]
+        d = lib.write_doc(slug, args["path"], joined)
+        return {"path": d.path, "title": d.title, "appended": True}
+
+    path_body = {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "Project-relative, e.g. 'project.md' or 'research/notes.md'. Must end in .md."},
+            "content": {"type": "string"},
+        },
+        "required": ["path", "content"],
+    }
+    return [
+        _spec("doc_list", "doc.list", "List this project's markdown documents.",
+              {"type": "object", "properties": {}}, doc_list),
+        _spec("doc_read", "doc.read", "Read one document's content (frontmatter stripped).",
+              {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}, doc_read),
+        _spec("doc_write", "doc.write",
+              "Create or overwrite a markdown document in this project. Use for a new "
+              "doc or a full rewrite; prefer doc.append to add to an existing one.",
+              path_body, doc_write),
+        _spec("doc_append", "doc.append",
+              "Append a section to an existing document (creates it if missing). The "
+              "usual way to 'add this to the plan'.",
+              path_body, doc_append),
+    ]
+
+
 # --------------------------------------------------------------------------- #
 # The endpoint                                                                #
 # --------------------------------------------------------------------------- #
@@ -244,11 +320,39 @@ async def assistant_chat(req: ChatRequest) -> ChatResponse:
             backend="fixture",
         )
     actions: list[ChatAction] = []
+    system = _SYSTEM
+    tools = _build_tools(actions)
+
+    # Project-scoped chat (W-6): add doc.* tools + the project's own context so
+    # "add what we learned to the plan" works against a real file.
+    if req.project_slug:
+        from .. import library as lib
+
+        try:
+            project = lib.get_project(req.project_slug)
+            docs = lib.list_docs(req.project_slug)
+            plan_text, _ = lib.read_doc(req.project_slug, "project.md")
+        except lib.LibraryError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        tools = tools + _build_project_tools(req.project_slug, actions)
+        doc_list = "\n".join(f"- {d.path}: {d.title}" for d in docs)
+        system += (
+            f"\n\n# CURRENT PROJECT: {project.title} ({req.project_slug})\n"
+            f"You are inside a library project — a folder of markdown the founder owns. "
+            f"Its documents:\n{doc_list}\n\n"
+            f"Its project.md right now:\n---\n{plan_text.strip()[:3000]}\n---\n"
+            f"Use doc.* tools to read and edit these. When the founder asks to record, "
+            f"add, or change something, WRITE it with doc.append/doc.write — don't just "
+            f"say it. Read a document before rewriting it. Keep the founder's own words; "
+            f"never launder the red team out of an idea."
+        )
+
     try:
         result = await client.complete(
             _transcript(req.messages),
-            system=_SYSTEM,
-            tools=_build_tools(actions),
+            system=system,
+            tools=tools,
             max_turns=12,
             timeout=180,
         )

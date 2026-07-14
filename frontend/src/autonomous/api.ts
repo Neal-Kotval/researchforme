@@ -235,12 +235,17 @@ export interface AssistantReply {
   backend: string;
 }
 
-/** One conversational turn against the platform's tool layer (agent-sdk). */
-export function assistantChat(messages: AssistantMessage[]): Promise<AssistantReply> {
+/** One conversational turn against the platform's tool layer (agent-sdk).
+ *  Pass a projectSlug to scope the chat to a library project — the assistant
+ *  then has that project's documents in context and doc.* tools to edit them. */
+export function assistantChat(
+  messages: AssistantMessage[],
+  projectSlug?: string,
+): Promise<AssistantReply> {
   return request<AssistantReply>("/api/assistant/chat", {
     method: "POST",
     headers: JSON_HEADERS,
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, project_slug: projectSlug ?? null }),
   });
 }
 
