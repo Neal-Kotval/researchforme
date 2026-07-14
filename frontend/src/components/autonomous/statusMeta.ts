@@ -6,6 +6,11 @@ type DotKind = "sprinting" | "curbing" | "paused" | "done" | "error";
 export function statusMeta(p: Project): { dot: DotKind; word: string; live: boolean } {
   switch (p.status) {
     case "running":
+      // Before the first LLM call lands, a run fetches sources across every
+      // adapter — network-bound and sometimes slow, with zero tokens spent. That
+      // read as "sprinting · 0 tokens", which is indistinguishable from hung. Say
+      // what's actually happening instead.
+      if (p.stats.tokens_spent === 0) return { dot: "sprinting", word: "researching", live: true };
       if (p.stats.mode === "sprinting") return { dot: "sprinting", word: "sprinting", live: true };
       if (p.stats.mode === "curbing") return { dot: "curbing", word: "curbing", live: true };
       return { dot: "sprinting", word: "running", live: true };
