@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "gapfinder": {
+      "command": "backend/.venv/bin/gapfinder-mcp",
+      "args": [],
+      "env": {
+        "GAPFINDER_API_URL": "http://127.0.0.1:8010/api"
+      }
+    }
+  }
+}

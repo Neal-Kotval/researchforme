@@ -15,7 +15,13 @@ dependencies = [
     # ANTHROPIC_API_KEY is set, so it's a core dependency. If it's ever missing,
     # the client still falls back to the `claude` CLI, then to a fixture.
     "claude-agent-sdk>=0.2",
+    # The MCP server (`gapfinder-mcp`) exposes the engine to AI agents.
+    "mcp>=1.2",
 ]
+
+[project.scripts]
+gapfinder = "app.cli:main"
+gapfinder-mcp = "app.mcp_server:main"
 
 [project.optional-dependencies]
 # Only needed if you choose to bill the Anthropic API instead of the subscription.

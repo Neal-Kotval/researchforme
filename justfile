@@ -50,6 +50,14 @@ backend:
 frontend:
     cd {{frontend}} && VITE_API_TARGET=http://127.0.0.1:{{api_port}} npm run dev
 
+# Run the gapfinder CLI against the running backend: `just cli projects`.
+cli *ARGS:
+    cd {{backend}} && API_PORT={{api_port}} ./.venv/bin/gapfinder {{ARGS}}
+
+# Run the MCP server on stdio (normally launched by an MCP client via .mcp.json).
+mcp:
+    cd {{backend}} && API_PORT={{api_port}} ./.venv/bin/gapfinder-mcp
+
 # --- quality ----------------------------------------------------------------
 
 # Run the backend test suite (uses the fixture LLM backend + mock sources).
