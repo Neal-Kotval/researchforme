@@ -287,3 +287,115 @@ export function subscribeEvents(pid: string, opts: SubscribeOptions): () => void
 
   return () => es.close();
 }
+
+
+/* ------------------------------------------------------------- library --- */
+/* Phase 5: projects are folders, documents are markdown files on disk. */
+
+export interface LibraryProject {
+  slug: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  doc_count: number;
+  idea_count: number;
+}
+
+export interface LibraryDoc {
+  path: string;
+  title: string;
+  updated_at: string;
+  size: number;
+}
+
+export interface LibraryDocContent {
+  path: string;
+  title: string;
+  content: string;
+  mtime: number;
+}
+
+export interface ImportedIdea {
+  path: string;
+  title: string;
+  developed: boolean;
+  /** Why a requested development pass didn't happen — surfaced, never swallowed. */
+  note: string;
+}
+
+export interface ImportResult {
+  project: LibraryProject;
+  imported: ImportedIdea[];
+}
+
+export interface ImportIdeaInput {
+  project_id: string;
+  node_id: string;
+  title: string;
+  markdown: string;
+}
+
+export function getLibraryRoot(): Promise<{ root: string }> {
+  return request<{ root: string }>("/api/library/root");
+}
+
+export function listLibraryProjects(): Promise<LibraryProject[]> {
+  return request<LibraryProject[]>("/api/library/projects");
+}
+
+export function createLibraryProject(title: string, thesis = ""): Promise<LibraryProject> {
+  return request<LibraryProject>("/api/library/projects", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ title, thesis }),
+  });
+}
+
+export function listLibraryDocs(slug: string): Promise<LibraryDoc[]> {
+  return request<LibraryDoc[]>(`/api/library/projects/${encodeURIComponent(slug)}/docs`);
+}
+
+export function readLibraryDoc(slug: string, path: string): Promise<LibraryDocContent> {
+  return request<LibraryDocContent>(
+    `/api/library/projects/${encodeURIComponent(slug)}/doc?path=${encodeURIComponent(path)}`,
+  );
+}
+
+export function writeLibraryDoc(
+  slug: string,
+  path: string,
+  content: string,
+  baseMtime: number | null,
+): Promise<LibraryDoc> {
+  return request<LibraryDoc>(`/api/library/projects/${encodeURIComponent(slug)}/doc`, {
+    method: "PUT",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ path, content, base_mtime: baseMtime }),
+  });
+}
+
+/** Import starred ideas into a NEW project (W-3). */
+export function importIdeasToNewProject(
+  ideas: ImportIdeaInput[],
+  newProjectTitle: string,
+  develop: boolean,
+): Promise<ImportResult> {
+  return request<ImportResult>("/api/library/import", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ ideas, develop, new_project_title: newProjectTitle }),
+  });
+}
+
+/** Add starred ideas to an EXISTING project — a project holds many ideas. */
+export function importIdeasInto(
+  slug: string,
+  ideas: ImportIdeaInput[],
+  develop: boolean,
+): Promise<ImportResult> {
+  return request<ImportResult>(`/api/library/projects/${encodeURIComponent(slug)}/import`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ ideas, develop }),
+  });
+}

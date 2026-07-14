@@ -13,6 +13,7 @@ import PressureTestView from "./components/platform/PressureTestView";
 import CompareView from "./components/platform/CompareView";
 import GraveyardView from "./components/platform/GraveyardView";
 import StarredView from "./components/platform/StarredView";
+import LibraryView from "./components/platform/LibraryView";
 import AssistantView from "./components/platform/AssistantView";
 
 /** True while the user is typing somewhere a bare-key shortcut must not fire. */
@@ -106,7 +107,20 @@ export default function App() {
           {route.view === "compare" && (
             <CompareView onOpenNode={navNode} onNewExploration={openNew} />
           )}
-          {route.view === "starred" && <StarredView onOpenNode={navNode} />}
+          {route.view === "starred" && (
+            <StarredView
+              onOpenNode={navNode}
+              onImported={(slug) => { window.location.hash = `#/library/${encodeURIComponent(slug)}`; }}
+            />
+          )}
+          {route.view === "library" && (
+            <LibraryView
+              slug={route.slug}
+              onOpenProject={(slug) => {
+                window.location.hash = slug ? `#/library/${encodeURIComponent(slug)}` : "#/library";
+              }}
+            />
+          )}
           {route.view === "graveyard" && (
             <GraveyardView onOpenNode={navNode} />
           )}

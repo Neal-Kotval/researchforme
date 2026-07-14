@@ -1048,47 +1048,189 @@
 .pf-pref-actions { display: flex; gap: 8px; margin-top: 11px; }
 .pf-pref-error { font-size: 12px; color: var(--unavailable); margin-top: 9px; line-height: 1.5; }
 
-/* ---------------------------------------------- starred ideas (W-1) ------ */
-/* The founder's shortlist. Grouped by exploration, multi-select on the left —
-   the selection is the entry point for exporting ideas into a project. */
-.starred-view { display: flex; flex-direction: column; gap: 18px; }
+
+/* ==================== W-1/W-2/W-5: starred ideas, library, workspace =======
+   Conforms to the existing system (DESIGN.md): --surface on --bg, hairline
+   --border, --r-lg containers / --r-xs chips, --mono for every numeric or
+   path readout, and the steel-blue accent reserved for selection + the user's
+   own star. No new colors are introduced here. */
+
+/* ---- starred ideas: the founder's shortlist ---------------------------- */
+.starred-view { display: flex; flex-direction: column; gap: 14px; }
 
 .starred-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 10px 12px;
-  border: 1px solid var(--border); background: var(--surface);
-  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
 }
-.sb-count { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim); }
+.sb-count { font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); }
 .sb-actions { display: flex; gap: 8px; align-items: center; }
 
-.starred-group { display: flex; flex-direction: column; }
+.starred-group {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  overflow: hidden;
+}
 .sg-head {
-  font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
-  color: var(--text-dim); padding: 6px 2px; border-bottom: 1px solid var(--border);
+  font-size: 10px; font-weight: var(--fw-semibold); letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-dim);
+  padding: 9px 16px; background: var(--surface-3); border-bottom: 1px solid var(--border);
 }
 
 .starred-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 8px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
 }
-.starred-row:hover { background: var(--surface-2); }
-.starred-row.sel { background: color-mix(in srgb, var(--accent-strong) 6%, transparent); }
-.sr-check { flex: 0 0 auto; cursor: pointer; }
+.starred-row:last-child { border-bottom: none; }
+.starred-row:hover { background: var(--surface-hover); }
+.starred-row.sel { background: var(--accent-tint); }
+
+.sr-check { flex: none; cursor: pointer; accent-color: var(--accent-strong); }
 .sr-main {
-  flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px;
-  text-align: left; background: none; border: 0; cursor: pointer; padding: 0;
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;
+  text-align: left; background: none; border: 0; padding: 0; cursor: pointer;
   color: inherit; font: inherit;
 }
-.sr-title { font-size: 14px; color: var(--text); }
-.sr-meta {
-  display: flex; gap: 10px; align-items: center;
-  font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim);
+.sr-title {
+  font-size: 13.5px; font-weight: var(--fw-semibold); letter-spacing: -0.01em;
+  color: var(--text);
 }
-.sr-viab, .sr-fit { color: var(--text-dim); }
+.sr-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sr-viab, .sr-fit {
+  font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: var(--r-xs); padding: 1px 6px;
+}
 .sr-enginepick {
-  color: var(--accent-strong);
-  border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, var(--border));
-  padding: 0 5px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+  font-size: 9.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-dim); border: 1px solid var(--border-strong);
+  border-radius: var(--r-xs); padding: 1px 5px;
 }
-.sr-unstar { flex: 0 0 auto; color: var(--accent-strong); padding: 4px 9px; }
+.sr-when { font-family: var(--mono); font-size: 10px; color: var(--text-ghost); }
+.btn.sr-unstar { flex: none; color: var(--accent-strong); padding: 4px 10px; }
+
+/* ---- export panel: turning starred ideas into files -------------------- */
+.export-panel {
+  display: flex; flex-direction: column; gap: 14px; padding: 16px;
+  background: var(--surface); border: 1px solid var(--accent-strong);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-sm);
+}
+.ep-row { display: flex; align-items: center; gap: 10px; }
+.ep-label {
+  font-size: 10px; font-weight: var(--fw-semibold); letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-dim); flex: none;
+}
+.ep-check {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 12px; color: var(--text-dim); line-height: 1.55;
+  padding: 11px 13px; background: var(--surface-3);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.ep-check input { margin-top: 2px; flex: none; accent-color: var(--accent-strong); }
+.ep-check b { color: var(--text); font-weight: var(--fw-semibold); }
+.ep-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.ep-progress {
+  font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-right: auto;
+}
+
+/* ---- library: projects are folders on disk ----------------------------- */
+.library-view { display: flex; flex-direction: column; gap: 14px; }
+
+.lib-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+}
+/* The real path, shown on purpose: these are the user's files, not our secret. */
+.lib-root { font-family: var(--mono); font-size: 11px; color: var(--text-ghost); }
+.lib-new { display: flex; gap: 8px; align-items: center; }
+.lib-input {
+  font: inherit; font-size: 13px; padding: 7px 10px; min-width: 220px;
+  color: var(--text); background: var(--bg);
+  border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+}
+.lib-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.lib-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 9px;
+  padding: 15px; text-align: left; cursor: pointer; font: inherit; color: inherit;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+.lib-card:hover { border-color: var(--border-strong); background: var(--surface-hover); }
+.lib-card:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.lc-title {
+  font-size: 14px; font-weight: var(--fw-semibold); letter-spacing: -0.01em; color: var(--text);
+}
+.lc-meta {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+}
+.lc-slug { font-family: var(--mono); font-size: 10px; color: var(--text-ghost); margin-top: auto; }
+
+/* ---- workspace: the project as a document ------------------------------ */
+.workspace { display: flex; flex-direction: column; }
+
+.ws-bar {
+  display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.ws-slug { font-family: var(--mono); font-size: 11px; color: var(--text-ghost); }
+.ws-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.ws-status { font-family: var(--mono); font-size: 11px; color: var(--live); }
+
+.ws-error {
+  padding: 10px 14px; font-size: 12px; line-height: 1.5;
+  color: var(--text); background: var(--warn-tint, var(--surface-3));
+  border: 1px solid var(--warn); border-top: 0;
+}
+
+.ws-tabs {
+  display: flex; overflow-x: auto;
+  background: var(--surface-3);
+  border: 1px solid var(--border); border-top: 0;
+}
+.ws-tab {
+  display: flex; align-items: center; gap: 7px; white-space: nowrap;
+  padding: 9px 14px; cursor: pointer; font: inherit; font-size: 12px;
+  color: var(--text-dim); background: none;
+  border: 0; border-right: 1px solid var(--border);
+  max-width: 280px; flex: none;
+}
+/* Truncate the title, never the badge — the badge is the tab's only signal that
+   this document is an imported idea rather than the project's own plan. */
+.wt-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ws-tab:hover { color: var(--text); background: var(--surface-hover); }
+.ws-tab.on {
+  color: var(--text); background: var(--surface);
+  font-weight: var(--fw-semibold);
+  box-shadow: inset 0 -2px 0 var(--accent-strong);
+}
+.ws-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.wt-kind {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--accent-strong);
+  border: 1px solid var(--accent-tint-2); border-radius: var(--r-xs); padding: 0 4px;
+}
+
+.ws-body {
+  padding: 24px;
+  background: var(--surface); border: 1px solid var(--border); border-top: 0;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  min-height: 340px;
+}
+.ws-doc { max-width: 74ch; }
+.ws-editor {
+  width: 100%; min-height: 440px; resize: vertical;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
+  padding: 14px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border-strong); border-radius: var(--r-md);
+}
+.ws-editor:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+@media (max-width: 700px) {
+  .starred-bar, .lib-bar { flex-direction: column; align-items: stretch; }
+  .lib-grid { grid-template-columns: 1fr; }
+  .ep-actions { flex-wrap: wrap; }
+}

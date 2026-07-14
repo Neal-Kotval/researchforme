@@ -1719,9 +1719,9 @@ h5.md-h, h6.md-h { font-size: 12.5px; text-transform: uppercase; letter-spacing:
   border-color: color-mix(in srgb, var(--accent-strong) 45%, var(--border));
   background: color-mix(in srgb, var(--accent-strong) 8%, transparent);
 }
-.insp-kind .ik-userstar { color: var(--accent-strong); font-weight: 600; }
+.insp-kind .ik-userstar { color: var(--accent-strong); font-weight: var(--fw-semibold); }
 .copy-btn.ok { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
-.copy-btn.err { color: var(--danger, var(--text-dim)); }
+.copy-btn.err { color: var(--unavailable); }
 
 .sensor-block { border-top: 1px solid var(--border); padding-top: 16px; }
 .sensor-actions {

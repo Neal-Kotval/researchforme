@@ -8,7 +8,8 @@ export type Route =
   | { view: "compare" }
   | { view: "assistant" }
   | { view: "graveyard" }
-  | { view: "starred" };
+  | { view: "starred" }
+  | { view: "library"; slug: string | null };
 
 /** Flat-view hash segments (platform screens without params). */
 const FLAT_VIEWS: Record<string, Route> = {
@@ -18,12 +19,16 @@ const FLAT_VIEWS: Record<string, Route> = {
   assistant: { view: "assistant" },
   graveyard: { view: "graveyard" },
   starred: { view: "starred" },
+  library: { view: "library", slug: null },
 };
 
 /** Parse `window.location.hash` into a Route. Unknown shapes fall back to home. */
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "").replace(/^\/+/, "");
   const parts = raw.split("/").filter(Boolean);
+  if (parts[0] === "library" && parts[1]) {
+    return { view: "library", slug: decodeURIComponent(parts[1]) };
+  }
   // ["e", projectId] or ["e", projectId, "n", nodeId]
   if (parts[0] === "e" && parts[1]) {
     const projectId = decodeURIComponent(parts[1]);
@@ -47,6 +52,7 @@ export function routeToHash(route: Route): string {
   if (route.view === "assistant") return "#/assistant";
   if (route.view === "graveyard") return "#/graveyard";
   if (route.view === "starred") return "#/starred";
+  if (route.view === "library") return route.slug ? `#/library/${encodeURIComponent(route.slug)}` : "#/library";
   const base = `#/e/${encodeURIComponent(route.projectId)}`;
   return route.nodeId ? `${base}/n/${encodeURIComponent(route.nodeId)}` : base;
 }
@@ -76,7 +82,7 @@ export function useHashRoute() {
     window.location.hash = routeToHash({ view: "exploration", projectId, nodeId });
   }, []);
   const navView = useCallback(
-    (view: "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard" | "starred") => {
+    (view: "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library") => {
       window.location.hash = routeToHash({ view } as Route);
     },
     []

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers.analyze import router as analyze_router
 from .routers.assistant import router as assistant_router
+from .routers.library import router as library_router
 from .routers.projects import router as projects_router
 
 app = FastAPI(
@@ -40,6 +41,8 @@ app.include_router(analyze_router, prefix="/api")
 app.include_router(projects_router, prefix="/api")
 # The Assistant control surface (POST /api/assistant/chat).
 app.include_router(assistant_router, prefix="/api")
+# The library: projects as folders, documents as markdown (Phase 5).
+app.include_router(library_router, prefix="/api")
 
 
 @app.on_event("startup")

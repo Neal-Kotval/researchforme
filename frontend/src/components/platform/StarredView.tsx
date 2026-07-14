@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { ApiError, control, getStarred } from "../../autonomous/api";
+import {
+  ApiError,
+  control,
+  getStarred,
+  getTree,
+  importIdeasToNewProject,
+  type ImportIdeaInput,
+} from "../../autonomous/api";
+import { gapToMarkdown } from "../../autonomous/exportGap";
 import type { PortfolioItem } from "../../autonomous/types";
 
 interface Props {
   onOpenNode: (pid: string, nodeId: string) => void;
+  /** Jump to the new project once its ideas are on disk. */
+  onImported?: (slug: string) => void;
 }
 
 function fmtWhen(iso: string | null): string {
@@ -29,11 +39,15 @@ function fmtWhen(iso: string | null): string {
  * project's `ideas/` folder. Until that lands, selection drives the export
  * button below, which is disabled with an honest reason rather than hidden.
  */
-export default function StarredView({ onOpenNode }: Props) {
+export default function StarredView({ onOpenNode, onImported }: Props) {
   const [items, setItems] = useState<PortfolioItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [projectTitle, setProjectTitle] = useState("");
+  const [develop, setDevelop] = useState(true);
+  const [progress, setProgress] = useState("");
 
   const load = async () => {
     try {
@@ -67,6 +81,78 @@ export default function StarredView({ onOpenNode }: Props) {
       else next.add(id);
       return next;
     });
+  };
+
+  /**
+   * Export the selected ideas into a new project on disk (W-3).
+   *
+   * The markdown is serialized client-side by `gapToMarkdown` — the same
+   * formatter the "Copy for chat" button uses, so an idea reads identically
+   * whether it lands in your clipboard or in `ideas/`. That export carries the
+   * red team's criticism, and the backend's optional development pass is
+   * required to preserve it.
+   */
+  const runExport = async () => {
+    const chosen = (items ?? []).filter((i) => selected.has(i.node_id));
+    if (chosen.length === 0 || !projectTitle.trim()) return;
+
+    setBusy(true);
+    setError(null);
+    setProgress("Reading the ideas…");
+    try {
+      // Serialize each gap from its exploration's tree (the full node, with the
+      // pressure test — the shortlist row alone is far too thin to export).
+      const byProject = new Map<string, PortfolioItem[]>();
+      for (const it of chosen) {
+        if (!byProject.has(it.project_id)) byProject.set(it.project_id, []);
+        byProject.get(it.project_id)!.push(it);
+      }
+
+      const payload: ImportIdeaInput[] = [];
+      for (const [pid, rows] of byProject) {
+        const snap = await getTree(pid);
+        for (const row of rows) {
+          const node = snap.nodes.find((n) => n.id === row.node_id);
+          if (!node) continue;
+          payload.push({
+            project_id: pid,
+            node_id: row.node_id,
+            title: node.gap?.title ?? node.title,
+            markdown: gapToMarkdown(node, snap.project),
+          });
+        }
+      }
+
+      if (payload.length === 0) {
+        setError("Could not load those ideas from their explorations.");
+        return;
+      }
+
+      setProgress(
+        develop
+          ? `Developing ${payload.length} idea${payload.length === 1 ? "" : "s"}… (one model pass each)`
+          : `Writing ${payload.length} idea${payload.length === 1 ? "" : "s"}…`,
+      );
+      const result = await importIdeasToNewProject(payload, projectTitle.trim(), develop);
+
+      // Surface any idea whose development pass degraded — never swallow it.
+      const degraded = result.imported.filter((i) => develop && !i.developed);
+      if (degraded.length > 0) {
+        setError(
+          `Exported, but ${degraded.length} idea${degraded.length === 1 ? "" : "s"} could not be ` +
+            `developed and landed as the raw export instead: ${degraded[0].note}`,
+        );
+      }
+      setExporting(false);
+      setSelected(new Set());
+      setProjectTitle("");
+      onImported?.(result.project.slug);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not export those ideas.");
+    } finally {
+      setBusy(false);
+      setProgress("");
+    }
   };
 
   const unstar = async (it: PortfolioItem) => {
@@ -117,23 +203,66 @@ export default function StarredView({ onOpenNode }: Props) {
           )}
           <button
             className="btn btn-primary"
-            disabled={selected.size === 0}
+            disabled={selected.size === 0 || busy}
             title={
               selected.size === 0
                 ? "Select ideas to export into a project"
-                : "Coming next: export these ideas as markdown into a project's ideas/ folder"
+                : "Write these ideas as markdown into a project's ideas/ folder"
             }
-            onClick={() =>
-              setError(
-                "Export into a project is the next slice (Phase 5 W-3) — it will write " +
-                  "each selected idea as markdown into the project's ideas/ folder.",
-              )
-            }
+            onClick={() => setExporting(true)}
           >
             Export {selected.size > 0 ? `${selected.size} ` : ""}to project →
           </button>
         </div>
       </div>
+
+      {exporting && (
+        <div className="export-panel">
+          <div className="ep-row">
+            <label className="ep-label" htmlFor="ep-title">
+              New project name
+            </label>
+            <input
+              id="ep-title"
+              autoFocus
+              className="lib-input"
+              placeholder="e.g. Kernel CI"
+              value={projectTitle}
+              onChange={(e) => setProjectTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && projectTitle.trim()) void runExport();
+                if (e.key === "Escape") setExporting(false);
+              }}
+            />
+          </div>
+          <label className="ep-check">
+            <input
+              type="checkbox"
+              checked={develop}
+              onChange={(e) => setDevelop(e.target.checked)}
+            />
+            <span>
+              <b>Develop each idea first</b> — one model pass that sharpens the thesis,
+              turns the wedge into a first move, and converts the riskiest assumption
+              into a falsification plan. Costs tokens. The red team's criticism is
+              carried through, never dropped.
+            </span>
+          </label>
+          <div className="ep-actions">
+            {progress && <span className="ep-progress">{progress}</span>}
+            <button
+              className="btn btn-primary"
+              disabled={busy || !projectTitle.trim()}
+              onClick={() => void runExport()}
+            >
+              {busy ? "Exporting…" : `Export ${selected.size} idea${selected.size === 1 ? "" : "s"}`}
+            </button>
+            <button className="btn btn-ghost" disabled={busy} onClick={() => setExporting(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {byProject.map(([pid, group]) => (
         <div className="starred-group" key={pid}>
