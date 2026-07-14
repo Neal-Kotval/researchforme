@@ -80,7 +80,12 @@ LENSES: list[dict] = [
             "DEMAND MIRAGE. Try to prove the 'demand' is just loud complaints with "
             "no willingness to pay — venting, a nice-to-have, or a problem people "
             "won't actually open their wallet for. Separate real signal from noise. "
-            "If the demand is a mirage, verdict=kills."
+            "If the demand is a mirage, verdict=kills. But a mirage must SHIMMER: "
+            "killing here requires evidence of demand that exists and does not "
+            "convert. Silence is not a mirage — if the demand-bearing sources were "
+            "mock/failed/empty, or would never have covered this buyer anyway, the "
+            "demand is UNMEASURED: cap at weakens and name the validation that "
+            "would settle it."
         ),
     },
     {
@@ -164,6 +169,19 @@ time, and for each you attempt to prove that lens's kill-question is TRUE.
   corroborate a specific kill or rescue (e.g. "is the demand real?", "did the
   enabling shift actually happen?"). If no tools are available, reason only from
   what you were given.
+- ABSENCE OF EVIDENCE IS NOT EVIDENCE OF ABSENCE. A source that failed, was
+  served from fixtures ("Mock sources" in the context), returned nothing, or
+  simply does not cover this domain tells you NOTHING about the market. You may
+  NOT kill a gap on a silence you cannot attribute to the market itself. Before
+  any "kills" verdict that rests on missing signal, ask: would this source have
+  carried this signal if it were real? Consumer forums do not discuss B2B
+  infrastructure; app-store reviews do not cover developer tooling; a 403'd
+  fetch measures the fetcher, not the demand. If the honest state is UNMEASURED,
+  say "UNMEASURED" explicitly in your argument and cap your verdict at
+  "weakens", naming the specific check that WOULD settle it. Killing an
+  unmeasured gap is the single worst error you can make: it destroys a real
+  opportunity and teaches the founder nothing. A gap you cannot measure is a
+  gap to go validate, not a gap to bury.
 
 # VERDICTS (per lens)
 - "kills"    — you built a credible, specific case that this lens's kill-question

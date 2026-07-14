@@ -647,13 +647,32 @@ async def _fetch_all(node_title: str, scope) -> tuple[dict, list[SourceReport]]:
     )
     fetched: dict = {}
     reports: list[SourceReport] = []
+    ok: list[tuple] = []
     for src, res in zip(sources, results):
         if isinstance(res, Exception) or res is None:
             continue
-        fetched[src.name] = res
         report = getattr(res, "report", None)
         if report is not None:
             reports.append(report)
+        ok.append((src, res, report))
+
+    # Fixture contamination gate. A degraded adapter (e.g. Reddit 403s) serves
+    # its fixture corpus, whose content is unrelated to the run's domain — a
+    # bookkeeping-SaaS fixture would otherwise land in the signal set of a
+    # protein-model exploration and be reasoned over as real market evidence,
+    # dragging demand scores toward a *false* zero. So once ANY source is live,
+    # mock items are excluded from the corpus entirely. Their reports are still
+    # returned, so the honest "Mock sources (cap confidence)" line and the
+    # confidence cap downstream are unaffected — we drop the fake content, not
+    # the fact that the source failed. When nothing is live (offline/test runs)
+    # fixtures are kept, since a fixture run is then the explicit intent.
+    any_live = any(
+        r is not None and r.status is SourceStatus.LIVE for _, _, r in ok
+    )
+    for src, res, report in ok:
+        if any_live and report is not None and report.status is SourceStatus.MOCK:
+            continue
+        fetched[src.name] = res
     return fetched, reports
 
 
