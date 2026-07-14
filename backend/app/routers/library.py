@@ -182,6 +182,62 @@ def write_library_doc(slug: str, body: WriteDocBody) -> DocOut:
 # --------------------------------------------------------------------------- #
 # Import (W-3) — the join between the engine and the workbench                 #
 # --------------------------------------------------------------------------- #
+class ConsolidateResult(BaseModel):
+    path: str
+    title: str
+
+
+@router.post("/library/projects/{slug}/consolidate", response_model=ConsolidateResult)
+async def consolidate_project(slug: str) -> ConsolidateResult:
+    """Consolidate a project's ideas into one thesis + plan (W-4).
+
+    Reads every ``ideas/*.md``, runs ONE strong-model pass, and writes
+    ``consolidation.md``. The pass is required to name where the ideas conflict
+    and to refuse to merge ideas that don't belong together — a false synthesis
+    is worse than none. Degrades honestly: <2 ideas is a 400; no usable LLM
+    backend is a 503, never canned content.
+    """
+    from ..autonomous.consolidate import ConsolidateUnavailable, consolidate_ideas
+    from ..config import get_settings
+    from ..llm.client import get_client
+
+    try:
+        project = lib.get_project(slug)
+        ideas = lib.read_ideas(slug)
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+
+    if len(ideas) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Need at least two ideas to consolidate — import more first.",
+        )
+
+    try:
+        text = await consolidate_ideas(
+            project.title, ideas, get_client(), get_settings().llm_model
+        )
+    except ConsolidateUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("consolidate failed for slug=%r", slug)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not consolidate: {type(exc).__name__}.",
+        ) from exc
+
+    meta = {"title": "Consolidation", "source": "gapfinder-consolidate"}
+    try:
+        doc = lib.write_doc(
+            slug, "consolidation.md", lib.render_frontmatter(meta) + text + "\n"
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+    return ConsolidateResult(path=doc.path, title=doc.title)
+
+
 @router.post("/library/import", response_model=ImportResult)
 async def import_ideas(body: ImportBody) -> ImportResult:
     """Write starred gaps into a project's ``ideas/`` folder.

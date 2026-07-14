@@ -399,3 +399,13 @@ export function importIdeasInto(
     body: JSON.stringify({ ideas, develop }),
   });
 }
+
+
+/** Consolidate a project's ideas into one thesis + plan (W-4). Writes
+ *  consolidation.md; returns its path. Slow (one strong-model pass). */
+export function consolidateProject(slug: string): Promise<{ path: string; title: string }> {
+  return request<{ path: string; title: string }>(
+    `/api/library/projects/${encodeURIComponent(slug)}/consolidate`,
+    { method: "POST", headers: JSON_HEADERS },
+  );
+}

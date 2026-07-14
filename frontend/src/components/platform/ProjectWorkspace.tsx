@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
+  consolidateProject,
   listLibraryDocs,
   readLibraryDoc,
   writeLibraryDoc,
@@ -49,6 +50,7 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [consolidating, setConsolidating] = useState(false);
 
   const openDoc = useCallback(
     async (path: string) => {
@@ -109,6 +111,21 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
   const plan = (docs ?? []).filter((d) => !d.path.startsWith("ideas/"));
   const ideas = (docs ?? []).filter((d) => d.path.startsWith("ideas/"));
 
+  const consolidate = async () => {
+    setConsolidating(true);
+    setError(null);
+    try {
+      const { path } = await consolidateProject(slug);
+      setDocs(await listLibraryDocs(slug));
+      await openDoc(path);
+    } catch (e) {
+      // 503 = no usable LLM backend; the endpoint refuses to write canned content.
+      setError(e instanceof ApiError ? e.message : "Could not consolidate the ideas.");
+    } finally {
+      setConsolidating(false);
+    }
+  };
+
   if (docs === null && !error) return <div className="gy-empty">Opening {slug}…</div>;
 
   return (
@@ -120,6 +137,16 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
         <span className="ws-slug">{slug}/</span>
         <div className="ws-actions">
           {status && <span className="ws-status">{status}</span>}
+          {ideas.length >= 2 && !editing && (
+            <button
+              className="btn btn-ghost"
+              disabled={consolidating}
+              title="Read all the ideas together and write one thesis + plan — naming where they conflict, and what doesn't belong. One model pass."
+              onClick={() => void consolidate()}
+            >
+              {consolidating ? "Consolidating…" : "⋈ Consolidate ideas"}
+            </button>
+          )}
           {active && !editing && (
             <button
               className="btn btn-ghost"

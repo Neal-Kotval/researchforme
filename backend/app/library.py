@@ -364,6 +364,27 @@ def write_doc(
     )
 
 
+def read_ideas(slug: str) -> list[tuple[str, str]]:
+    """Every idea document in a project as ``(title, body-without-frontmatter)``.
+
+    Backs consolidation (W-4): the model reads the ideas as the user sees them,
+    not their frontmatter plumbing.
+    """
+    pdir = safe_path(ensure_root(), slug)
+    if not pdir.is_dir():
+        raise LibraryError(f"No such project: {slug!r}")
+    ideas_dir = pdir / "ideas"
+    out: list[tuple[str, str]] = []
+    if not ideas_dir.is_dir():
+        return out
+    for p in sorted(ideas_dir.glob("*.md")):
+        text = p.read_text(encoding="utf-8", errors="replace")
+        meta, body = parse_frontmatter(text)
+        title = str(meta.get("title") or _doc_title(p, text))
+        out.append((title, body.strip()))
+    return out
+
+
 def write_idea(slug: str, title: str, markdown: str, *, developed: bool) -> DocInfo:
     """Write one imported gap into the project's ``ideas/`` folder (W-3).
 

@@ -179,3 +179,44 @@ def test_stale_write_is_a_409_not_a_clobber(env):
     )
     assert r.status_code == 409
     assert p.read_text() == "edited in vim"
+
+
+# --------------------------------------------------------------------------- #
+# Consolidation (W-4)                                                          #
+# --------------------------------------------------------------------------- #
+def _seed_two_ideas(client):
+    client.post("/api/library/projects", json={"title": "AI Hardware"})
+    for slug, title in [("a", "Kernel CI"), ("b", "Serving Config Compiler")]:
+        client.post(
+            "/api/library/projects/ai-hardware/import",
+            json={"ideas": [{"project_id": "p", "node_id": slug, "title": title,
+                             "markdown": f"## Thesis\n{title} thesis.\n"}],
+                  "develop": False},
+        )
+
+
+def test_consolidate_needs_at_least_two_ideas(env):
+    client, _store, _tmp = env
+    client.post("/api/library/projects", json={"title": "Solo"})
+    client.post("/api/library/projects/solo/import",
+                json={"ideas": [{"project_id": "p", "node_id": "n", "title": "One",
+                                 "markdown": "## Thesis\nonly one\n"}], "develop": False})
+    r = client.post("/api/library/projects/solo/consolidate")
+    assert r.status_code == 400
+
+
+def test_consolidate_503_when_no_real_backend(env):
+    """Fixture mode cannot consolidate — honest 503, never a canned merge."""
+    client, _store, _tmp = env
+    _seed_two_ideas(client)
+    r = client.post("/api/library/projects/ai-hardware/consolidate")
+    assert r.status_code == 503
+    # And nothing was written.
+    docs = client.get("/api/library/projects/ai-hardware/docs").json()
+    assert not any(d["path"] == "consolidation.md" for d in docs)
+
+
+def test_consolidate_unknown_project_is_clean_error(env):
+    client, _store, _tmp = env
+    r = client.post("/api/library/projects/nope/consolidate")
+    assert r.status_code in (400, 404)
