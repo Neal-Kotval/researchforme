@@ -18,7 +18,9 @@ import {
   type TreeNode,
   type Triage,
 } from "../../autonomous/types";
+import type { Project } from "../../autonomous/types";
 import { ApiError, getResearchPack } from "../../autonomous/api";
+import { gapToMarkdown } from "../../autonomous/exportGap";
 import FitChip from "./FitChip";
 import Markdown from "./Markdown";
 import ViabChip from "./ViabChip";
@@ -29,6 +31,10 @@ interface Props {
   onSelectChild?: (id: string) => void;
   /** Pin/unpin a queued branch so the frontier expands it next (SPEC §4.1). */
   onTogglePin?: (nodeId: string, pinned: boolean) => void;
+  /** Star/unstar for the user's own shortlist (writes `user_star`). */
+  onToggleStar?: (nodeId: string, starred: boolean) => void;
+  /** The project, so an exported gap can carry its domain + steering as context. */
+  project?: Project | null;
   /** S1 triage — interested/pass (+ reason); null clears the verdict. */
   onSetTriage?: (nodeId: string, triage: Triage | null, reason: string) => void;
   /** S2 look-into checklist — stage (+ learnings); null clears the stage. */
@@ -100,6 +106,66 @@ function WatchButton({
       }
     >
       {node.watched ? "◉ Watching" : "◎ Watch this space"}
+    </button>
+  );
+}
+
+/* ------------------------------- copy-for-chat export -------------------- */
+/** Copy the gap as a portable markdown brief for pasting into any chat assistant.
+ *
+ * Deliberately client-side and LLM-free: it serializes data already on the node,
+ * so it is instant, costs nothing, and works offline — unlike the Research Pack,
+ * which is a strong-model call. Falls back to a hidden textarea + execCommand on
+ * browsers/contexts where the async clipboard API is unavailable (non-HTTPS
+ * origins), so the button is never a dead end.
+ */
+function CopyGapButton({
+  node,
+  project,
+}: {
+  node: TreeNode;
+  project?: Project | null;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const copy = useCallback(async () => {
+    const md = gapToMarkdown(node, project ?? null);
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(md);
+      ok = true;
+    } catch {
+      // Clipboard API blocked (insecure origin / permissions) — fall back.
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = md;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
+    }
+    setCopied(ok);
+    setFailed(!ok);
+    window.setTimeout(() => {
+      setCopied(false);
+      setFailed(false);
+    }, 2200);
+  }, [node, project]);
+
+  return (
+    <button
+      className={`btn btn-ghost copy-btn${copied ? " ok" : ""}${failed ? " err" : ""}`}
+      onClick={copy}
+      title="Copy this gap as a self-contained markdown brief — thesis, evidence, and the red-team criticism — ready to paste into ChatGPT, Claude, or a doc."
+    >
+      {copied ? "✓ Copied" : failed ? "Copy failed" : "⧉ Copy for chat"}
     </button>
   );
 }
@@ -383,9 +449,11 @@ export default function NodeInspector({
   childNodes = [],
   onSelectChild,
   onTogglePin,
+  onToggleStar,
   onSetTriage,
   onSetStage,
   onToggleWatch,
+  project,
   projectId,
   hasSteering = false,
   busy = false,
@@ -543,7 +611,16 @@ export default function NodeInspector({
     <div className="inspector" tabIndex={0} onKeyDown={handleKey}>
       <div className="insp-head">
         <div className="insp-kind">
-          {node.star && <span className="ik-star">★ Starred · </span>}
+          {node.star && (
+            <span className="ik-star" title="The engine rated this above your star threshold.">
+              ★ Engine pick ·{" "}
+            </span>
+          )}
+          {node.user_star && (
+            <span className="ik-userstar" title="You starred this.">
+              ★ Starred ·{" "}
+            </span>
+          )}
           {node.watched && <span className="ik-watch">◉ Watched · </span>}
           {node.triage && (
             <span className="ik-triage">
@@ -553,6 +630,24 @@ export default function NodeInspector({
           {node.kind === "gap" ? "Pressure-tested gap" : "Candidate gap"}
         </div>
         <h3 className="insp-title">{g.title}</h3>
+        <div className="insp-actions">
+          {onToggleStar && (
+            <button
+              className={`btn btn-ghost star-btn${node.user_star ? " on" : ""}`}
+              disabled={busy}
+              aria-pressed={node.user_star}
+              onClick={() => onToggleStar(node.id, !node.user_star)}
+              title={
+                node.user_star
+                  ? "Remove from your starred ideas"
+                  : "Star this idea — keeps it on your shortlist, independent of the engine's score"
+              }
+            >
+              {node.user_star ? "★ Starred" : "☆ Star idea"}
+            </button>
+          )}
+          <CopyGapButton node={node} project={project} />
+        </div>
       </div>
 
       {/* provenance banner — this gap never touched the live LLM (memo §2) */}

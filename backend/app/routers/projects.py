@@ -536,6 +536,14 @@ async def control_project(pid: str, req: ControlRequest) -> Project:
                     status_code=400, detail="set_stage requires a 'node_id'."
                 )
             return service.set_stage(pid, req.node_id, req.stage, req.learnings)
+        if action in (ControlAction.STAR_NODE, ControlAction.UNSTAR_NODE):
+            if not req.node_id:
+                raise HTTPException(
+                    status_code=400, detail=f"{action.value} requires a 'node_id'."
+                )
+            return service.star_node(
+                pid, req.node_id, action is ControlAction.STAR_NODE
+            )
         if action in (ControlAction.WATCH_NODE, ControlAction.UNWATCH_NODE):
             if not req.node_id:
                 raise HTTPException(

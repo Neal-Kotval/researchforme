@@ -504,8 +504,15 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                     hasSteering={hasSteeringContext(project.steering)}
                     busy={busy}
                     projectId={project.id}
+                    project={project}
                     onTogglePin={(nodeId, pinned) =>
                       onControl({ action: pinned ? "pin_node" : "unpin_node", node_id: nodeId })
+                    }
+                    onToggleStar={(nodeId, starred) =>
+                      onControl({
+                        action: starred ? "star_node" : "unstar_node",
+                        node_id: nodeId,
+                      })
                     }
                     onSetTriage={(nodeId, triage, reason) =>
                       onControl({

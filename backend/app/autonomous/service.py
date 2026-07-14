@@ -411,6 +411,17 @@ class ExplorerService:
         node.triage_reason = triage_reason if triage is not None else ""
         return self._touch_node(project_id, node)
 
+    def star_node(self, project_id: str, node_id: str, on: bool) -> Project:
+        """Add/remove a node from the user's own starred shortlist.
+
+        Writes ``Node.user_star`` — deliberately NOT ``Node.star``, which is the
+        engine's viability-threshold verdict. The two are kept apart so the
+        founder's taste and the engine's score stay independently readable.
+        """
+        node = self._owned_node(project_id, node_id)
+        node.user_star = on
+        return self._touch_node(project_id, node)
+
     def set_stage(
         self,
         project_id: str,

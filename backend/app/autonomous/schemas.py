@@ -107,7 +107,15 @@ class Node(BaseModel):
     # or scoring unavailable — never fabricated. Mirrors types.ts.
     fit: Optional[int] = None
     fit_reason: str = ""
+    # Engine star: auto-set when viability clears ``Budget.star_threshold``. This
+    # is a *measurement*, so the user never writes it — overloading it with a
+    # manual favourite would corrupt the stars stat and the idle-deepening rule,
+    # which both read "the engine rated this highly".
     star: bool = False
+    # User star: the founder's own shortlist ("star ideas"), fully orthogonal to
+    # the engine's. A gap the engine loved and the user ignored, and one the user
+    # starred over the engine's objection, are both signal worth keeping distinct.
+    user_star: bool = False
     pinned: bool = False                       # user-pinned (boosts priority)
 
     # User sensors (S1/S2/C2) — set only via control actions, never by the LLM.
@@ -527,6 +535,8 @@ class ControlAction(str, Enum):
     SET_STAGE = "set_stage"                    # S2: look-into checklist (+learnings)
     WATCH_NODE = "watch_node"                  # C2: flag for Space Watch sweeps
     UNWATCH_NODE = "unwatch_node"
+    STAR_NODE = "star_node"                    # user's own shortlist (user_star)
+    UNSTAR_NODE = "unstar_node"
     # C4: manual idle-headroom deepening — valid ONLY when the project opted in
     # (allow_idle_deepening), is terminal-exhausted, the governor reports ample
     # headroom, and unexpanded starred branches exist. Never automatic.

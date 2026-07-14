@@ -99,7 +99,12 @@ export interface TreeNode {
    *  or scoring unavailable — render nothing for null, never a fake 0. */
   fit: number | null;
   fit_reason: string;
+  /** Engine star: auto-set when viability clears the project's star_threshold.
+   *  A measurement — the user never writes it. */
   star: boolean;
+  /** User star: the founder's own shortlist, orthogonal to the engine's `star`.
+   *  Set only via the `star_node` / `unstar_node` control actions. */
+  user_star: boolean;
   pinned: boolean;
   /** S1 triage — the user's cheap verdict. null = untriaged. Set only via the
    *  `set_triage` control action, never by the LLM. */
@@ -459,6 +464,8 @@ export type ControlAction =
   | "set_stage"
   | "watch_node"
   | "unwatch_node"
+  | "star_node"
+  | "unstar_node"
   | "continue_deepening";
 
 export const DEFAULT_BUDGET: Budget = {

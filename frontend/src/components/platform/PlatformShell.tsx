@@ -40,7 +40,14 @@ const IconExplore = () => (<svg {...ic}><circle cx="12" cy="12" r="8.5" /><path 
 const IconShield = () => (<svg {...ic}><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" /></svg>);
 const IconBars = () => (<svg {...ic}><path d="M5 21V10M12 21V4M19 21v-7" /></svg>);
 const IconChat = () => (<svg {...ic}><path d="M4 5h16v11H8l-4 4V5Z" /></svg>);
-const IconGrave = () => (<svg {...ic}><path d="M7 20v-9a5 5 0 0 1 10 0v9" /><path d="M4 20h16" /><path d="M10 11h4" /></svg>);
+/** Ghost — the graveyard's mark: a domed body with a wavy hem and two eyes. */
+const IconGhost = () => (
+  <svg {...ic}>
+    <path d="M5 20v-9a7 7 0 0 1 14 0v9l-2.3-1.8L14.4 20l-2.4-1.8L9.6 20l-2.3-1.8L5 20Z" />
+    <path d="M9.5 10.5h.01" />
+    <path d="M14.5 10.5h.01" />
+  </svg>
+);
 const IconPlus = () => (<svg {...ic} width={14} height={14} strokeWidth={2.1}><path d="M12 5v14M5 12h14" /></svg>);
 const IconChatSm = () => (<svg {...ic} width={14} height={14} strokeWidth={1.8}><path d="M4 5h16v11H8l-4 4V5Z" /></svg>);
 
@@ -132,7 +139,7 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
 
         <div className="pf-navlabel">Workspace</div>
         <nav className="pf-nav">
-          {navItem("graveyard", "Graveyard", <IconGrave />)}
+          {navItem("graveyard", "Graveyard", <IconGhost />)}
           {navItem("assistant", "Assistant", <IconChat />, <span className="pf-kbd">/</span>)}
         </nav>
 
