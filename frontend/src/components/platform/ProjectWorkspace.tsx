@@ -20,6 +20,17 @@ function stripFrontmatter(text: string): string {
 }
 
 /**
+ * The engine writes long, explanatory titles ("The Kernel Equivalence Harness: CI
+ * for hand-written GPU kernels"). Good in a heading, terrible in a list — the
+ * subtitle after the colon is what makes the rail unreadable. Keep the name, drop
+ * the explanation; the full title is still the tooltip and the document's own H1.
+ */
+function shortTitle(title: string): string {
+  const head = title.split(/\s+[—–:]\s+|:\s+/)[0].trim() || title;
+  return head.length > 42 ? `${head.slice(0, 41).trimEnd()}…` : head;
+}
+
+/**
  * A project workspace (Phase 5 W-5): tabs across the project's documents, each
  * rendered with the existing safe Markdown renderer, editable in place.
  *
@@ -93,6 +104,11 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
     }
   };
 
+  // The project's own documents vs. the ideas imported into it — two different
+  // kinds of reading, so they get two groups rather than one undifferentiated list.
+  const plan = (docs ?? []).filter((d) => !d.path.startsWith("ideas/"));
+  const ideas = (docs ?? []).filter((d) => d.path.startsWith("ideas/"));
+
   if (docs === null && !error) return <div className="gy-empty">Opening {slug}…</div>;
 
   return (
@@ -130,35 +146,59 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
 
       {error && <div className="ws-error">{error}</div>}
 
-      <div className="ws-tabs">
-        {(docs ?? []).map((d) => (
-          <button
-            key={d.path}
-            className={`ws-tab${active === d.path ? " on" : ""}`}
-            onClick={() => void openDoc(d.path)}
-            title={d.path}
-          >
-            {/* The title truncates; the kind badge must not — it is what tells you
-                this tab is an imported idea rather than the project's own plan. */}
-            <span className="wt-title">{d.title}</span>
-            {d.path.startsWith("ideas/") && <span className="wt-kind">idea</span>}
-          </button>
-        ))}
-      </div>
+      {/* A rail, not a tab strip. A project accumulates ideas — ten of them in one
+          horizontal strip is an unreadable scroll, and the long generated titles
+          made it worse. The rail separates the project's own documents from its
+          ideas, scales down the list, and gives each idea room for a real name. */}
+      <div className="ws-split">
+        <nav className="ws-rail" aria-label="Project documents">
+          <div className="wr-group">
+            <div className="wr-head">Project</div>
+            {plan.map((d) => (
+              <button
+                key={d.path}
+                className={`wr-item${active === d.path ? " on" : ""}`}
+                onClick={() => void openDoc(d.path)}
+                title={d.path}
+              >
+                {d.title}
+              </button>
+            ))}
+          </div>
 
-      <div className="ws-body">
-        {!active ? (
-          <div className="gy-empty">This project has no documents yet.</div>
-        ) : editing ? (
-          <textarea
-            className="ws-editor"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            spellCheck={false}
-          />
-        ) : (
-          <Markdown className="ws-doc" text={stripFrontmatter(content)} />
-        )}
+          {ideas.length > 0 && (
+            <div className="wr-group">
+              <div className="wr-head">
+                Ideas <span className="wr-count">{ideas.length}</span>
+              </div>
+              {ideas.map((d) => (
+                <button
+                  key={d.path}
+                  className={`wr-item${active === d.path ? " on" : ""}`}
+                  onClick={() => void openDoc(d.path)}
+                  title={d.title}
+                >
+                  {shortTitle(d.title)}
+                </button>
+              ))}
+            </div>
+          )}
+        </nav>
+
+        <div className="ws-body">
+          {!active ? (
+            <div className="gy-empty">This project has no documents yet.</div>
+          ) : editing ? (
+            <textarea
+              className="ws-editor"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              spellCheck={false}
+            />
+          ) : (
+            <Markdown className="ws-doc" text={stripFrontmatter(content)} />
+          )}
+        </div>
       </div>
     </div>
   );

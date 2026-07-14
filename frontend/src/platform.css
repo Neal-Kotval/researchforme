@@ -1186,39 +1186,45 @@
   border: 1px solid var(--warn); border-top: 0;
 }
 
-.ws-tabs {
-  display: flex; overflow-x: auto;
-  background: var(--surface-3);
+/* The rail: project documents above, imported ideas below. Scales to a project
+   with many ideas in a way a horizontal tab strip never could. */
+.ws-split {
+  display: grid; grid-template-columns: 216px 1fr;
   border: 1px solid var(--border); border-top: 0;
+  border-radius: 0 0 var(--r-lg) var(--r-lg); overflow: hidden;
 }
-.ws-tab {
-  display: flex; align-items: center; gap: 7px; white-space: nowrap;
-  padding: 9px 14px; cursor: pointer; font: inherit; font-size: 12px;
-  color: var(--text-dim); background: none;
-  border: 0; border-right: 1px solid var(--border);
-  max-width: 280px; flex: none;
+.ws-rail {
+  display: flex; flex-direction: column; gap: 16px; padding: 14px 10px;
+  background: var(--surface-3); border-right: 1px solid var(--border);
+  overflow-y: auto;
 }
-/* Truncate the title, never the badge — the badge is the tab's only signal that
-   this document is an imported idea rather than the project's own plan. */
-.wt-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.ws-tab:hover { color: var(--text); background: var(--surface-hover); }
-.ws-tab.on {
-  color: var(--text); background: var(--surface);
-  font-weight: var(--fw-semibold);
-  box-shadow: inset 0 -2px 0 var(--accent-strong);
+.wr-group { display: flex; flex-direction: column; gap: 2px; }
+.wr-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: var(--fw-semibold); letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-dim);
+  padding: 0 8px 6px;
 }
-.ws-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
-.wt-kind {
-  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
-  letter-spacing: 0.05em; color: var(--accent-strong);
-  border: 1px solid var(--accent-tint-2); border-radius: var(--r-xs); padding: 0 4px;
+.wr-count {
+  font-family: var(--mono); font-size: 9.5px; color: var(--text-ghost);
+  border: 1px solid var(--border); border-radius: var(--r-xs); padding: 0 4px;
 }
+.wr-item {
+  text-align: left; font: inherit; font-size: 12.5px; line-height: 1.35;
+  padding: 7px 9px; cursor: pointer; color: var(--text-dim);
+  background: none; border: 0; border-radius: var(--r-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wr-item:hover { background: var(--surface-hover); color: var(--text); }
+.wr-item.on {
+  background: var(--surface); color: var(--text); font-weight: var(--fw-semibold);
+  box-shadow: inset 2px 0 0 var(--accent-strong);
+}
+.wr-item:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 
 .ws-body {
-  padding: 24px;
-  background: var(--surface); border: 1px solid var(--border); border-top: 0;
-  border-radius: 0 0 var(--r-lg) var(--r-lg);
-  min-height: 340px;
+  padding: 26px 28px; background: var(--surface);
+  min-height: 380px; overflow-x: auto;
 }
 .ws-doc { max-width: 74ch; }
 .ws-editor {
@@ -1233,4 +1239,13 @@
   .starred-bar, .lib-bar { flex-direction: column; align-items: stretch; }
   .lib-grid { grid-template-columns: 1fr; }
   .ep-actions { flex-wrap: wrap; }
+  /* Stack the rail above the document rather than squeezing both. */
+  .ws-split { grid-template-columns: 1fr; }
+  .ws-rail {
+    flex-direction: row; gap: 10px; overflow-x: auto;
+    border-right: 0; border-bottom: 1px solid var(--border);
+  }
+  .wr-group { flex-direction: row; align-items: center; gap: 4px; }
+  .wr-head { padding: 0 4px 0 0; }
+  .ws-body { padding: 20px 16px; }
 }

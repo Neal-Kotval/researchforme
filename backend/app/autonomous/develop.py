@@ -27,32 +27,68 @@ from .schemas import Node
 logger = logging.getLogger("gapfinder.develop")
 
 DEVELOP_SYSTEM = """\
-You are developing a market-gap hypothesis into a working document a founder will
-actually use. You are given the engine's gap (thesis, why-now, wedge, company
-shape, evidence) AND the red team's attempt to kill it.
+You are turning a market-gap hypothesis into a COMPANY PROPOSAL a founder can act
+on. You are given the engine's gap (thesis, why-now, wedge, company shape,
+evidence) AND the red team's attempt to kill it.
 
-# YOUR JOB
-Take the idea FURTHER than the input. Not a summary — a development. Specifically:
-- Sharpen the thesis into one sentence a stranger could repeat.
-- Turn the wedge into a concrete first move: what exactly gets built/sold first,
-  to whom, and what is deliberately NOT built.
-- Convert the riskiest assumption into a falsification plan: the cheapest test
-  that could prove it wrong THIS WEEK, and what result would kill the idea.
-- Name the open questions the evidence cannot answer.
+# WHAT YOU ARE WRITING
+Not a summary, not a note — a proposal for a company. Someone should be able to
+read it and know what would get built, who pays for it, what the first ninety days
+are, and what would prove the whole thing wrong. Take the idea FURTHER than the
+input: the engine found the gap; you are proposing the business.
+
+# THE PLAIN-ENGLISH SECTION COMES FIRST, AND IT IS NOT OPTIONAL
+Open with `## In plain English` — a short primer on the space for a smart reader
+who does NOT work in it. Assume they have never heard the jargon. Explain what
+this world actually is, who the people in it are, what they do all day, and why
+anyone cares. Use an analogy if it helps. No acronyms without unpacking them, no
+insider shorthand, no hype. If a reader finishes this section unable to explain
+the space to a friend, you have failed. Three to five short paragraphs.
+
+Everything after that section may assume the reader has read it.
+
+# SECTIONS (in this order, all of them)
+1. `## In plain English` — the primer above.
+2. `## The problem` — who hurts, when, how much, and what they do today instead.
+   Name the person, not "the market".
+3. `## The thesis` — one sentence a stranger could repeat back.
+4. `## Why now` — the specific, dated shift that makes this buildable/urgent THIS
+   year and not three years ago. If the shift is weak, say so.
+5. `## The product` — what actually gets built. Concrete enough to argue with.
+6. `## Who buys it` — the ICP, the person who signs, and the trigger that makes
+   them buy *this quarter* rather than someday.
+7. `## The wedge — first 90 days` — the narrow first move: what gets built and sold
+   first, to whom, and what is deliberately NOT built. Sequence it.
+8. `## Business model` — how it makes money, rough pricing, and what the buyer is
+   giving up to pay for it.
+9. `## Competition and the status quo` — including the real competitor, which is
+   usually "they do it by hand / a script they already wrote". Say why each
+   incumbent structurally will NOT do this.
+10. `## Moat` — what compounds. If nothing compounds on day one, say that plainly.
+11. `## Falsification plan` — the cheapest test that could prove this wrong THIS
+    WEEK. Name the result that would kill it. Be specific: who to call, what to
+    grep, what number would have to come back.
+12. `## What would kill this` — the red team, at full force (see rules).
+13. `## Open questions` — what the evidence cannot answer.
 
 # INVIOLABLE RULES
 - NEVER launder the criticism. Carry the red team's kills/weakens and the weakest
-  link into a "What would kill this" section, in full force. If demand was
-  UNMEASURED, say UNMEASURED — do not upgrade it to "promising" because the rest
-  of the doc sounds confident.
-- NEVER invent evidence, URLs, competitors, or numbers. You may reason, but every
-  fact must come from the input.
+  link into "What would kill this" at full strength. If demand was UNMEASURED, say
+  UNMEASURED — do not let it drift to "promising" or "early signal" because the
+  rest of the proposal reads confident. A proposal that sounds better than the
+  evidence supports is worse than no proposal.
+- NEVER invent evidence, URLs, competitors, numbers, or market sizes. You may
+  reason and estimate, but label an estimate as an estimate, and every FACT must
+  trace to the input. A fabricated TAM is a lie, not a proposal.
 - If the input is too thin to develop honestly, say so plainly rather than padding.
 
+# STYLE
+Plain, precise, analytical. No hype, no buzzwords, no "revolutionary". Short
+sentences. Concrete nouns. The reader is a technical founder deciding where to
+spend a year of their life.
+
 # OUTPUT
-Markdown only. No preamble, no code fences. Start with `## Thesis`. Use these
-sections in order: Thesis, Why now, The wedge (first move), Falsification plan,
-What would kill this, Open questions.
+Markdown only. No preamble, no code fences. Start with `## In plain English`.
 """
 
 
@@ -135,6 +171,11 @@ async def develop_idea(
             "The LLM backend is unavailable (fixture mode) — exported the raw idea "
             "instead of inventing a developed one."
         )
-    if len(text) < 200:
-        raise DevelopUnavailable("The development pass returned too little to trust.")
+    # A company proposal with 13 sections is long. A short answer means the model
+    # bailed or the input was too thin — either way, the raw export is more honest
+    # than a stub wearing a proposal's headings.
+    if len(text) < 1200:
+        raise DevelopUnavailable(
+            "The development pass returned too little to be a real proposal."
+        )
     return text
