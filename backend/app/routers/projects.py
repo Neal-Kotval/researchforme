@@ -72,10 +72,12 @@ router = APIRouter(tags=["autonomous"])
 # --------------------------------------------------------------------------- #
 @router.get("/usage")
 def global_usage() -> dict:
-    """The shared governor's real global snapshot — spend, rate, mode, backoff.
+    """The shared governor's global snapshot — spend, rate, mode, backoff.
 
-    Drives the persistent global usage bar from measured numbers (not a guess),
-    so several concurrent explorations show one honest, cooperating meter.
+    Drives the persistent usage bar so concurrent explorations show one
+    cooperating meter. Token counts are ESTIMATED from output length (the
+    subscription LLM path surfaces no real usage), so treat them as a consistent
+    relative gauge and pacing signal, not billing-accurate figures.
     """
     return get_governor().snapshot()
 

@@ -122,6 +122,25 @@ LENSES: list[dict] = [
             "one with a shaky path to scale, verdict=weakens."
         ),
     },
+    {
+        "key": "venture_scale",
+        "prompt": (
+            "VENTURE SCALE / CEILING. Assume it works and wins its wedge — now try "
+            "to prove it CANNOT become a large company: it is structurally a small "
+            "or lifestyle business, not a venture-scale one. Reason about the real "
+            "ceiling: how many buyers exist WORLDWIDE (dozens? thousands? "
+            "millions?), what each realistically pays, and whether there's a "
+            "credible expansion surface beyond the wedge (adjacent buyers, "
+            "up-market, a platform underneath). A great product for 200 customers "
+            "at $30k is a fine business but NOT a venture bet. Ground this — do NOT "
+            "invent a TAM number; reason from the named ICP and expansion_path. If "
+            "the market structurally tops out small (a few million $/yr ceiling, no "
+            "expansion path), verdict=kills; if it could plausibly reach tens of "
+            "millions but a nine-figure outcome is a stretch, verdict=weakens; if "
+            "there is a credible path to a large company, verdict=survives and say "
+            "concretely why the ceiling is high."
+        ),
+    },
 ]
 
 # Selection priority (distinct from the canonical display order above). The
@@ -130,6 +149,7 @@ LENSES: list[dict] = [
 _LENS_PRIORITY: tuple[str, ...] = (
     "demand_mirage",
     "just_a_feature",
+    "venture_scale",       # can this be big? — the question YC actually asks
     "empty_for_a_reason",
     "why_now_fragility",
     "incumbent_countermove",
@@ -138,8 +158,9 @@ _LENS_PRIORITY: tuple[str, ...] = (
 
 _LENS_BY_KEY: dict[str, dict] = {lens["key"]: lens for lens in LENSES}
 
-# How many lenses each rigor level runs.
-_RIGOR_COUNT: dict[str, int] = {"light": 3, "standard": 4, "deep": 6}
+# How many lenses each rigor level runs. `standard` now includes the venture-scale
+# lens (slot 3) so even a mid-rigor test asks whether the idea can be big.
+_RIGOR_COUNT: dict[str, int] = {"light": 3, "standard": 4, "deep": 7}
 
 _VALID_VERDICTS = frozenset({"survives", "weakens", "kills"})
 
@@ -360,6 +381,10 @@ def _lens_base_score(gap: Gap, key: str) -> int:
         # A gap that doesn't claim (or has no) standalone-company framing should
         # weaken under this lens, not coast through on a missing-key default.
         "just_a_feature": 4 if (gap.company and gap.company.standalone) else 2,
+        # Venture scale: a claimed expansion path (wedge→product→platform) is the
+        # only structural signal we have without an LLM — use it as the neutral
+        # proxy for "can this get big", middling by default.
+        "venture_scale": 3 if (gap.company and gap.company.expansion_path) else 2,
     }.get(key, 3)
 
 

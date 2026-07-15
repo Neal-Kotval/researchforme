@@ -350,7 +350,7 @@ async def test_pressure_tool_fetched_evidence_carries_mock_provenance(monkeypatc
 @pytest.mark.asyncio
 async def test_pressure_partial_fill_weakens_and_downgrades_rigor():
     """Skipped lenses fill as 'weakens', and recorded rigor reflects the
-    actually-evaluated lens count (1 of 6 at deep -> light)."""
+    actually-evaluated lens count (1 of 7 at deep -> light)."""
     from app.autonomous.pressure import pressure_test
 
     class _FakeResult:
@@ -363,8 +363,8 @@ async def test_pressure_partial_fill_weakens_and_downgrades_rigor():
     test = await pressure_test(
         _tiny_gap(), "ctx", _FakeClient(), "claude-opus-4-8", "deep"
     )
-    assert len(test.lenses) == 6, "deep rigor still records all six lenses"
-    assert test.survived == 1 and test.weakened == 5 and test.killed == 0
+    assert len(test.lenses) == 7, "deep rigor records all seven lenses"
+    assert test.survived == 1 and test.weakened == 6 and test.killed == 0
     filled = [lv for lv in test.lenses if lv.lens != "demand_mirage"]
     for lv in filled:
         assert lv.verdict == "weakens"
@@ -374,7 +374,7 @@ async def test_pressure_partial_fill_weakens_and_downgrades_rigor():
 
 @pytest.mark.asyncio
 async def test_pressure_partial_fill_keeps_earned_rigor():
-    """Evaluating 4 of 6 deep lenses earns standard rigor, not deep or light."""
+    """Evaluating 4 of 7 deep lenses earns standard rigor, not deep or light."""
     import json as _json
 
     from app.autonomous.pressure import pressure_test
@@ -394,7 +394,8 @@ async def test_pressure_partial_fill_keeps_earned_rigor():
     test = await pressure_test(
         _tiny_gap(), "ctx", _FakeClient(), "claude-opus-4-8", "deep"
     )
-    assert test.survived == 4 and test.weakened == 2
+    # 4 evaluated of 7 deep lenses -> 3 filled-as-weakens; 4 evaluated earns standard.
+    assert test.survived == 4 and test.weakened == 3
     assert test.test_rigor == "standard"
 
 

@@ -95,11 +95,26 @@ async def _fetch_all(
         )
     )
 
+    # Fixture-contamination gate — mirror the autonomous engine (engine._fetch_all).
+    # A degraded adapter (e.g. Reddit 403) serves an off-domain fixture corpus; on a
+    # real run that content must not enter synthesis and become a fintech "gap" on a
+    # bio query. Reports still flow (confidence cap intact); only a deliberate
+    # fixture run keeps the fixtures.
+    try:
+        from .llm.client import get_client
+        real_run = get_client().backend != "fixture"
+    except Exception:  # noqa: BLE001
+        real_run = True
+
     fetched: dict[SourceName, FetchResult] = {}
     reports: list[SourceReport] = []
     for src, result in zip(sources, results):
+        report = _report_for(src.name, result)
+        reports.append(report)
+        if real_run and getattr(result, "report", None) is not None \
+                and result.report.status is SourceStatus.MOCK:
+            continue
         fetched[src.name] = result
-        reports.append(_report_for(src.name, result))
     return fetched, reports
 
 

@@ -78,3 +78,58 @@ def test_real_run_keeps_live_items(monkeypatch):
     sources = [_Src(SourceName.GITHUB, SourceStatus.LIVE)]
     fetched, _ = _run(sources, "agent-sdk", monkeypatch)
     assert SourceName.GITHUB in fetched
+
+
+# --------------------------------------------------------------------------- #
+# Fixture-GAP firewall: a fixture synthesis on a real run yields no children   #
+# (audit finding #1 — canned fintech gaps must never enter a real tree).       #
+# --------------------------------------------------------------------------- #
+def test_real_run_drops_fixture_synthesized_gaps(monkeypatch):
+    import asyncio as _aio
+    from types import SimpleNamespace as _NS
+    from app.autonomous import engine
+    from app.autonomous.schemas import Node, NodeKind, Project
+
+    async def _fake_synth(*_a, **_k):
+        # Simulate the LLM fallback landing on fixture mid-run.
+        return ([_NS(title="Personal finance for freelancers")], "fixture", [])
+
+    monkeypatch.setattr(engine, "synthesize", _fake_synth)
+    monkeypatch.setattr(engine, "_fetch_all",
+                        lambda *_a, **_k: _aio.sleep(0, result=({}, [])))
+    monkeypatch.setattr(engine, "extract_signals", lambda *_a, **_k: None)
+    monkeypatch.setattr(engine, "scope_area",
+                        lambda *_a, **_k: _NS(keywords=["k"], sub_segments=[]))
+    monkeypatch.setattr(engine, "steering_context_block", lambda _p: "")
+    monkeypatch.setattr(engine, "get_client", lambda: _NS(backend="agent-sdk"))
+
+    node = Node(id="n", project_id="p", kind=NodeKind.SEGMENT, title="protein models")
+    project = Project(id="p", domain="protein models")
+    children = _aio.run(engine.expand_segment(node, project, _NS(backend="agent-sdk"), "m"))
+    assert children == [], "fixture gaps must not enter a real run's tree"
+
+
+def test_fixture_run_keeps_fixture_synthesized_gaps(monkeypatch):
+    import asyncio as _aio
+    from types import SimpleNamespace as _NS
+    from app.autonomous import engine
+    from app.autonomous.schemas import Node, NodeKind, Project
+
+    async def _fake_synth(*_a, **_k):
+        return ([_NS(title="Demo gap", tags=[])], "fixture", [])
+
+    monkeypatch.setattr(engine, "synthesize", _fake_synth)
+    monkeypatch.setattr(engine, "_fetch_all",
+                        lambda *_a, **_k: _aio.sleep(0, result=({}, [])))
+    monkeypatch.setattr(engine, "extract_signals", lambda *_a, **_k: None)
+    monkeypatch.setattr(engine, "scope_area",
+                        lambda *_a, **_k: _NS(keywords=["k"], sub_segments=[]))
+    monkeypatch.setattr(engine, "steering_context_block", lambda _p: "")
+    monkeypatch.setattr(engine, "get_client", lambda: _NS(backend="fixture"))
+    monkeypatch.setattr(engine, "_evidence_context", lambda *_a, **_k: "")
+    monkeypatch.setattr(engine, "node_priority", lambda *_a, **_k: 1.0)
+
+    node = Node(id="n", project_id="p", kind=NodeKind.SEGMENT, title="anything")
+    project = Project(id="p", domain="anything")
+    children = _aio.run(engine.expand_segment(node, project, _NS(backend="fixture"), "m"))
+    assert len(children) == 1, "a deliberate fixture run keeps demo gaps"

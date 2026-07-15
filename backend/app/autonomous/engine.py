@@ -697,12 +697,28 @@ async def expand_segment(
         fetched, reports = await _fetch_all(node.title, scope)
         signals = extract_signals(node.title, scope, fetched)
         steering = steering_context_block(project)
-        gaps, _backend, _warnings = await synthesize(
+        gaps, backend, _warnings = await synthesize(
             signals, reports, client, model=model, steering=steering,
             avoid_titles=avoid_titles,
         )
     except Exception:  # noqa: BLE001 - degrade to no children, never crash the loop.
         return []
+
+    # Fixture-gap firewall. synthesize()'s fallback chain terminates in the fixture
+    # backend, which returns canned "personal finance for freelancers" gaps for ANY
+    # domain. On a REAL run (a live backend that rate-limited mid-call), injecting
+    # those as scored findings would fill, say, a protein-model tree with fintech
+    # gaps — the exact fabrication the rest of the system refuses. So on a real run,
+    # a fixture synthesis yields NO children (the node stays honestly empty), the
+    # same discipline every other LLM surface enforces (researchpack/develop/
+    # consolidate all 503 on fixture). A deliberate fixture run keeps them.
+    if backend == "fixture":
+        try:
+            real_run = get_client().backend != "fixture"
+        except Exception:  # noqa: BLE001
+            real_run = True
+        if real_run:
+            return []
 
     # Post-synthesis dedup guard: the prompt asks the model not to repropose an
     # already-listed gap, but a near-duplicate can still slip through. Drop any
