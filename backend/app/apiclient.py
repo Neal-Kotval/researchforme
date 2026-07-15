@@ -163,6 +163,41 @@ class GapFinderClient:
             "learned_preferences": text, "status": status,
         })
 
+    # --------------------------------------------------------------- library
+    # Projects as folders, documents as markdown — one library shared with the
+    # web UI (Phase 5). A terminal agent and the browser edit the same files.
+    def library_root(self) -> dict:
+        return self._request("GET", "/library/root")
+
+    def list_library_projects(self) -> list[dict]:
+        return self._request("GET", "/library/projects")
+
+    def create_library_project(self, title: str, thesis: str = "") -> dict:
+        return self._request("POST", "/library/projects",
+                             json_body={"title": title, "thesis": thesis})
+
+    def list_docs(self, slug: str) -> list[dict]:
+        return self._request("GET", f"/library/projects/{slug}/docs")
+
+    def read_doc(self, slug: str, path: str) -> dict:
+        return self._request("GET", f"/library/projects/{slug}/doc",
+                             params={"path": path})
+
+    def write_doc(self, slug: str, path: str, content: str,
+                  base_mtime: Optional[float] = None) -> dict:
+        return self._request("PUT", f"/library/projects/{slug}/doc", json_body={
+            "path": path, "content": content, "base_mtime": base_mtime,
+        })
+
+    def consolidate_project(self, slug: str) -> dict:
+        return self._request("POST", f"/library/projects/{slug}/consolidate",
+                             timeout=SLOW_TIMEOUT)
+
+    def import_ideas(self, slug: str, ideas: list[dict], develop: bool = False) -> dict:
+        return self._request("POST", f"/library/projects/{slug}/import",
+                             json_body={"ideas": ideas, "develop": develop},
+                             timeout=SLOW_TIMEOUT)
+
     # ----------------------------------------------------------------- events
     def stream_events(self, pid: str, after: Optional[int] = None) -> Iterator[dict]:
         """Tail the project's SSE stream, yielding parsed event payloads.

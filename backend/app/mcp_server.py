@@ -327,6 +327,52 @@ def get_preferences() -> str:
     return _run(lambda: client().preferences())
 
 
+# --------------------------------------------------------------------------- #
+# Library — projects as folders, documents as markdown (Phase 5)              #
+# The user edits these same files in the web UI; you and the browser share one #
+# library, so a doc you write here appears there and vice versa.              #
+# --------------------------------------------------------------------------- #
+@mcp.tool()
+def list_projects_library() -> str:
+    """Every library project (a folder of markdown on disk) + the library root path."""
+    return _run(lambda: {"root": client().library_root().get("root"),
+                         "projects": client().list_library_projects()})
+
+
+@mcp.tool()
+def create_project_folder(title: str, thesis: str = "") -> str:
+    """Create a library project — a real folder with a project.md. Returns its slug."""
+    return _run(lambda: client().create_library_project(title, thesis))
+
+
+@mcp.tool()
+def list_documents(slug: str) -> str:
+    """List a project's markdown documents (path + title)."""
+    return _run(lambda: client().list_docs(slug))
+
+
+@mcp.tool()
+def read_document(slug: str, path: str) -> str:
+    """Read one document's content, e.g. path='project.md' or 'ideas/kernel-ci.md'."""
+    return _run(lambda: client().read_doc(slug, path))
+
+
+@mcp.tool()
+def write_document(slug: str, path: str, content: str) -> str:
+    """Create or overwrite a markdown document in a project. path must end in .md
+    and stays inside the project (traversal is rejected server-side). This edits a
+    real file the user also sees in the web UI."""
+    return _run(lambda: client().write_doc(slug, path, content))
+
+
+@mcp.tool()
+def consolidate_project(slug: str) -> str:
+    """Consolidate a project's ideas into one thesis + plan (writes consolidation.md).
+    Names where the ideas conflict and refuses to merge ones that don't belong.
+    Slow (one strong-model pass); 400 if <2 ideas, 503 if no LLM backend."""
+    return _run(lambda: client().consolidate_project(slug))
+
+
 def main() -> None:
     mcp.run()
 

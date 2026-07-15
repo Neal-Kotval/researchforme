@@ -302,6 +302,49 @@ def cmd_prefs(c: GapFinderClient, a) -> Any:
 
 
 # --------------------------------------------------------------------------- #
+# Library — projects as folders, documents as markdown (shared with the web UI) #
+# --------------------------------------------------------------------------- #
+def cmd_library(c: GapFinderClient, a) -> Any:
+    projects = c.list_library_projects()
+    if a.json:
+        return {"root": c.library_root().get("root"), "projects": projects}
+    print(c.library_root().get("root", ""))
+    for p in projects:
+        print(f"  {p['slug']:<28} {p['idea_count']} ideas · {p['doc_count']} docs")
+    return None
+
+
+def cmd_new_project(c: GapFinderClient, a) -> Any:
+    return c.create_library_project(a.title, a.thesis or "")
+
+
+def cmd_docs(c: GapFinderClient, a) -> Any:
+    docs = c.list_docs(a.slug)
+    if a.json:
+        return docs
+    for d in docs:
+        print(f"  {d['path']:<34} {d['title']}")
+    return None
+
+
+def cmd_doc_read(c: GapFinderClient, a) -> Any:
+    data = c.read_doc(a.slug, a.path)
+    if a.json:
+        return data
+    print(data.get("content", ""))
+    return None
+
+
+def cmd_doc_write(c: GapFinderClient, a) -> Any:
+    content = open(a.file).read() if a.file else sys.stdin.read()
+    return c.write_doc(a.slug, a.path, content)
+
+
+def cmd_consolidate(c: GapFinderClient, a) -> Any:
+    return c.consolidate_project(a.slug)
+
+
+# --------------------------------------------------------------------------- #
 # Parser                                                                      #
 # --------------------------------------------------------------------------- #
 def build_parser() -> argparse.ArgumentParser:
@@ -423,6 +466,29 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("prefs_action", nargs="?", default="show",
                    choices=["show", "distill", "confirm", "dismiss"])
     p.add_argument("--text", help="override text when confirming")
+
+    # --- library (projects as folders, documents as markdown) ---------------
+    add("library", cmd_library, "list library projects + the library root path")
+
+    p = add("new-project", cmd_new_project, "create a library project folder")
+    p.add_argument("title")
+    p.add_argument("--thesis", help="seed project.md with a thesis")
+
+    p = add("docs", cmd_docs, "list a project's documents")
+    p.add_argument("slug")
+
+    p = add("doc", cmd_doc_read, "print one document's content")
+    p.add_argument("slug")
+    p.add_argument("path", help="e.g. project.md or ideas/kernel-ci.md")
+
+    p = add("doc-write", cmd_doc_write, "write a document (stdin or --file)")
+    p.add_argument("slug")
+    p.add_argument("path")
+    p.add_argument("--file", help="read content from a file instead of stdin")
+
+    p = add("consolidate", cmd_consolidate,
+            "consolidate a project's ideas into one thesis + plan")
+    p.add_argument("slug")
 
     return parser
 
