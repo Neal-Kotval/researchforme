@@ -1226,6 +1226,14 @@
 }
 .ws-slug { font-family: var(--mono); font-size: 11px; color: var(--text-ghost); }
 .ws-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* Below ~560px the toolbar (status + Consolidate/Chat/Edit) overflowed its right
+   edge with no page scroll, so Chat/Edit were unreachable. Let the bar wrap and
+   its actions scroll within their own row instead of falling off-screen. */
+@media (max-width: 560px) {
+  .ws-bar { flex-wrap: wrap; row-gap: 8px; }
+  .ws-actions { margin-left: 0; width: 100%; overflow-x: auto; }
+}
 .ws-status { font-family: var(--mono); font-size: 11px; color: var(--live); }
 
 .ws-error {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { scout, ApiError } from "../../autonomous/api";
+import { scout, createProject, ApiError } from "../../autonomous/api";
 import { nodeTrust, type Project, type ScoutCandidate } from "../../autonomous/types";
 import { ACTIVE_STATUSES } from "../../hooks/useProjects";
 import FitChip from "../autonomous/FitChip";
@@ -72,6 +72,30 @@ export default function HomeView({
   onNewExploration,
   onExploreCandidate,
 }: Props) {
+  // One-line quick explore: type a market, press Enter, it's running. The fast
+  // path to "more ideas" — sensible defaults, no dialog. Steering lives in the
+  // full drawer for when you want it.
+  const [quickDomain, setQuickDomain] = useState("");
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickErr, setQuickErr] = useState<string | null>(null);
+  const quickExplore = async () => {
+    const domain = quickDomain.trim();
+    if (domain.length < 2 || quickBusy) return;
+    setQuickBusy(true);
+    setQuickErr(null);
+    try {
+      const p = await createProject({
+        domain, autostart: true, budget: { max_nodes: 70, pace: "balanced" },
+      });
+      setQuickDomain("");
+      onOpenProject(p.id);
+    } catch (e) {
+      setQuickErr(e instanceof ApiError ? e.message : "Could not start that exploration.");
+    } finally {
+      setQuickBusy(false);
+    }
+  };
+
   const { ideas, loading } = usePressureTestedIdeas();
   const survivors = useMemo(
     () =>
@@ -112,6 +136,31 @@ export default function HomeView({
 
   return (
     <div className="pf-view">
+      {/* One-line quick explore — the fast path to more ideas. */}
+      <div className="quick-explore">
+        <span className="qe-icon" aria-hidden>▸</span>
+        <input
+          className="qe-input"
+          placeholder="Explore a market… (e.g. tooling for solo accountants) — Enter to launch"
+          value={quickDomain}
+          onChange={(e) => setQuickDomain(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") void quickExplore(); }}
+          disabled={quickBusy}
+        />
+        <button
+          className="btn btn-primary qe-go"
+          onClick={() => void quickExplore()}
+          disabled={quickBusy || quickDomain.trim().length < 2}
+        >
+          {quickBusy ? "Launching…" : "Explore ▸"}
+        </button>
+        <button className="qe-steer" onClick={onNewExploration}
+                title="Open the full drawer to add steering, intake, and budget">
+          steer…
+        </button>
+      </div>
+      {quickErr && <div className="qe-err">{quickErr}</div>}
+
       {/* 1 — Worth your attention */}
       <section className="pfm">
         <div className="pfm-head">
