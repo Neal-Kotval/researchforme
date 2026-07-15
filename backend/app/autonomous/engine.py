@@ -32,6 +32,7 @@ import asyncio
 import hashlib
 import heapq
 import re
+from typing import Optional
 
 from ..analysis.extract import extract_signals
 from ..analysis.scope import _STOPWORDS, scope_area
@@ -680,7 +681,8 @@ async def _fetch_all(node_title: str, scope) -> tuple[dict, list[SourceReport]]:
 
 
 async def expand_segment(
-    node: Node, project: Project, client: ClaudeClient, model: str
+    node: Node, project: Project, client: ClaudeClient, model: str,
+    avoid_titles: Optional[list[str]] = None,
 ) -> list[Node]:
     """Run the existing ``scope → fetch → extract → synthesize`` pipeline on a segment.
 
@@ -696,13 +698,23 @@ async def expand_segment(
         signals = extract_signals(node.title, scope, fetched)
         steering = steering_context_block(project)
         gaps, _backend, _warnings = await synthesize(
-            signals, reports, client, model=model, steering=steering
+            signals, reports, client, model=model, steering=steering,
+            avoid_titles=avoid_titles,
         )
     except Exception:  # noqa: BLE001 - degrade to no children, never crash the loop.
         return []
 
+    # Post-synthesis dedup guard: the prompt asks the model not to repropose an
+    # already-listed gap, but a near-duplicate can still slip through. Drop any
+    # gap whose normalized title matches one already in the tree — a belt to the
+    # prompt's braces, so mode collapse can't survive a model that ignores the ask.
+    seen_norm = {_norm_title(t) for t in (avoid_titles or [])}
     children: list[Node] = []
     for gap in gaps:
+        norm = _norm_title(gap.title)
+        if norm in seen_norm:
+            continue
+        seen_norm.add(norm)
         child = make_node(
             project.id,
             node,
@@ -716,3 +728,17 @@ async def expand_segment(
         child.priority = node_priority(child, node)
         children.append(child)
     return children
+
+
+def _norm_title(title: str) -> str:
+    """Normalize a gap title for duplicate detection: lowercase, drop the common
+    'X for Y' framing words and punctuation, so 'The Eval Layer for Motion
+    Policies' and 'Eval & Observability Layer for Embodied Motion' collapse to the
+    same key. Deliberately aggressive — a false merge costs one idea; a missed
+    duplicate is the mode-collapse bug."""
+    t = (title or "").lower()
+    t = re.sub(r"[^a-z0-9 ]+", " ", t)
+    stop = {"the", "a", "an", "for", "of", "and", "to", "layer", "platform",
+            "tool", "toolkit", "harness", "system", "your", "with"}
+    words = sorted(w for w in t.split() if w and w not in stop)
+    return " ".join(words)

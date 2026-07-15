@@ -499,13 +499,35 @@ def _sources_summary(reports: list[SourceReport]) -> list[dict[str, Any]]:
 
 
 def _build_user_prompt(
-    signals: ExtractedSignals, reports: list[SourceReport], steering: str = ""
+    signals: ExtractedSignals,
+    reports: list[SourceReport],
+    steering: str = "",
+    avoid_titles: Optional[list[str]] = None,
 ) -> str:
     payload = _signals_payload(signals)
     sources = _sources_summary(reports)
     steer = (steering.strip() + "\n\n") if steering and steering.strip() else ""
+
+    # Anti-mode-collapse: the biggest quality failure observed is many branches
+    # independently proposing the SAME meta-shape (e.g. "eval/observability layer
+    # for X" 23 times). Show this synthesis what the rest of the tree has already
+    # proposed and forbid re-proposing it or a thin rewording — force a genuinely
+    # different angle or an honest empty array.
+    avoid = ""
+    if avoid_titles:
+        listed = "\n".join(f"- {t}" for t in avoid_titles[:40])
+        avoid = (
+            "ALREADY PROPOSED ELSEWHERE IN THIS EXPLORATION — do NOT propose any of "
+            "these again, nor a reworded near-duplicate (same product shape aimed at "
+            "the same buyer counts as a duplicate even with a different name). If the "
+            "only gaps you can find here are variations on these, return an EMPTY "
+            "array — a duplicate is worse than nothing:\n"
+            f"{listed}\n\n"
+        )
+
     return (
         f"{steer}"
+        f"{avoid}"
         f"AREA UNDER STUDY: {signals.area}\n"
         f"SUB-SEGMENTS OF INTEREST: {', '.join(signals.sub_segments) or '(none specified)'}\n\n"
         "SOURCE TELEMETRY (which sources fired, and how healthy the data is — "
@@ -671,6 +693,7 @@ async def synthesize(
     client: ClaudeClient,
     model: Optional[str] = None,
     steering: str = "",
+    avoid_titles: Optional[list[str]] = None,
 ) -> tuple[list[Gap], str, list[str]]:
     """Turn extracted signals into a validated list of market gaps.
 
@@ -691,7 +714,7 @@ async def synthesize(
         if key:
             known_urls[key] = known_urls.get(key, False) or sig.live
     tools = _build_tools(signals, url_sink=known_urls)
-    user_prompt = _build_user_prompt(signals, source_reports, steering)
+    user_prompt = _build_user_prompt(signals, source_reports, steering, avoid_titles)
 
     backend = "fixture"
     text = ""

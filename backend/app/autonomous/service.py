@@ -703,8 +703,13 @@ class ExplorerService:
 
         try:
             if node.kind is NodeKind.SEGMENT:
+                # Anti-mode-collapse: hand this synthesis the gaps already proposed
+                # anywhere in the tree so it won't photocopy the same "eval layer
+                # for X" idea a 23rd time (see synthesize.avoid_titles).
+                avoid_titles = self._proposed_gap_titles(project.id)
                 children = await expand_segment(
-                    node, project, self.client, project.synth_model
+                    node, project, self.client, project.synth_model,
+                    avoid_titles=avoid_titles,
                 )
             else:  # DOMAIN / SUBAREA — structural decomposition.
                 # Thread the store handle so the S3 graveyard block (rejected
@@ -1068,6 +1073,31 @@ class ExplorerService:
             self.store.save_project(project)
         self._emit(project_id, EventType.PROJECT_UPDATED, project=project)
         return project
+
+    def _proposed_gap_titles(self, project_id: str) -> list[str]:
+        """Titles of every gap already proposed in this project's tree.
+
+        Fed to synthesis as the do-not-repropose list (anti-mode-collapse). Cheap
+        store read; the gap title is the human-facing thesis, which is exactly what
+        a near-duplicate would echo. Newest first so the most recent proposals
+        (most likely to be echoed) survive the 40-item cap in the prompt.
+        """
+        try:
+            nodes = self.store.get_nodes(project_id)
+        except Exception:  # noqa: BLE001 - a read failure must not stall expansion.
+            return []
+        gaps = [n for n in nodes
+                if n.kind in (NodeKind.GAP, NodeKind.GAP_CANDIDATE)]
+        gaps.sort(key=lambda n: n.created_at, reverse=True)
+        seen: set[str] = set()
+        titles: list[str] = []
+        for n in gaps:
+            t = (n.gap.title if n.gap else n.title or "").strip()
+            key = t.lower()
+            if t and key not in seen:
+                seen.add(key)
+                titles.append(t)
+        return titles
 
     def _save_node(self, node: Node, event_type: EventType) -> None:
         """Persist a node and emit the matching ``node_added`` / ``node_updated``."""
