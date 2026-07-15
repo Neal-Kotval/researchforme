@@ -184,10 +184,10 @@ MUST have exactly this shape:
     {"name": "", "url": "", "positioning": "", "segment": "",
      "price_tier": "free|$|$$|$$$|enterprise", "weakness": "the blind spot"}
   ],
-  "wedge": "the sharp initial entry point / first customer",
-  "riskiest_assumption": "the one thing that must be validated first",
+  "wedge": "a CONCRETE first move you could start this month — what you build and sell FIRST, to whom, and what you deliberately do NOT build yet. Not a category ('a platform for X'); a specific opening act.",
+  "riskiest_assumption": "the one belief that, if false, kills this — stated so it could actually be tested (a question you could answer with ~10 customer calls or one cheap experiment), not a vague worry",
   "weakest_link": "the softest score or biggest doubt, named",
-  "why_now": "the recent shift that unlocks this gap",
+  "why_now": "the DATED shift that makes this buildable/urgent THIS year and not three years ago (a specific recent change — a new capability, a price drop, a regulation, a platform). If you can't name a real recent shift, say the why-now is weak — don't invent one.",
   "empty_for_a_reason": false,
   "empty_reason": "if true, why the white space is actually a trap",
   "novelty": 1-5,
