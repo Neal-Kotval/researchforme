@@ -17,11 +17,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Optional
 
 from ..config import get_settings
+
+# URLs appearing in a tool result (web_search/web_fetch) — captured so the
+# synthesis grounding gate can accept web-found evidence as real.
+_URL_RE = re.compile(r"https?://[^\s\"'<>)\]}]+")
 
 
 @dataclass
@@ -39,6 +44,11 @@ class LLMResult:
     text: str
     backend: str                 # which backend actually served the call
     tool_calls: int = 0
+    # URLs that appeared in tool results during the call (e.g. web_search hits).
+    # A URL the model saw in a real tool result is real, not fabricated — the
+    # grounding gate can accept these, which is what lets web_search evidence
+    # survive. Empty unless web tools ran and returned links.
+    tool_urls: list = field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- #
@@ -218,6 +228,7 @@ class ClaudeClient:
         )
 
         chunks: list[str] = []
+        tool_urls: set[str] = set()
 
         async def _run() -> None:
             async for message in query(prompt=prompt, options=options):
@@ -231,12 +242,18 @@ class ClaudeClient:
                     text = getattr(block, "text", None)
                     if text:
                         chunks.append(text)
+                    # Capture URLs the model actually received from a tool result
+                    # (web_search / web_fetch). Real, not fabricated, so downstream
+                    # grounding can trust them.
+                    if type(block).__name__ == "ToolResultBlock":
+                        tool_urls.update(_URL_RE.findall(str(getattr(block, "content", ""))))
 
         await asyncio.wait_for(_run(), timeout=timeout)
         text = "\n".join(chunks).strip()
         if not text:
             raise RuntimeError("agent-sdk returned empty text")
-        return LLMResult(text=text, backend="agent-sdk", tool_calls=tool_count["n"])
+        return LLMResult(text=text, backend="agent-sdk",
+                         tool_calls=tool_count["n"], tool_urls=sorted(tool_urls))
 
     # ------------------------------------------------------------------ #
     # cli (subscription, no custom tools)                                #

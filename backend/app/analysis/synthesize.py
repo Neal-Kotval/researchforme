@@ -98,11 +98,20 @@ other.
 
 # TOOLS
 You may have tools: search_reddit, search_arxiv, search_hackernews,
-search_github, search_newsletters. Use them SPARINGLY and only to corroborate a
-specific hypothesis (e.g., "is there really pain about X?", "did anyone already
-ship this?", or "did the tooling actually take off?"). Every URL you cite from a
-tool result is fair game as Evidence. If no tools are available, reason only from
-the provided signals — do not pretend to have fetched anything.
+search_github, search_newsletters, and web_search / web_fetch for the OPEN web.
+Use them SPARINGLY and only to corroborate a specific hypothesis (e.g., "is there
+really pain about X?", "did anyone already ship this?", or "did the tooling
+actually take off?"). Every URL you cite from a tool result is fair game as
+Evidence.
+
+DEMAND IS THE HARD PART. The mined signals lean toward SUPPLY (papers, repos —
+what's being built), and the demand-bearing adapters are domain-limited. When a
+gap's demand rests only on supply-side evidence, use web_search to look for the
+actual pain — forum threads, complaints, "I wish", questions with no good answer,
+people describing the workaround — and cite what you find. A gap grounded ONLY in
+arXiv/GitHub has UNMEASURED demand; say so honestly rather than dressing supply up
+as demand. If no tools are available, reason only from the provided signals — do
+not pretend to have fetched anything.
 
 # COMPETITORS
 For each gap, name up to 5 real, specific incumbents/alternatives. For each:
@@ -726,9 +735,23 @@ async def synthesize(
             max_turns=8,
             timeout=240,
             model=model,
+            # Open-web access so synthesis can actively hunt DEMAND — the mined API
+            # sources are domain-limited (Stack Exchange sees dev-tool pain but not
+            # academic robotics), and demand lives somewhere different per domain.
+            # web_search finds the complaint/forum/thread the fixed adapters miss,
+            # with a real URL that satisfies the grounding gate.
+            web=True,
         )
         text = result.text
         backend = result.backend
+        # Web-found URLs (web_search/web_fetch) the model actually received are
+        # real evidence — add them to the grounding set so demand the fixed API
+        # sources missed survives the grounding gate. Marked live: a web result is
+        # a live fetch, not a mock fixture.
+        for u in getattr(result, "tool_urls", []) or []:
+            key = _norm_url(u)
+            if key:
+                known_urls.setdefault(key, True)
     except Exception as exc:  # noqa: BLE001 - resilient: fall through to fixtures
         warnings.append(f"synthesis: LLM call failed ({exc}); using fixture gaps.")
         text = ""
