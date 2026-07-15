@@ -36,7 +36,7 @@ import re
 from ..analysis.extract import extract_signals
 from ..analysis.scope import _STOPWORDS, scope_area
 from ..analysis.synthesize import _extract_json_array, synthesize
-from ..llm.client import ClaudeClient
+from ..llm.client import ClaudeClient, get_client
 from ..schemas import Gap, SourceReport, SourceStatus
 from ..sources.registry import get_sources
 from .graveyard import graveyard_context_block
@@ -657,20 +657,23 @@ async def _fetch_all(node_title: str, scope) -> tuple[dict, list[SourceReport]]:
         ok.append((src, res, report))
 
     # Fixture contamination gate. A degraded adapter (e.g. Reddit 403s) serves
-    # its fixture corpus, whose content is unrelated to the run's domain — a
-    # bookkeeping-SaaS fixture would otherwise land in the signal set of a
-    # protein-model exploration and be reasoned over as real market evidence,
-    # dragging demand scores toward a *false* zero. So once ANY source is live,
-    # mock items are excluded from the corpus entirely. Their reports are still
-    # returned, so the honest "Mock sources (cap confidence)" line and the
-    # confidence cap downstream are unaffected — we drop the fake content, not
-    # the fact that the source failed. When nothing is live (offline/test runs)
-    # fixtures are kept, since a fixture run is then the explicit intent.
-    any_live = any(
-        r is not None and r.status is SourceStatus.LIVE for _, _, r in ok
-    )
+    # its fixture corpus, whose content is UNRELATED to the run's domain — a
+    # bookkeeping-SaaS fixture landing in the signal set of a protein-model branch
+    # gets reasoned over as real market evidence and produces a fintech "gap" on a
+    # bio branch (observed). The gate is decided by whether this is a REAL run, not
+    # by whether this particular node happened to get a live hit: in a real run
+    # (resolved LLM backend != fixture) mock source items NEVER enter the corpus,
+    # even for a node whose live sources all came back empty — a node with no real
+    # signal is honestly UNMEASURED, not fintech. Reports are still returned, so
+    # the "Mock sources (cap confidence)" line and the confidence cap are intact —
+    # we drop the fake content, not the fact that the source degraded. Only a
+    # deliberate fixture run (LLM_BACKEND=fixture, offline/tests) keeps fixtures.
+    try:
+        real_run = get_client().backend != "fixture"
+    except Exception:  # noqa: BLE001 - if the backend can't resolve, be conservative.
+        real_run = True
     for src, res, report in ok:
-        if any_live and report is not None and report.status is SourceStatus.MOCK:
+        if real_run and report is not None and report.status is SourceStatus.MOCK:
             continue
         fetched[src.name] = res
     return fetched, reports
