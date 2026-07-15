@@ -220,3 +220,34 @@ def test_consolidate_unknown_project_is_clean_error(env):
     client, _store, _tmp = env
     r = client.post("/api/library/projects/nope/consolidate")
     assert r.status_code in (400, 404)
+
+
+# --------------------------------------------------------------------------- #
+# Auto-synthesized project plan (#7) + lifecycle status (#10)                  #
+# --------------------------------------------------------------------------- #
+def test_new_project_keeps_stub_plan_when_no_llm(env):
+    """Fixture backend can't synthesize a plan → the honest stub project.md stays,
+    never canned filler."""
+    client, _store, tmp = env
+    r = client.post("/api/library/import", json={
+        "ideas": [_idea()], "new_project_title": "Kernel CI", "develop": False})
+    assert r.status_code == 200
+    plan = (tmp / "researchforme" / "kernel-ci" / "project.md").read_text()
+    # The create_project stub, not a fabricated plan.
+    assert "## Plan" in plan
+
+
+def test_project_status_lifecycle(env):
+    client, _store, _tmp = env
+    client.post("/api/library/projects", json={"title": "Proj"})
+    r = client.post("/api/library/projects/proj/status", json={"status": "validating"})
+    assert r.status_code == 200 and r.json()["status"] == "validating"
+    # persists
+    assert client.get("/api/library/projects/proj").json()["status"] == "validating"
+
+
+def test_bad_status_is_rejected(env):
+    client, _store, _tmp = env
+    client.post("/api/library/projects", json={"title": "Proj"})
+    assert client.post("/api/library/projects/proj/status",
+                       json={"status": "on-fire"}).status_code == 400

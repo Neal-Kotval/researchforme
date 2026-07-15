@@ -33,6 +33,11 @@ class ProjectOut(BaseModel):
     updated_at: str
     doc_count: int
     idea_count: int
+    status: str = "exploring"
+
+
+class StatusBody(BaseModel):
+    status: str
 
 
 class DocOut(BaseModel):
@@ -138,6 +143,15 @@ def create_library_project(body: CreateProjectBody) -> ProjectOut:
 def get_library_project(slug: str) -> ProjectOut:
     try:
         return _project_out(lib.get_project(slug))
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+
+
+@router.post("/library/projects/{slug}/status", response_model=ProjectOut)
+def set_library_project_status(slug: str, body: StatusBody) -> ProjectOut:
+    """Move a project along its lifecycle (exploring/validating/committed/shelved)."""
+    try:
+        return _project_out(lib.set_project_status(slug, body.status))
     except Exception as exc:  # noqa: BLE001
         raise _handle(exc) from exc
 
@@ -270,7 +284,7 @@ async def import_ideas(body: ImportBody) -> ImportResult:
 
     return await _do_import(project.slug, body, get_store(), get_client(),
                             get_settings(), develop_idea, DevelopUnavailable,
-                            steering_context_block)
+                            steering_context_block, write_plan=True)
 
 
 @router.post("/library/projects/{slug}/import", response_model=ImportResult)
@@ -294,6 +308,7 @@ async def import_ideas_into(slug: str, body: ImportBody) -> ImportResult:
 async def _do_import(
     slug: str, body: ImportBody, store, client, settings,
     develop_idea, DevelopUnavailable, steering_context_block,  # noqa: N803
+    write_plan: bool = False,
 ) -> ImportResult:
     imported: list[ImportedIdea] = []
 
@@ -328,6 +343,30 @@ async def _do_import(
         imported.append(
             ImportedIdea(path=doc.path, title=doc.title, developed=developed, note=note)
         )
+
+    # Auto-synthesize a real project.md from the imported ideas (task #7) — so a
+    # new project opens with an actual plan (wedge, first 90 days, open questions,
+    # what could kill it), not an empty template. Degrades honestly: if no LLM can
+    # produce a real plan, the stub project.md create_project wrote stays.
+    if write_plan:
+        from ..autonomous.projectplan import (
+            ProjectPlanUnavailable,
+            synthesize_project_plan,
+        )
+
+        try:
+            ideas = lib.read_ideas(slug)
+            body_md = await synthesize_project_plan(
+                lib.get_project(slug).title, ideas, client, settings.llm_model
+            )
+            meta = {"title": lib.get_project(slug).title, "status": "exploring",
+                    "source": "gapfinder-plan"}
+            lib.write_doc(slug, "project.md",
+                          lib.render_frontmatter(meta) + body_md + "\n")
+        except ProjectPlanUnavailable:
+            pass  # keep the honest stub
+        except Exception:  # noqa: BLE001 - a plan failure must not fail the import.
+            logger.exception("project plan synthesis failed for slug=%r", slug)
 
     return ImportResult(
         project=_project_out(lib.get_project(slug)), imported=imported

@@ -304,7 +304,10 @@ export interface LibraryProject {
   updated_at: string;
   doc_count: number;
   idea_count: number;
+  status: string;
 }
+
+export const PROJECT_STATUSES = ["exploring", "validating", "committed", "shelved"] as const;
 
 export interface LibraryDoc {
   path: string;
@@ -353,6 +356,16 @@ export function createLibraryProject(title: string, thesis = ""): Promise<Librar
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ title, thesis }),
+  });
+}
+
+export function getLibraryProject(slug: string): Promise<LibraryProject> {
+  return request<LibraryProject>(`/api/library/projects/${encodeURIComponent(slug)}`);
+}
+
+export function setProjectStatus(slug: string, status: string): Promise<LibraryProject> {
+  return request<LibraryProject>(`/api/library/projects/${encodeURIComponent(slug)}/status`, {
+    method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ status }),
   });
 }
 

@@ -4,8 +4,11 @@ import {
   control,
   getStarred,
   getTree,
+  importIdeasInto,
   importIdeasToNewProject,
+  listLibraryProjects,
   type ImportIdeaInput,
+  type LibraryProject,
 } from "../../autonomous/api";
 import { gapToMarkdown } from "../../autonomous/exportGap";
 import type { PortfolioItem } from "../../autonomous/types";
@@ -48,6 +51,9 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
   const [projectTitle, setProjectTitle] = useState("");
   const [develop, setDevelop] = useState(true);
   const [progress, setProgress] = useState("");
+  // "" = create a new project; a slug = add to that existing project.
+  const [targetSlug, setTargetSlug] = useState("");
+  const [libProjects, setLibProjects] = useState<LibraryProject[]>([]);
 
   const load = async () => {
     try {
@@ -92,9 +98,16 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
    * red team's criticism, and the backend's optional development pass is
    * required to preserve it.
    */
+  const openExport = () => {
+    setExporting(true);
+    listLibraryProjects().then(setLibProjects).catch(() => {});
+  };
+
   const runExport = async () => {
     const chosen = (items ?? []).filter((i) => selected.has(i.node_id));
-    if (chosen.length === 0 || !projectTitle.trim()) return;
+    // New project needs a name; adding to an existing one needs a target slug.
+    if (chosen.length === 0) return;
+    if (!targetSlug && !projectTitle.trim()) return;
 
     setBusy(true);
     setError(null);
@@ -133,7 +146,9 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
           ? `Developing ${payload.length} idea${payload.length === 1 ? "" : "s"}… (one model pass each)`
           : `Writing ${payload.length} idea${payload.length === 1 ? "" : "s"}…`,
       );
-      const result = await importIdeasToNewProject(payload, projectTitle.trim(), develop);
+      const result = targetSlug
+        ? await importIdeasInto(targetSlug, payload, develop)
+        : await importIdeasToNewProject(payload, projectTitle.trim(), develop);
 
       // Surface any idea whose development pass degraded — never swallow it.
       const degraded = result.imported.filter((i) => develop && !i.developed);
@@ -209,7 +224,7 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
                 ? "Select ideas to export into a project"
                 : "Write these ideas as markdown into a project's ideas/ folder"
             }
-            onClick={() => setExporting(true)}
+            onClick={openExport}
           >
             Export {selected.size > 0 ? `${selected.size} ` : ""}to project →
           </button>
@@ -219,22 +234,36 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
       {exporting && (
         <div className="export-panel">
           <div className="ep-row">
-            <label className="ep-label" htmlFor="ep-title">
-              New project name
-            </label>
-            <input
-              id="ep-title"
-              autoFocus
+            <label className="ep-label" htmlFor="ep-target">Destination</label>
+            <select
+              id="ep-target"
               className="lib-input"
-              placeholder="e.g. Kernel CI"
-              value={projectTitle}
-              onChange={(e) => setProjectTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && projectTitle.trim()) void runExport();
-                if (e.key === "Escape") setExporting(false);
-              }}
-            />
+              value={targetSlug}
+              onChange={(e) => setTargetSlug(e.target.value)}
+            >
+              <option value="">+ New project…</option>
+              {libProjects.map((p) => (
+                <option key={p.slug} value={p.slug}>{p.title}</option>
+              ))}
+            </select>
           </div>
+          {!targetSlug && (
+            <div className="ep-row">
+              <label className="ep-label" htmlFor="ep-title">Name</label>
+              <input
+                id="ep-title"
+                autoFocus
+                className="lib-input"
+                placeholder="e.g. Kernel CI"
+                value={projectTitle}
+                onChange={(e) => setProjectTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && projectTitle.trim()) void runExport();
+                  if (e.key === "Escape") setExporting(false);
+                }}
+              />
+            </div>
+          )}
           <label className="ep-check">
             <input
               type="checkbox"
@@ -252,10 +281,13 @@ export default function StarredView({ onOpenNode, onImported }: Props) {
             {progress && <span className="ep-progress">{progress}</span>}
             <button
               className="btn btn-primary"
-              disabled={busy || !projectTitle.trim()}
+              disabled={busy || (!targetSlug && !projectTitle.trim())}
               onClick={() => void runExport()}
             >
-              {busy ? "Exporting…" : `Export ${selected.size} idea${selected.size === 1 ? "" : "s"}`}
+              {busy
+                ? "Exporting…"
+                : `Export ${selected.size} idea${selected.size === 1 ? "" : "s"}` +
+                  (targetSlug ? " →" : "")}
             </button>
             <button className="btn btn-ghost" disabled={busy} onClick={() => setExporting(false)}>
               Cancel

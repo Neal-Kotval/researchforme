@@ -1200,6 +1200,22 @@
 }
 .lc-slug { font-family: var(--mono); font-size: 10px; color: var(--text-ghost); margin-top: auto; }
 
+/* ---- project lifecycle status (#10) ------------------------------------- */
+.lc-titlerow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%; }
+.lc-status, .ws-status-select {
+  font-family: var(--mono); font-size: 9.5px; font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: var(--r-xs); flex: none;
+  border: 1px solid var(--border); color: var(--text-dim); background: var(--surface);
+}
+/* exploring = neutral; validating = accent (in motion); committed = live (green);
+   shelved = dim. Status carries meaning through color, sparingly. */
+.st-validating { color: var(--accent-strong); border-color: color-mix(in srgb, var(--accent-strong) 40%, var(--border)); }
+.st-committed { color: var(--live); border-color: color-mix(in srgb, var(--live) 45%, var(--border)); }
+.st-shelved { color: var(--text-ghost); }
+.ws-status-select { cursor: pointer; padding: 3px 6px; }
+.ws-status-select:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
 /* ---- workspace: the project as a document ------------------------------ */
 .workspace { display: flex; flex-direction: column; }
 

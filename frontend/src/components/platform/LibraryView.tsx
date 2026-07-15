@@ -121,7 +121,10 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
         <div className="lib-grid">
           {projects.map((p) => (
             <button className="lib-card" key={p.slug} onClick={() => onOpenProject(p.slug)}>
-              <div className="lc-title">{p.title}</div>
+              <div className="lc-titlerow">
+                <span className="lc-title">{p.title}</span>
+                <span className={`lc-status st-${p.status}`}>{p.status}</span>
+              </div>
               <div className="lc-meta">
                 <span>{p.idea_count} idea{p.idea_count === 1 ? "" : "s"}</span>
                 <span>{p.doc_count} doc{p.doc_count === 1 ? "" : "s"}</span>

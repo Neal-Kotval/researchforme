@@ -188,6 +188,7 @@ class ProjectInfo:
     updated_at: str
     doc_count: int
     idea_count: int
+    status: str = "exploring"
 
 
 def _doc_title(path: Path, text: str) -> str:
@@ -233,6 +234,9 @@ def _project_info(pdir: Path) -> ProjectInfo:
         meta, _ = parse_frontmatter(main.read_text(encoding="utf-8", errors="replace"))
         title = str(meta.get("title") or _doc_title(main, main.read_text(encoding="utf-8", errors="replace")))
         created = str(meta.get("created_at") or "")
+        status = str(meta.get("status") or "exploring")
+    else:
+        status = "exploring"
     mtimes = [p.stat().st_mtime for p in docs] or [pdir.stat().st_mtime]
     updated = datetime.fromtimestamp(max(mtimes), tz=timezone.utc).isoformat(timespec="seconds")
     return ProjectInfo(
@@ -242,6 +246,7 @@ def _project_info(pdir: Path) -> ProjectInfo:
         updated_at=updated,
         doc_count=len(docs),
         idea_count=sum(1 for p in docs if p.parent.name == "ideas"),
+        status=status,
     )
 
 
@@ -362,6 +367,29 @@ def write_doc(
         .isoformat(timespec="seconds"),
         size=st.st_size,
     )
+
+
+# A project's lifecycle. Deliberately small and linear — a project is a living
+# thing that moves from a hunch to a decision, and a founder should see where it is.
+PROJECT_STATUSES = ("exploring", "validating", "committed", "shelved")
+
+
+def set_project_status(slug: str, status: str) -> ProjectInfo:
+    """Update a project's status in its project.md frontmatter (task #10)."""
+    if status not in PROJECT_STATUSES:
+        raise LibraryError(
+            f"Unknown status {status!r} — one of {', '.join(PROJECT_STATUSES)}."
+        )
+    pdir = safe_path(ensure_root(), slug)
+    main = pdir / "project.md"
+    if not main.is_file():
+        raise LibraryError(f"No such project: {slug!r}")
+    text = main.read_text(encoding="utf-8", errors="replace")
+    meta, body = parse_frontmatter(text)
+    meta["status"] = status
+    meta.setdefault("title", pdir.name)
+    main.write_text(render_frontmatter(meta) + body, encoding="utf-8")
+    return _project_info(pdir)
 
 
 def read_ideas(slug: str) -> list[tuple[str, str]]:

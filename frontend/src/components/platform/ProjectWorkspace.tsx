@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
   consolidateProject,
+  getLibraryProject,
   listLibraryDocs,
   readLibraryDoc,
+  setProjectStatus,
   writeLibraryDoc,
+  PROJECT_STATUSES,
   type LibraryDoc,
 } from "../../autonomous/api";
 import Markdown from "../autonomous/Markdown";
@@ -53,6 +56,20 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
   const [busy, setBusy] = useState(false);
   const [consolidating, setConsolidating] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [projStatus, setProjStatus] = useState<string>("exploring");
+
+  useEffect(() => {
+    getLibraryProject(slug).then((p) => setProjStatus(p.status)).catch(() => {});
+  }, [slug]);
+
+  const changeStatus = async (next: string) => {
+    setProjStatus(next); // optimistic
+    try {
+      await setProjectStatus(slug, next);
+    } catch {
+      getLibraryProject(slug).then((p) => setProjStatus(p.status)).catch(() => {});
+    }
+  };
 
   // The assistant may edit documents; re-read the list and the open doc from disk.
   const reloadFromDisk = useCallback(async () => {
@@ -151,6 +168,16 @@ export default function ProjectWorkspace({ slug, onBack }: Props) {
           ← Library
         </button>
         <span className="ws-slug">{slug}/</span>
+        <select
+          className={`ws-status-select st-${projStatus}`}
+          value={projStatus}
+          onChange={(e) => void changeStatus(e.target.value)}
+          title="Where this project is in its lifecycle"
+        >
+          {PROJECT_STATUSES.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
         <div className="ws-actions">
           {status && <span className="ws-status">{status}</span>}
           {ideas.length >= 2 && !editing && (
