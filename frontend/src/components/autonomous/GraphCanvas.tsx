@@ -66,7 +66,7 @@ function GraphNode({ data }: NodeProps) {
           const ramp = viabilityRamp(viab);
           const style =
             trust === "earned"
-              ? { background: ramp, color: viab >= 55 ? "#fff" : "var(--text)" }
+              ? { background: ramp, color: viab >= 55 ? "var(--text-on-accent)" : "var(--text)" }
               : ({ "--chip-ramp": ramp } as CSSProperties);
           return (
             <span
