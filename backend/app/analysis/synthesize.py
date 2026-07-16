@@ -122,11 +122,26 @@ are worthless; name the structural reason they can't or won't serve this need.
 
 # SCORING (each 1..5, higher = more attractive)
 - demand_strength: how loud/urgent/repeated is the unmet need?
-- competitive_openness: how open is the field? (5 = wide open, 1 = crowded)
+- competitive_openness: how open is the field? (5 = wide open, 1 = crowded).
+  Count who is ALREADY THERE, funded, shipping — not just who has a repo or a
+  paper. A field with several funded companies selling this today is a 1 or 2,
+  no matter how real the pain is. Do not score this from vibes: if the steering
+  or your tools surfaced named competitors, they set this number.
 - trend_tailwind: how strong is the "why now" tailwind?
-- feasibility: how buildable by a small team in <6 months?
+- feasibility: how buildable is this BY THIS FOUNDER, given the resources and
+  time horizon their steering context states? Read the steering before scoring.
+  If they say they will raise, or that capital intensity and long timelines are
+  acceptable, then a fab-dependent or hardware-heavy idea is NOT low-feasibility
+  — score it against the plan they actually have. Only assume a solo, unfunded,
+  sub-6-month build when the steering says so or says nothing. This score is
+  "can THEY build it", never "is it software".
 - willingness_to_pay: will the segment actually pay, and roughly how much?
-Also set novelty 1..5: how non-obvious / creative is this framing?
+Also set novelty 1..5: how non-obvious / creative is this framing? Score this
+honestly — it now MOVES THE SCORE. Obvious framings are penalized: if this is
+the first idea anyone entering the space would have, it is a 1-2 and it should
+be, because everyone else had it too and the clock started without you. A 5 is a
+framing a domain expert would not have predicted but, once said, is clearly
+right.
 Be honest and use the full range. If everything is a 4, you are not thinking.
 
 # COMPANY, NOT A FEATURE (the bar every gap must clear)
@@ -138,8 +153,12 @@ STANDALONE COMPANY a founder could build a business around. For each gap, fill a
 - icp: the ideal customer profile you sell to first (specific, nameable).
 - business_model: how it makes money and the rough pricing shape (who pays, how
   much, per what).
-- expansion_path: the wedge → product → platform arc — how a sharp first wedge
-  grows into a durable company, not a one-trick feature.
+- expansion_path: how a sharp first wedge grows into a durable company, not a
+  one-trick feature. "Wedge → product → platform" is ONE arc, not the only one —
+  do not force every idea through it. A supply business scales by cost curve and
+  volume; a hardware company by design wins and manufacturing; a marketplace by
+  liquidity; a standard by adoption; a services firm by productizing what it
+  learned. Name the arc that actually fits THIS business.
 - moat: the durable advantage once you're working (proprietary data, network
   effects, distribution, switching cost, or hard tech).
 - standalone: true only if this can stand alone as a company; false if honestly
@@ -149,6 +168,27 @@ STANDALONE COMPANY a founder could build a business around. For each gap, fill a
   down, not be hidden.
 Bias hard toward company-scale ideas. If a candidate is only a feature, either
 reframe it into the genuine company around it or drop it.
+
+# VARY THE SHAPE — THE DEFAULT ANSWER IS A TRAP
+Left alone, this engine converges: across totally unrelated domains — protein
+models, surgical robotics, GPU kernels, RL post-training — it keeps proposing
+the same artifact, "an observability / eval / dev-tool layer sold to engineers".
+That is not what the world needs five times; it is one prior, firing repeatedly,
+because it is the safest-sounding shape. When you notice yourself reaching for
+it, stop and ask what ELSE this evidence supports.
+
+Before finalizing, consider whether the real opportunity here is instead:
+  - a SUPPLY business (sell the scarce input everyone is hand-making)
+  - a HARDWARE or physical product (a device, board, rack, instrument)
+  - a MARKETPLACE or exchange (match two sides nobody is matching)
+  - a STANDARD, protocol, or benchmark others must adopt
+  - a SERVICES or agency motion that productizes into software later
+  - a DATA or index business (own the measurement everyone cites)
+  - a VERTICAL application (own an industry's whole workflow, not a layer of it)
+  - buying, operating, or owning the asset rather than selling software to its owner
+An observability/dev-tool framing is allowed — but only when it genuinely beats
+these alternatives, not by default. If several gaps in one batch share a shape,
+that is a signal you stopped thinking; diversify them.
 
 # OUTPUT CONTRACT — STRICT
 Return ONLY a top-level JSON array (no prose, no markdown fences) of 0-8 gap

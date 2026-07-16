@@ -32,7 +32,7 @@ import asyncio
 import hashlib
 import heapq
 import re
-from typing import Optional
+from typing import Iterable, Optional
 
 from ..analysis.extract import extract_signals
 from ..analysis.scope import _STOPWORDS, scope_area
@@ -724,13 +724,14 @@ async def expand_segment(
     # already-listed gap, but a near-duplicate can still slip through. Drop any
     # gap whose normalized title matches one already in the tree — a belt to the
     # prompt's braces, so mode collapse can't survive a model that ignores the ask.
-    seen_norm = {_norm_title(t) for t in (avoid_titles or [])}
+    seen_tokens: list[frozenset[str]] = [
+        _title_tokens(t) for t in (avoid_titles or [])
+    ]
     children: list[Node] = []
     for gap in gaps:
-        norm = _norm_title(gap.title)
-        if norm in seen_norm:
+        if _is_duplicate(gap.title, seen_tokens):
             continue
-        seen_norm.add(norm)
+        seen_tokens.append(_title_tokens(gap.title))
         child = make_node(
             project.id,
             node,
@@ -746,15 +747,71 @@ async def expand_segment(
     return children
 
 
+_TITLE_STOP = {
+    "the", "a", "an", "for", "of", "and", "to", "layer", "platform",
+    "tool", "toolkit", "harness", "system", "your", "with",
+}
+
+# Two titles this similar are the same idea wearing a different hat. Tuned
+# against real collisions: "Reward-Function CI — adversarial pre-flight testing
+# for verifiers" vs "Verifier CI — pre-flight fuzzing for RLVR reward functions"
+# (~0.4), and "The Verifiable-Environment Factory" vs "Verifier & Environment
+# Foundry for domains beyond math and code" — both pairs scored identically and
+# ate two slots each.
+_DUP_JACCARD = 0.5
+
+
+def _title_tokens(title: str) -> frozenset[str]:
+    """Content words of a title: lowercased, destemmed, framing words dropped."""
+    t = re.sub(r"[^a-z0-9 ]+", " ", (title or "").lower())
+    out: set[str] = set()
+    for word in t.split():
+        if not word or word in _TITLE_STOP:
+            continue
+        # Crude stemming so verifier/verifiers and testing/tested collapse.
+        for suffix in ("ing", "ers", "er", "ed", "es", "s"):
+            if len(word) > 4 and word.endswith(suffix):
+                word = word[: -len(suffix)]
+                break
+        out.add(word)
+    return frozenset(out)
+
+
 def _norm_title(title: str) -> str:
     """Normalize a gap title for duplicate detection: lowercase, drop the common
     'X for Y' framing words and punctuation, so 'The Eval Layer for Motion
     Policies' and 'Eval & Observability Layer for Embodied Motion' collapse to the
     same key. Deliberately aggressive — a false merge costs one idea; a missed
     duplicate is the mode-collapse bug."""
-    t = (title or "").lower()
-    t = re.sub(r"[^a-z0-9 ]+", " ", t)
-    stop = {"the", "a", "an", "for", "of", "and", "to", "layer", "platform",
-            "tool", "toolkit", "harness", "system", "your", "with"}
-    words = sorted(w for w in t.split() if w and w not in stop)
-    return " ".join(words)
+    return " ".join(sorted(_title_tokens(title)))
+
+
+def _is_duplicate(title: str, seen: list[frozenset[str]]) -> bool:
+    """True if ``title`` is an exact OR near-duplicate of anything in ``seen``.
+
+    Exact set-equality was the old test, and it was far too strict to earn the
+    "deliberately aggressive" claim in ``_norm_title``: real duplicates differ by
+    a synonym or a plural and sail straight through. Jaccard overlap on stemmed
+    content words catches the ones that actually happen.
+    """
+    tokens = _title_tokens(title)
+    if not tokens:
+        return False
+    for other in seen:
+        if not other:
+            continue
+        if tokens == other:
+            return True
+        overlap = len(tokens & other) / len(tokens | other)
+        if overlap >= _DUP_JACCARD:
+            return True
+    return False
+
+
+def is_duplicate_title(title: str, existing: Iterable[str]) -> bool:
+    """Public form of :func:`_is_duplicate` taking raw titles.
+
+    For callers outside this module (the service's post-await race check) that
+    hold titles rather than pre-tokenized sets.
+    """
+    return _is_duplicate(title, [_title_tokens(t) for t in existing])

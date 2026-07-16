@@ -49,6 +49,7 @@ from .engine import (
     Frontier,
     expand_segment,
     expand_structural,
+    is_duplicate_title,
     kind_is_structural,
     node_priority,
     root_node,
@@ -739,6 +740,24 @@ class ExplorerService:
                     node, project, self.client, project.synth_model,
                     avoid_titles=avoid_titles,
                 )
+                # Re-check against the store AFTER the await. Sibling segments
+                # are expanded concurrently via asyncio.gather, and every one of
+                # them read `avoid_titles` at the same instant above — before any
+                # sibling had written a NODE_ADDED. So the pre-await snapshot
+                # cannot see the batch's own output, and two branches reliably
+                # mint the same idea ("The Verifiable-Environment Factory" and
+                # "Verifier & Environment Foundry", both scored 91, both starred).
+                # By now the siblings that finished first ARE in the store; drop
+                # anything they already claimed. Cheap: one store read, versus an
+                # Opus pressure test per duplicate.
+                claimed = set(self._proposed_gap_titles(project.id)) - set(avoid_titles)
+                if children and claimed:
+                    children = [
+                        c
+                        for c in children
+                        if c.kind is not NodeKind.GAP_CANDIDATE
+                        or not is_duplicate_title(c.title, claimed)
+                    ]
             else:  # DOMAIN / SUBAREA — structural decomposition.
                 # Thread the store handle so the S3 graveyard block (rejected
                 # spaces across every project) reaches the decompose prompt.

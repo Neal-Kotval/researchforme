@@ -61,7 +61,16 @@ LENSES: list[dict] = [
             "it is a TRAP, not an opportunity: a regulatory wall, no real "
             "willingness to pay, a channel that can't be reached economically, or "
             "a structural reason nobody can serve it. If you can build a credible "
-            "case that the space is empty FOR A REASON, verdict=kills."
+            "case that the space is empty FOR A REASON, verdict=kills.\n"
+            "CRITICAL — 'NOT EMPTY' IS NOT A SURVIVAL. This lens tests the gap's "
+            "white-space premise. If you discover the space is not empty at all "
+            "but CROWDED — funded companies already shipping this — then the "
+            "premise is false and the gap is worse off, not better. Do NOT return "
+            "survives in that case: return weakens, or kills if well-funded "
+            "players have already shipped substantially what this proposes to a "
+            "buyer who can already buy it. Reserve survives for a space that is "
+            "genuinely open AND not a trap. Never award a survival on a finding "
+            "your own argument describes as bad news for the gap."
         ),
     },
     {
@@ -665,8 +674,19 @@ _SURVIVE_BONUS = 6.0
 _WEAKEN_PENALTY = 9.0
 _KILL_PENALTY = 26.0
 _KILL_CAP = 40          # a gap with any kill verdict cannot score above this
-_CORROBORATION_PER = 2.0
-_CORROBORATION_MAX = 10.0
+
+# Obviousness penalty / originality bonus, applied from gap.novelty (1..5).
+# `novelty` was collected, shown to the red team, used as a moat proxy in the
+# LLM-free fallback — and left OUT of SCORE_KEYS, so it moved the score by
+# exactly nothing. The engine had no incentive to be creative and reliably
+# converged on the same safe shape (an observability/dev-tool layer) across
+# unrelated domains, because obvious-and-demanded scores identically to
+# original-and-demanded.
+#
+# This is not "reward weirdness". An obvious idea is genuinely worse on the
+# merits: if it is the first thing anyone would think of, everyone has, and the
+# competitive clock started without you. Novelty 3 is neutral.
+_NOVELTY_DELTA: dict[int, float] = {1: -8.0, 2: -4.0, 3: 0.0, 4: 3.0, 5: 6.0}
 
 
 def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
@@ -687,6 +707,13 @@ def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
     the red team actually earned pays. This is the difference between "we tried
     to kill it and failed" and "nobody looked", which the engine previously paid
     identically: four unchecked lenses used to hand a gap +24 for being ignored.
+
+    Corroboration does NOT add to viability. It used to add +2 per lens-fetched
+    evidence item (capped +10) with no regard for which way the evidence cut —
+    so a red team that documented seven funded competitors handed the gap it was
+    attacking the full +10. Evidence volume is a statement about how well-TESTED
+    a gap is, not how GOOD it is, so it belongs in confidence (where it already
+    lives) and nowhere else.
     """
     # Base: default-weighted composite (1..5) stretched to 0..100.
     composite = composite_score(gap.scores, Weights())  # 1..5
@@ -697,13 +724,14 @@ def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
     viability -= _WEAKEN_PENALTY * weakened
     viability -= _KILL_PENALTY * killed
 
-    corroboration = sum(len(lv.evidence) for lv in test.lenses)
-    viability += min(_CORROBORATION_MAX, _CORROBORATION_PER * corroboration)
+    # Obviousness is a real defect; originality is a real edge.
+    viability += _NOVELTY_DELTA.get(int(gap.novelty), 0.0)
 
     if killed:
         viability = min(viability, float(_KILL_CAP))
 
     viability_int = int(max(0, min(100, round(viability))))
+    corroboration = sum(len(lv.evidence) for lv in test.lenses)
     return viability_int, _confidence_for(gap, test, corroboration)
 
 
