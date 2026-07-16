@@ -9,8 +9,12 @@ Backend resolution order (see Settings.resolve_llm_backend):
   3. 'cli'       -> `claude -p` headless. Single-pass, no custom tools.
   4. 'fixture'   -> canned JSON, so the whole loop runs with zero deps.
 
-Every path degrades to the next on ImportError / auth failure / timeout. The
-resolved backend is reported to the UI via GapReport.llm_mode.
+Every path degrades to the next on ImportError / auth failure / timeout, with
+one exception: a real run never degrades INTO 'fixture'. Fixtures are reachable
+only by resolving to them explicitly (LLM_BACKEND=fixture); a live run that
+exhausts its real backends raises. See _fallback_order.
+
+The resolved backend is reported to the UI via GapReport.llm_mode.
 """
 
 from __future__ import annotations
@@ -164,6 +168,14 @@ class ClaudeClient:
         order = chain[idx:]
         if not self.settings.anthropic_api_key:
             order = [b for b in order if b != "api"]
+        # Never cascade INTO fixtures on a real run. _via_fixture ignores the
+        # prompt and returns canned freelancer-finance gaps that parse as valid
+        # output for any call — a rate-limited decompose would silently mint
+        # fintech children in, e.g., an MoE-training tree. Only a deliberate
+        # LLM_BACKEND=fixture run (which starts here) may serve them; a live run
+        # that exhausts its real backends raises instead.
+        if self.backend != "fixture":
+            order = [b for b in order if b != "fixture"]
         return order
 
     # ------------------------------------------------------------------ #
