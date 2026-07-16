@@ -389,13 +389,21 @@ def get_starred() -> list[PortfolioItem]:
 def rerun_project(pid: str, req: RerunRequest | None = None) -> Project:
     """Clone a project into a fresh linked run (C3).
 
-    Same domain, sub-segments, steering, intake, budget, and model policy;
+    Same domain, sub-segments, intake, budget, and model policy;
     ``parent_project_id`` records the lineage for the diff view. Starts only
     when the request says ``autostart: true`` (default false — a re-run never
     spends tokens unbidden).
+
+    Pass ``steering`` to amend the clone's steering — the supported way to
+    correct a bad brief/constraint/avoid, since steering is write-once on a
+    project. Omit it to clone the parent's steering verbatim.
     """
     try:
-        return get_service().rerun(pid, autostart=bool(req and req.autostart))
+        return get_service().rerun(
+            pid,
+            autostart=bool(req and req.autostart),
+            steering=(req.steering if req else None),
+        )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Project not found.") from exc
     except HTTPException:

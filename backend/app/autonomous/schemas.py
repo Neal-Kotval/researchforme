@@ -465,9 +465,18 @@ class RerunRequest(BaseModel):
     The new project clones the parent's domain, sub-segments, steering, intake,
     budget, and model policy, and records ``parent_project_id``. ``autostart``
     defaults to False — a re-run never spends tokens until asked to.
+
+    ``steering`` amends the clone. Steering is otherwise write-once: a project
+    has no PATCH, so a wrong constraint could only be escaped by abandoning the
+    project and hand-rebuilding it. That is not hypothetical — a run carrying an
+    invented "software-only" constraint silently deleted every hardware idea
+    from its search for hours, and there was no way to correct it in place. A
+    re-run with amended steering is the fix: same domain and lineage, different
+    fence. None (the default) clones the parent's steering verbatim.
     """
 
     autostart: bool = False
+    steering: Optional[SteeringContext] = None
 
 
 class DiffEntry(BaseModel):

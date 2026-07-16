@@ -247,16 +247,27 @@ class ExplorerService:
             self.start(project_id)
         return project
 
-    def rerun(self, project_id: str, autostart: bool = False) -> Project:
+    def rerun(
+        self,
+        project_id: str,
+        autostart: bool = False,
+        steering: Optional[SteeringContext] = None,
+    ) -> Project:
         """Clone a project into a fresh run linked back to its parent (C3).
 
-        The new project copies the parent's domain, sub-segments, steering,
-        intake, budget, and per-stage model policy, records
-        ``parent_project_id``, and starts only when ``autostart`` asks it to
-        (default False — a re-run never spends tokens unbidden). Raises
-        ``KeyError`` for an unknown parent.
+        The new project copies the parent's domain, sub-segments, intake,
+        budget, and per-stage model policy, records ``parent_project_id``, and
+        starts only when ``autostart`` asks it to (default False — a re-run
+        never spends tokens unbidden). Raises ``KeyError`` for an unknown
+        parent.
+
+        ``steering`` replaces the parent's steering on the clone; None clones it
+        verbatim. This is the only way to correct a bad fence — a project's
+        steering cannot be edited in place, so a wrong constraint otherwise
+        follows every re-run forever.
         """
         parent = self._get_or_raise(project_id)
+        amended = steering is not None
         req = CreateProjectRequest(
             domain=parent.domain,
             sub_segments=list(parent.sub_segments),
@@ -265,11 +276,18 @@ class ExplorerService:
             synth_model=parent.synth_model,
             pressure_model=parent.pressure_model,
             intake=dict(parent.intake),
-            steering=parent.steering.model_copy(deep=True),
+            steering=(
+                steering.model_copy(deep=True)
+                if amended
+                else parent.steering.model_copy(deep=True)
+            ),
             autostart=autostart,
         )
         project = self.create(req, parent_project_id=parent.id)
-        self._log(project.id, f"Re-run of project {parent.id} ('{parent.domain}').")
+        note = " with amended steering" if amended else ""
+        self._log(
+            project.id, f"Re-run of project {parent.id} ('{parent.domain}'){note}."
+        )
         return project
 
     def start(self, project_id: str) -> None:
