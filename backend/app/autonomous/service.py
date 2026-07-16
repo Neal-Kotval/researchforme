@@ -36,6 +36,7 @@ scored, occasionally-starred gap nodes.
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 import time
 import uuid
@@ -77,6 +78,8 @@ from .schemas import (
     Triage,
 )
 from .store import TreeStore, get_store
+
+logger = logging.getLogger(__name__)
 
 
 def _now() -> datetime:
@@ -200,6 +203,11 @@ class ExplorerService:
         self.client: ClaudeClient = get_client()
         self._runtimes: dict[str, _Runtime] = {}
         self._lock = threading.RLock()
+        # Give the governor durable memory. This is the only place that holds
+        # both, and without it the governor's 24h ledger dies with the process —
+        # so the shared daily cap silently resets to zero on every restart and
+        # can never bind.
+        self.governor.attach_store(store)
 
     # ================================================================== #
     # Lifecycle: create / start                                          #
@@ -300,6 +308,15 @@ class ExplorerService:
         from a sync/threadpool endpoint or a resume-on-boot hook): rather than
         crash the server with ``RuntimeError: no running event loop``, it marks
         the runtime pending so a later loop-bound caller can pick it up.
+
+        CALLERS MUST BE ASYNC. ``pending_start`` is a tombstone, not a queue —
+        nothing sweeps it, so a deferred start never happens on its own; it waits
+        for the user to hit resume. This was silent for a long time: the sync
+        ``rerun_project`` endpoint made ``autostart: true`` a no-op that still
+        returned status "running", and three re-runs sat at 1 node / 0 tokens for
+        18 minutes looking perfectly healthy. It now logs loudly, because a
+        worker that never starts is indistinguishable from one that is merely
+        slow — the worst kind of failure this codebase has.
         """
         rt = self._runtime(project_id)
         if rt.task is not None and not rt.task.done():
@@ -313,6 +330,17 @@ class ExplorerService:
             # No running event loop in this context — defer instead of crashing.
             rt.task = None
             rt.pending_start = True
+            logger.error(
+                "start(%s) called with no running event loop — the worker did NOT "
+                "start and nothing will retry it. The caller is a sync context "
+                "(FastAPI runs `def` endpoints in a threadpool); make it `async "
+                "def`. The project will sit at 0 tokens until resumed.",
+                project_id,
+            )
+            self._log(
+                project_id,
+                "Worker could not start (no event loop) — resume to run it.",
+            )
 
     def reconcile_on_boot(self) -> list[Project]:
         """Park projects persisted as RUNNING whose worker died with the process.

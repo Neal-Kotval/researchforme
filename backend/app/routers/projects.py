@@ -386,13 +386,22 @@ def get_starred() -> list[PortfolioItem]:
 
 
 @router.post("/projects/{pid}/rerun", response_model=Project)
-def rerun_project(pid: str, req: RerunRequest | None = None) -> Project:
+async def rerun_project(pid: str, req: RerunRequest | None = None) -> Project:
     """Clone a project into a fresh linked run (C3).
 
     Same domain, sub-segments, intake, budget, and model policy;
     ``parent_project_id`` records the lineage for the diff view. Starts only
     when the request says ``autostart: true`` (default false — a re-run never
     spends tokens unbidden).
+
+    MUST be ``async``. FastAPI runs a sync ``def`` endpoint in a threadpool with
+    no running event loop, so ``service.start`` -> ``asyncio.create_task`` raised
+    RuntimeError, got swallowed into ``rt.pending_start = True`` — a flag NOTHING
+    in the codebase reads — and the worker never spawned. ``autostart: true``
+    returned 200 with status "running" and then did nothing at all, forever:
+    three re-runs sat at 1 node and 0 tokens for 18 minutes looking healthy.
+    ``create_project`` and ``control_project`` are async and were unaffected,
+    which is why resume worked and rerun did not.
 
     Pass ``steering`` to amend the clone's steering — the supported way to
     correct a bad brief/constraint/avoid, since steering is write-once on a

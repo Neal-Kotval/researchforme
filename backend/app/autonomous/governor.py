@@ -122,6 +122,10 @@ class UsageGovernor:
         self._global_daily_cap: int | None = None
         self._usage_limit_pct: float = 1.0
 
+        # Durable ledger, set by attach_store(). None = in-memory only, which is
+        # the pre-restart-amnesia behaviour and fine for tests.
+        self._store = None
+
         self._mode = ExplorerMode.PAUSED
 
     # ----------------------------------------------------------------- #
@@ -160,6 +164,29 @@ class UsageGovernor:
     # ----------------------------------------------------------------- #
     # Metering & rate-limit feedback                                    #
     # ----------------------------------------------------------------- #
+    def attach_store(self, store) -> None:  # noqa: ANN001 - avoid an import cycle
+        """Give the governor durable memory and rehydrate its 24h window.
+
+        Without this the ledger is in-memory only, so every process restart
+        silently resets it: after a full day of work the governor reported 8,642
+        tokens against 3,051,952 actually spent. A rolling-24h cap that forgets
+        on restart can never bind, and ``headroom`` therefore always answered
+        "ample" — which silently pinned test rigor and made the usage bar
+        fiction. Idempotent; safe to call on every boot.
+        """
+        self._store = store
+        now = time.time()
+        try:
+            buckets = store.usage_buckets(now - _DAILY_WINDOW)
+        except Exception:  # noqa: BLE001 - a broken ledger must not stop boot
+            return
+        with self._lock:
+            self._daily = deque([list(b) for b in buckets])
+            restored = int(sum(b[1] for b in self._daily))
+            # spent_total is "lifetime for reporting"; the durable 24h window is
+            # the honest floor for it after a restart.
+            self._spent_total = max(self._spent_total, restored)
+
     def record_usage(self, tokens: int) -> None:
         """Meter ``tokens`` of spend (called after every LLM call)."""
         if tokens <= 0:
@@ -174,6 +201,24 @@ class UsageGovernor:
             # consecutive-limit memory so we don't back off forever.
             if now >= self._backoff_until:
                 self._consecutive_limits = 0
+            bucket = now - (now % _DAILY_BUCKET)
+        # Persist OUTSIDE the lock: SQLite has its own, and holding both invites
+        # a deadlock on a path that runs after every single LLM call.
+        #
+        # Guarded even though TreeStore.add_usage swallows its own errors: this
+        # runs after EVERY LLM call, and metering must never be able to raise
+        # into a live expansion. Defence in depth — the store handle is injected,
+        # so "it never raises" is a promise about today's implementation, not a
+        # property of this call site. Losing a token from the ledger is cheap;
+        # losing a node to a metering exception is not.
+        store = getattr(self, "_store", None)
+        if store is None:
+            return
+        try:
+            store.add_usage(bucket, float(tokens))
+            store.prune_usage(now - _DAILY_WINDOW - _DAILY_BUCKET)
+        except Exception:  # noqa: BLE001 - metering must never break a run
+            pass
 
     def set_policy(
         self, *, daily_cap_tokens: int | None = None, limit_pct: float | None = None

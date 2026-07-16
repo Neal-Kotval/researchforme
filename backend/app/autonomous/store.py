@@ -88,6 +88,20 @@ class TreeStore:
                        PRIMARY KEY (project_id, seq)
                    )"""
             )
+            # Token spend, in the governor's hourly buckets. The governor's
+            # ledger was in-memory ONLY, so every process restart silently reset
+            # it to zero: after a day of real work it reported 8,642 tokens
+            # against 3,051,952 actually spent. That is not just a wrong number
+            # in the UI — the rolling-24h cap resets before it can ever bind, and
+            # headroom() therefore always answers "ample", which silently pins
+            # test rigor. A safety valve you can restart away is not a safety
+            # valve. One row per hour bucket keeps this tiny (<=25 live rows).
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS ap_usage (
+                       bucket_ts REAL PRIMARY KEY,
+                       tokens    REAL NOT NULL
+                   )"""
+            )
 
     # ------------------------------------------------------------------ #
     # Projects                                                           #
@@ -272,6 +286,47 @@ class TreeStore:
                 continue
         out.sort(key=lambda pair: pair[0].created_at)
         return out
+
+    # ------------------------------------------------------------------ #
+    # Usage ledger — the governor's memory, made to survive a restart      #
+    # ------------------------------------------------------------------ #
+    def add_usage(self, bucket_ts: float, tokens: float) -> None:
+        """Fold ``tokens`` into the hour bucket at ``bucket_ts``. Never raises.
+
+        Metering must never be able to break a run, so every failure here is
+        swallowed — an unrecorded token is a worse-informed governor, but a
+        raised exception mid-expansion is a lost node.
+        """
+        try:
+            with self._lock, self._conn() as conn:
+                conn.execute(
+                    """INSERT INTO ap_usage (bucket_ts, tokens) VALUES (?, ?)
+                       ON CONFLICT(bucket_ts) DO UPDATE SET tokens = tokens + ?""",
+                    (bucket_ts, float(tokens), float(tokens)),
+                )
+        except Exception:  # noqa: BLE001 - metering must not break a run
+            pass
+
+    def usage_buckets(self, since_ts: float) -> list[tuple[float, float]]:
+        """(bucket_ts, tokens) at or after ``since_ts``, oldest first. Never raises."""
+        try:
+            with self._lock, self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT bucket_ts, tokens FROM ap_usage WHERE bucket_ts >= ? "
+                    "ORDER BY bucket_ts ASC",
+                    (since_ts,),
+                ).fetchall()
+            return [(float(r[0]), float(r[1])) for r in rows]
+        except Exception:  # noqa: BLE001
+            return []
+
+    def prune_usage(self, before_ts: float) -> None:
+        """Drop buckets older than ``before_ts`` so the table stays ~25 rows."""
+        try:
+            with self._lock, self._conn() as conn:
+                conn.execute("DELETE FROM ap_usage WHERE bucket_ts < ?", (before_ts,))
+        except Exception:  # noqa: BLE001
+            pass
 
     # ------------------------------------------------------------------ #
     # Preferences (H3 — single ap_preferences row)                        #
