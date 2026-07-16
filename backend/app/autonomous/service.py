@@ -58,6 +58,7 @@ from .fit import score_founder_fit
 from .governor import UsageGovernor, get_governor
 from .intake import steering_context_block
 from .pressure import adversarial_self_critique, pressure_test, score_viability
+from .semdedup import semantic_duplicate_of
 from .schemas import (
     Budget,
     CreateProjectRequest,
@@ -758,6 +759,13 @@ class ExplorerService:
                         if c.kind is not NodeKind.GAP_CANDIDATE
                         or not is_duplicate_title(c.title, claimed)
                     ]
+                # Then the synonym case, which no lexical rule can reach:
+                # "Moody's for RL Environments" / "The Underwriters Lab for
+                # Reward Models" / "Consumer Reports for RL Environments" are
+                # one idea with ~zero token overlap. One cheap-model call per
+                # candidate, here — before the Opus pressure test it would
+                # otherwise pay for five times over. Fails open.
+                children = await self._drop_semantic_duplicates(project, children)
             else:  # DOMAIN / SUBAREA — structural decomposition.
                 # Thread the store handle so the S3 graveyard block (rejected
                 # spaces across every project) reaches the decompose prompt.
@@ -1145,6 +1153,80 @@ class ExplorerService:
                 seen.add(key)
                 titles.append(t)
         return titles
+
+    def _proposed_gap_ideas(self, project_id: str) -> list[tuple[str, str]]:
+        """(title, thesis) for every gap already proposed — the semantic-dedup pool.
+
+        Titles alone are not enough to judge sameness: "Moody's for X" and "The
+        Underwriters Lab for X" share no words, and only their theses reveal
+        they are one company. Newest first, matching _proposed_gap_titles.
+        """
+        try:
+            nodes = self.store.get_nodes(project_id)
+        except Exception:  # noqa: BLE001 - a read failure must not stall expansion.
+            return []
+        gaps = [n for n in nodes if n.kind in (NodeKind.GAP, NodeKind.GAP_CANDIDATE)]
+        gaps.sort(key=lambda n: n.created_at, reverse=True)
+        out: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for n in gaps:
+            title = (n.gap.title if n.gap else n.title or "").strip()
+            key = title.lower()
+            if not title or key in seen:
+                continue
+            seen.add(key)
+            out.append((title, (n.gap.thesis if n.gap else "") or ""))
+        return out
+
+    async def _drop_semantic_duplicates(
+        self, project: Project, children: list[Node]
+    ) -> list[Node]:
+        """Drop candidates that restate an idea already in the tree.
+
+        Runs BEFORE the pressure test, on the cheap decompose model — the whole
+        point is to not pay Opus five times to red-team five names for one
+        company. Fails open on every error: keeping a duplicate costs a scroll,
+        wrongly merging destroys an idea the founder never learns existed.
+        """
+        candidates = [c for c in children if c.kind is NodeKind.GAP_CANDIDATE]
+        if not candidates:
+            return children
+        # A fixture backend cannot judge sameness — it returns the same canned
+        # array for any prompt — so the call is pure cost. Checked ONCE here
+        # rather than per candidate: this runs on every segment expansion, and a
+        # per-candidate probe turned a 41s test suite into 165s and timed the
+        # worker tests out.
+        if getattr(self.client, "backend", "") == "fixture":
+            return children
+
+        pool = self._proposed_gap_ideas(project.id)
+        dropped: set[str] = set()
+        for child in candidates:
+            gap = child.gap
+            title = (gap.title if gap else child.title) or ""
+            thesis = (gap.thesis if gap else "") or ""
+            if not pool:
+                pool.append((title, thesis))
+                continue
+            try:
+                idx = await semantic_duplicate_of(
+                    title, thesis, pool, self.client, project.decompose_model
+                )
+            except Exception:  # noqa: BLE001 - never break an expansion on dedup
+                idx = None
+            if idx is None:
+                # Not a duplicate — it joins the pool so this batch's own
+                # siblings are compared against it too.
+                pool.append((title, thesis))
+                continue
+            dropped.add(child.id)
+            self._log(
+                project.id,
+                f"Semantic duplicate dropped: '{title}' restates '{pool[idx][0]}'.",
+            )
+        if not dropped:
+            return children
+        return [c for c in children if c.id not in dropped]
 
     def _save_node(self, node: Node, event_type: EventType) -> None:
         """Persist a node and emit the matching ``node_added`` / ``node_updated``."""
