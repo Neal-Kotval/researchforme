@@ -302,9 +302,20 @@ export default function NewExplorationDialog({ initialDepth, prefill, onClose, o
                 </div>
                 <div className="nd-col">
                   <label className="field-label">Hard constraints <span className="nd-opt">(one per line)</span></label>
+                  {/* Placeholders teach. These used to read "solo-founder
+                      feasible only / no heavy capital", which trained everyone
+                      — including assistants driving the MCP tool — to fence the
+                      search into small software before the search began. Every
+                      constraint here silently deletes a region of the map and
+                      leaves no trace that it did, so the examples must be
+                      things a founder would genuinely refuse, not defaults. */}
                   <textarea className="nd-textarea sm" rows={3} value={constraints}
-                    placeholder={"solo-founder feasible only\nno heavy capital"}
+                    placeholder={"must reach revenue without FDA clearance\nI won't do enterprise sales"}
                     onChange={(e) => setConstraints(e.target.value)} />
+                  <div className="nd-hint">
+                    Only real refusals. Each one deletes part of the search — “no
+                    hardware” or “solo-only” will quietly remove whole answers.
+                  </div>
                 </div>
               </div>
               <div className="nd-row">
@@ -316,8 +327,13 @@ export default function NewExplorationDialog({ initialDepth, prefill, onClose, o
                 </div>
                 <div className="nd-col">
                   <label className="field-label">Time horizon</label>
+                  {/* This is the one field that sets ambition, and it feeds
+                      steering_context_block's TIME HORIZON line into every
+                      prompt. It used to suggest "nights & weekends for now" —
+                      the smallest possible answer, offered as the default
+                      shape of a founder's life. */}
                   <input className="nd-q-free" value={timeHorizon}
-                    placeholder="e.g. nights & weekends for now"
+                    placeholder="e.g. 10 years, will raise"
                     onChange={(e) => setTimeHorizon(e.target.value)} />
                 </div>
               </div>

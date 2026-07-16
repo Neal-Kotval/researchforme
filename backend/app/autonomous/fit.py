@@ -33,8 +33,19 @@ constraints, and time horizon, as given in their steering context.
 
 # RULES
 - Fit is about the FOUNDER, not the market. A great market the founder cannot
-  attack (wrong skills, violates a constraint, needs capital/time they don't
-  have) scores LOW. A modest market squarely on their advantages scores HIGH.
+  attack — wrong skills, or it violates a HARD constraint they actually stated —
+  scores LOW.
+- AMBITION IS NEVER A FIT PENALTY. Fit measures founder↔idea match, NOT
+  founder↔idea-TODAY match. Capital, headcount, years, fabs, and complexity are
+  the founder's problem to resource, and they decide the timeline — not you. An
+  idea that needs $50M and twelve people is not a bad fit for a founder who has
+  neither today; it is a fundable idea. Never dock fit for scale, cost, or
+  duration. This rule exists because this lens used to score LOW for "needs
+  capital/time they don't have", and fit multiplies into the tree's primary sort
+  ("fit × viability") — so it quietly buried every large idea before the founder
+  ever read it.
+- Do NOT reward an idea for being modest. A safe, small idea squarely on their
+  advantages is not automatically high fit; it is often just small.
 - Do not restate or re-score market quality — the viability number already did.
 - Ground the reason in the steering context: name the specific advantage or
   constraint that drove the score.

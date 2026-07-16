@@ -141,7 +141,7 @@ export default function HomeView({
         <span className="qe-icon" aria-hidden>▸</span>
         <input
           className="qe-input"
-          placeholder="Explore a market… (e.g. tooling for solo accountants) — Enter to launch"
+          placeholder="Explore a market… (e.g. domestic semiconductor packaging) — Enter to launch"
           value={quickDomain}
           onChange={(e) => setQuickDomain(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") void quickExplore(); }}

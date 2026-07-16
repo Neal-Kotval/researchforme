@@ -80,7 +80,7 @@ export function gapToMarkdown(node: TreeNode, project?: Project | null): string 
   if (scoreBits.length) {
     L.push(scoreBits.join(" · "));
     L.push(
-      "> Viability = is this a real, enterable market gap. Founder fit = is it a " +
+      "> Viability = is this a real, winnable market gap. Founder fit = is it a " +
         "good fit for *me* specifically. They are independent: a great gap can be a " +
         "bad fit, and vice versa.",
     );
@@ -207,9 +207,19 @@ export function gapToMarkdown(node: TreeNode, project?: Project | null): string 
     "Please pressure-test this with me. Specifically:",
   );
   L.push("1. Is the *why now* real, or would this have been equally true three years ago?");
-  L.push("2. Is the wedge actually narrow enough to ship solo — or is it a platform in disguise?");
+  // NOT "is it narrow enough to ship solo — or a platform in disguise?". That
+  // question assumed a solo, unfunded builder and treated platform scale as a
+  // failure mode, so every reader was primed to argue the idea DOWN in scope.
+  // Scale is the goal, not the smell. The real question — the one that caught a
+  // rival already embedded in NVIDIA's reference design while this gap scored
+  // 83 — is whether the ENTRY POINT is takeable, not whether it is small.
+  L.push(
+    "2. Is the entry point defensible — or is it the commoditized end of this " +
+      "market, the part a platform vendor gives away free? If the wedge is weak " +
+      "but the space is real, say where you'd start instead.",
+  );
   L.push("3. What would you need to see to believe the demand is real? Name a concrete check I can run this week.");
-  L.push("4. Who is already doing this, that the analysis above missed?");
+  L.push("4. Who is already doing this, that the analysis above missed? Funded companies, design wins, and vendor partnerships — not just open-source projects.");
 
   return L.join("\n");
 }

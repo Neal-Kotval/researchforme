@@ -9,7 +9,7 @@ Examples::
 
     gapfinder health
     gapfinder analyze "personal finance for freelancers"
-    gapfinder scout --brief "solo dev, B2B, hates hardware"
+    gapfinder scout --brief "B2B infra, can raise, 5-year horizon"
     gapfinder create "ai tooling for accountants" --seg bookkeeping --seg audit
     gapfinder projects
     gapfinder tree <pid>            # indented live tree with badges

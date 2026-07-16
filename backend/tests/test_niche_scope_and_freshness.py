@@ -40,11 +40,41 @@ def test_out_of_vocab_area_keywords_exclude_generic_smb_tokens():
     )
 
 
-def test_default_segments_still_frame_the_audience():
-    # The SMB defaults remain as sub_segment FRAMING even though they no longer
-    # feed the search keywords.
+def test_fallback_segments_frame_the_audience_without_naming_a_size():
+    """The fallback frames an audience but must not decide the scale.
+
+    This used to assert the SMB triple ("freelancers, small businesses, growing
+    teams") for any unrecognized area, with the rationale "where most
+    under-served software gaps live". That is a deterministic, LLM-free,
+    pre-synthesis decision about who the buyer is — so "semiconductor packaging"
+    and "launch vehicles" both silently scoped to freelancers, and every idea
+    beneath them was framed for a buyer who cannot fund them. A fallback fires
+    precisely when we DON'T know the domain, which is exactly when it must not
+    guess a size.
+    """
     scope = scope_area(_NICHE_AREA, [])
-    assert scope.sub_segments == ["freelancers", "small businesses", "growing teams"]
+    assert scope.sub_segments == [
+        "the primary buyer in this space",
+        "adjacent buyers",
+        "upstream suppliers",
+    ]
+    assert not (
+        {s.lower() for s in scope.sub_segments} & _GENERIC_SMB_TOKENS
+    ), "the size-neutral fallback must not name small buyers"
+
+
+def test_frontier_area_scopes_to_frontier_buyers_not_indie_devs():
+    """"ai infrastructure" hits both frontier and dev cues — frontier must win.
+
+    Scoping it to "indie developers" caps every downstream idea at hobby scale
+    before synthesis says a word: you cannot propose a fab to an indie dev.
+    """
+    scope = scope_area("ai training infrastructure and silicon", [])
+    assert scope.sub_segments == [
+        "frontier labs and large model builders",
+        "infrastructure operators and hyperscalers",
+        "enterprises and governments buying capability",
+    ]
 
 
 def test_caller_supplied_segments_still_inject_keyword_tokens():

@@ -113,14 +113,43 @@ _CONSUMER_CUES = frozenset(
 _DEV_CUES = frozenset(
     {
         "developer", "developers", "engineering", "api", "apis", "devops",
-        "data", "ai", "ml", "infrastructure", "cloud", "code", "coding",
+        "data", "ml", "cloud", "code", "coding",
         "security", "cybersecurity", "analytics",
+    }
+)
+# Heavy/frontier spaces, where the buyer is an operator, a lab, or a state — not
+# an indie developer. Checked BEFORE the dev cues: "ai infrastructure" is not a
+# thing you sell to indie developers, and scoping it that way silently caps
+# every idea beneath it at hobby scale.
+_FRONTIER_CUES = frozenset(
+    {
+        "ai", "frontier", "silicon", "chip", "chips", "semiconductor", "fab",
+        "foundry", "wafer", "accelerator", "gpu", "datacenter", "data-center",
+        "interconnect", "power", "grid", "energy", "reactor", "nuclear",
+        "launch", "space", "satellite", "robotics", "biotech", "pharma",
+        "defense", "manufacturing", "industrial", "infrastructure", "training",
+        "model", "models", "compute",
     }
 )
 
 _CONSUMER_SEGMENTS = ("individual consumers", "busy families", "power users")
 _DEV_SEGMENTS = ("indie developers", "engineering teams", "technical startups")
 _SMB_SEGMENTS = ("freelancers", "small businesses", "growing teams")
+_FRONTIER_SEGMENTS = (
+    "frontier labs and large model builders",
+    "infrastructure operators and hyperscalers",
+    "enterprises and governments buying capability",
+)
+# Scale-neutral fallback. The old default was _SMB_SEGMENTS with the rationale
+# "where most under-served software gaps live" — which quietly decided, before
+# synthesis ran, that every unrecognized domain sells to freelancers and small
+# businesses. "Semiconductor packaging" and "launch vehicles" both landed there.
+# A fallback must not name a size.
+_GENERIC_SEGMENTS = (
+    "the primary buyer in this space",
+    "adjacent buyers",
+    "upstream suppliers",
+)
 
 _TOKEN_RE = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9\-']*")
 
@@ -163,15 +192,23 @@ def _significant_tokens(area: str) -> list[str]:
 
 
 def _derive_sub_segments(area: str, tokens: list[str]) -> list[str]:
-    """Pick 3 plausible audience sub-segments from area cue words (heuristic)."""
+    """Pick 3 plausible audience sub-segments from area cue words (heuristic).
+
+    Order matters. Frontier cues are checked before dev cues because "ai
+    infrastructure" hits both, and scoping it to indie developers caps every
+    downstream idea at hobby scale before synthesis has said a word. The
+    fallback is deliberately size-neutral: this function runs with no LLM and no
+    steering, so a wrong guess here is invisible and unfalsifiable — it just
+    quietly decides who the buyer is.
+    """
     token_set = set(tokens)
     if token_set & _CONSUMER_CUES:
         return list(_CONSUMER_SEGMENTS)
+    if token_set & _FRONTIER_CUES:
+        return list(_FRONTIER_SEGMENTS)
     if token_set & _DEV_CUES:
         return list(_DEV_SEGMENTS)
-    # Default to the SMB / builder audience, which is where most under-served
-    # software gaps live.
-    return list(_SMB_SEGMENTS)
+    return list(_GENERIC_SEGMENTS)
 
 
 def _expand_synonyms(tokens: list[str]) -> list[str]:

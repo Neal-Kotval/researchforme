@@ -140,17 +140,50 @@ def create_project(
     """Create an autonomous exploration project (visible immediately in the
     user's web UI) and, by default, start exploring.
 
+    STEERING MUST BE THE FOUNDER'S OWN WORDS — NEVER YOUR INFERENCE.
+    `brief`, `advantages`, `constraints`, and `avoid` are injected verbatim into
+    the decompose prompt, so every constraint silently deletes a region of the
+    search BEFORE any node exists. Nothing is minted, so nothing is logged, so
+    the graveyard has nothing to record and the UI has nothing to show. A
+    constraint the founder never stated is therefore invisible, uncorrectable
+    (a project has no PATCH), and untraceable — it can quietly run the wrong
+    search for hours.
+
+    This is not hypothetical. An assistant inferred "Software-only; will not
+    design silicon" from a founder's unrelated past projects and put it in three
+    briefs. Every hardware answer was deleted before generation, the founder
+    only noticed because the results "all looked too software", and the runs had
+    to be thrown away. If you do not KNOW a constraint, call intake_questions()
+    or ask the user — do not guess, and do not carry steering over from another
+    project. Empty steering explores more than wrong steering.
+
     Args:
         domain: The market/space to explore, e.g. "ai tooling for accountants".
         sub_segments: Optional starting sub-segments to seed the tree.
-        brief: Steering brief — the founder's context in free text.
-        advantages: The founder's unfair advantages (steering).
-        constraints: Hard constraints, e.g. "solo dev", "no hardware".
-        avoid: Spaces to steer away from.
+        brief: Steering brief — the founder's context, in THEIR words.
+        advantages: The founder's unfair advantages, as they stated them. Name
+            the SKILL, not the artifact: "strong distributed-systems
+            engineering" explores; "can build developer tools and observability
+            infrastructure" tells the engine what to output, and it will comply
+            — that phrasing collapsed four unrelated domains onto the same
+            "observability layer for X" answer.
+        constraints: HARD refusals the founder actually stated — things they
+            will not do at any price ("must reach revenue without FDA
+            clearance"). Not preferences, not your guesses about their
+            resources, and never "solo dev" or "no hardware" unless they said
+            exactly that. When unsure, omit: the venture_scale and feasibility
+            lenses judge ambition better than a fence does.
+        avoid: Spaces to steer away from — again, only if stated.
         intake: Answers to intake_questions, as {question: answer}.
-        max_nodes: Budget — node ceiling for the run (default 400).
+        max_nodes: Budget — node ceiling for the run (default 400). Note the
+            frontier only reaches ~1/3 of this (domain->subarea->segment->gap,
+            gaps are leaves); the rest needs Budget.allow_idle_deepening plus
+            the continue_deepening control.
         max_tokens: Budget — hard token ceiling for the run.
-        pace: "eco" | "balanced" | "sprint".
+        pace: "eco" | "balanced" | "sprint". This is NOT just speed — it sets
+            adversarial test rigor: eco/curbed = 3 kill-lenses, balanced = 5,
+            sprint = all 7 (adds `moat` and `why_now_fragility`). A cheap run is
+            a less-tested run, and its scores are correspondingly softer.
         autostart: False creates the project paused (spends nothing).
     """
     req: dict = {

@@ -19,7 +19,7 @@ from .routers.projects import router as projects_router
 app = FastAPI(
     title="Market Gap Finder",
     description=(
-        "Surfaces real, enterable market gaps by cross-referencing demand "
+        "Surfaces real, winnable market gaps by cross-referencing demand "
         "(Reddit + Hacker News), capability tailwinds (arXiv + GitHub), and "
         "attention trends (tech newsletters)."
     ),

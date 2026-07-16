@@ -44,27 +44,43 @@ def _prompt(domain: str, brief: str = "") -> str:
 
 
 def _static_questions(domain: str) -> list[IntakeQuestion]:
-    """A solid domain-agnostic fallback set (used when the LLM can't help)."""
+    """A solid domain-agnostic fallback set (used when the LLM can't help).
+
+    Suggestions are not neutral: whatever is offered here gets clicked, rendered
+    by :func:`intake_context_block` as "FOUNDER INTAKE (steer the exploration to
+    honour these)", and injected into decompose, synthesize, pressure, fit, AND
+    the research pack. One click on the old "No heavy capital / hardware" chip
+    fenced an entire run — and it is why generated research packs opened with
+    "Working document for a software-only, solo/small-team founder" for a
+    founder who had said no such thing.
+
+    So: no suggestion may name a size or a resource level as a default. Hard
+    constraints are REAL REFUSALS, not guesses about what the founder can
+    afford, and the horizon question must not presuppose a year.
+    """
     return [
         IntakeQuestion(
             question=f"Who are you building in {domain} for first?",
             suggestions=["Individual consumers (B2C)", "Small businesses / SMB",
-                         "Mid-market / enterprise (B2B)", "Developers / technical users"],
+                         "Mid-market / enterprise (B2B)", "Developers / technical users",
+                         "Labs, operators, or governments buying capability"],
         ),
         IntakeQuestion(
-            question="What does a win look like in the next 12 months?",
+            question="What does a win look like, and over what horizon?",
             suggestions=["A profitable lifestyle business", "Fast VC-scale growth",
+                         "A decade-long, capital-intensive bet",
                          "An acquisition target", "Validated traction, then decide"],
         ),
         IntakeQuestion(
-            question="Any hard constraints to respect?",
+            question="Any hard constraints to respect? (real refusals only)",
             suggestions=["Regulated / compliance-heavy is OK", "Avoid regulated spaces",
-                         "Solo-founder feasible only", "No heavy capital / hardware"],
+                         "Must reach revenue without regulatory clearance",
+                         "I won't do enterprise sales", "No hard constraints"],
         ),
         IntakeQuestion(
-            question="Your unfair advantage / time horizon?",
+            question="Your unfair advantage?",
             suggestions=["Deep domain expertise", "Strong distribution/audience",
-                         "Technical depth (AI/infra)", "Nights-and-weekends for now"],
+                         "Technical depth (AI/infra)", "I can raise / bring capital"],
         ),
     ]
 

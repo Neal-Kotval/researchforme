@@ -122,7 +122,7 @@ export const SCORE_HELP: Record<ScoreKey, string> = {
   trend_tailwind:
     "Whether the underlying trend pushes this forward — a bet on direction, not timing.",
   feasibility:
-    "How buildable this looks for a small team — an estimate, not an engineering plan.",
+    "How buildable this looks given the resources and horizon you stated — an estimate, not an engineering plan. Cost and duration aren't penalties.",
   willingness_to_pay:
     "Whether buyers plausibly pay for this — inferred from analogous spend, not from customers.",
 };

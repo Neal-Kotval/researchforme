@@ -74,7 +74,7 @@ describe("gapToMarkdown", () => {
     const md = gapToMarkdown(node, project);
     expect(md).toContain("Viability 33/100");
     expect(md).toContain("Founder fit 88/100");
-    expect(md).toMatch(/Viability = is this a real, enterable market gap/);
+    expect(md).toMatch(/Viability = is this a real, winnable market gap/);
   });
 
   it("marks mock evidence as not live", () => {

@@ -125,10 +125,14 @@ LENSES: list[dict] = [
             "capability, no independent business model, and is the kind of thing a "
             "user would reasonably expect bundled FREE into a product they already "
             "pay for. Attack the `company` framing directly: is the product a real "
-            "company or a thin add-on? Is the expansion_path (wedge→product→"
-            "platform) credible or hand-waved? If it can only ever be a feature of "
+            "company or a thin add-on? Is the expansion_path credible or hand-waved? "
+            "Judge the arc the gap ACTUALLY claims — platform, cost curve, design "
+            "wins, liquidity, adoption, productized services — not against a "
+            "wedge→product→platform template; a hardware or supply business scales "
+            "differently and that is not a defect. If it can only ever be a feature of "
             "someone else's product, verdict=kills; if it's a company but a thin "
-            "one with a shaky path to scale, verdict=weakens."
+            "one with a shaky path to scale, verdict=weakens. Being BIG, expensive, "
+            "or slow is not what this lens attacks — thinness is."
         ),
     },
     {

@@ -32,7 +32,7 @@ router = APIRouter(tags=["analysis"])
 
 @router.post("/analyze", response_model=GapReport)
 async def analyze(req: AnalyzeRequest) -> GapReport:
-    """Analyze an ``area`` for enterable market gaps.
+    """Analyze an ``area`` for winnable market gaps.
 
     When ``req.reweight_only`` is set we first try to re-rank a cached synthesis
     for this ``(area, sub_segments)`` — instant, no fetch, no LLM. If nothing is

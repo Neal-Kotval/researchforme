@@ -231,7 +231,15 @@ class Weights(BaseModel):
     demand_strength: float = 1.0
     competitive_openness: float = 1.0
     trend_tailwind: float = 0.8
-    feasibility: float = 0.8
+    # Feasibility advises; it must not gate. At 0.8 it was ~17.8% of the
+    # composite, so feasibility 1 vs 5 swung viability by ~17.8 points — more
+    # than a full weaken penalty (9.0) — and with star_threshold at 75 it alone
+    # decided starring. Every other key here is a fact about the MARKET; this is
+    # the only one that is a fact about the FOUNDER, and a founder fact has no
+    # business carrying that much weight in a market-viability composite. A
+    # capital-intensive idea should be scored on whether the market is real, not
+    # docked for being expensive — the founder decides what to resource.
+    feasibility: float = 0.4
     willingness_to_pay: float = 0.9
 
     def normalized(self) -> dict[str, float]:

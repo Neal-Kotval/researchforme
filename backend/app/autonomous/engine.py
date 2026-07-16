@@ -237,8 +237,12 @@ def root_node(project: Project) -> Node:
 _DECOMPOSE_SYSTEM = """\
 You are the decomposition step of an autonomous market-gap explorer. Given a node
 in an exploration tree, you break it into distinct, non-overlapping children a
-founder could specialize in — cheaply and widely. You do NOT evaluate gaps here;
-you only carve the space. Avoid the single obvious textbook split of the space:
+founder could specialize in. You do NOT evaluate gaps here;
+you only carve the space. Carve at the scale the space actually has: some
+children will be small and cheap, others will need capital, fabs, fleets, teams,
+or years — carve those too. Cost and difficulty are NOT reasons to leave a
+region off the map; the founder decides what to resource, and a child you never
+carve is an answer they never see. Avoid the single obvious textbook split of the space:
 at least 2 of your children must come from a non-obvious angle (a neglected
 workflow, an underserved buyer or geography, a contrarian read of where the
 market is going). Every child MUST remain inside the project's root domain as
@@ -247,9 +251,21 @@ but the child's actual market must still be the root domain. Be concrete.
 Output ONLY the requested JSON array — no prose, no markdown fences.\
 """
 
-# Ordinary-practitioner personas rotated deterministically per node (by hash of
-# the node id) so sibling decompositions don't all converge on the same
-# consensus carve-up. Deliberately mundane vantage points, not visionary ones.
+# Personas rotated deterministically per node (by hash of the node id) so sibling
+# decompositions don't all converge on the same consensus carve-up.
+#
+# SCALE DIVERSITY IS THE POINT. This list used to be six variations on one
+# person: a bookkeeper, a plant manager, a small-firm owner, a support lead —
+# all ground-level SMB operators, described in the comment here as "deliberately
+# mundane vantage points, not visionary ones". Since every node in every tree is
+# carved by one of these, 100% of every map was drawn by someone who thinks in
+# small-business workflows. A bookkeeper cannot carve "frontier AI lab" into
+# children that include "own the fab" or "sell the standard" — so those children
+# were never generated, and no downstream lens ever got to judge them. That is
+# suppression by omission: it leaves no trace in any score.
+#
+# The ground-level views stay (they find real, unglamorous pain). What's added
+# is people who think in capital, decades, and infrastructure.
 _DECOMPOSE_PERSONAS: list[str] = [
     "a bookkeeper who lives inside this workflow every day and knows where the "
     "spreadsheets and workarounds pile up",
@@ -263,6 +279,14 @@ _DECOMPOSE_PERSONAS: list[str] = [
     "product teams never hear about",
     "a small-firm owner who buys these tools out of their own pocket and "
     "abandons anything that takes a week to set up",
+    "an infrastructure investor who thinks in ten-year capex arcs and asks who "
+    "will own the scarce physical asset when this market matures",
+    "a national-lab or program director who buys capability rather than tools, "
+    "and can fund a decade of work if the capability matters enough",
+    "a supply-chain principal who knows which input everyone is quietly short "
+    "of, and what it would take to own its production",
+    "a frontier-lab research lead who would rather build the thing itself than "
+    "buy a layer around it, and has the capital and people to try",
 ]
 
 
