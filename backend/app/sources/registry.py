@@ -45,6 +45,23 @@ def _build_sources() -> list[Source]:
     finally the pressure-only corroboration adapters (YC outcomes, post-mortem
     corpus). Callers that care about ordering (e.g. the source-telemetry strip
     in the UI) get a stable sequence.
+
+    KNOWN BLIND SPOT — the competitive field. Every adapter here measures the
+    *market* (pain, research, repos, hiring, regulation); none measures *who is
+    already standing here*. A rival with a marketing site, a Series B, and a
+    design win inside a chip vendor's reference architecture leaves no paper, no
+    repo, and no Stack Exchange question — it leaves a press release, and
+    nothing below reads those. This is how a gap scored 83 while a competitor
+    had raised $68M and shipped inside NVIDIA's Vera Rubin DSX reference design.
+
+    A keyless adapter for it was attempted and removed: Google News RSS
+    bot-blocks (503), GDELT rate-limits to one request per 5s and rejects short
+    keywords ("AI"), and HN's index does not carry the coverage. A mock-by-
+    default competitive source is worse than none — fabricated absence of
+    competitors is the most dangerous data this engine could serve. The blind
+    spot is covered instead by the red team's `incumbent_countermove` lens,
+    which now runs at standard rigor and holds live web_search. Closing it
+    deterministically needs a keyed source (NewsAPI / Brave / Serper).
     """
     return [
         RedditSource(),

@@ -192,6 +192,14 @@ class Gap(BaseModel):
 
     title: str
     thesis: str                      # one-line
+    # Plain-language explainer for a smart reader who is NOT in this field: what
+    # is broken today, who it hurts, and what this would actually do about it.
+    # Every other field is compressed jargon aimed at someone already fluent in
+    # the domain — this is the one place the idea has to stand on its own. A gap
+    # nobody can explain to an outsider is a gap nobody can sell, hire for, or
+    # raise on. Empty string = the model gave nothing; the UI falls back to the
+    # thesis rather than inventing one.
+    easy_explain: str = ""
     scores: Scores
     company: Optional[CompanyConcept] = None  # company-shaped framing (optional)
     evidence: list[Evidence] = Field(default_factory=list)

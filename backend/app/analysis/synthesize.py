@@ -159,6 +159,7 @@ MUST have exactly this shape:
 {
   "title": "short punchy name for the gap",
   "thesis": "one sentence: the bet in a breath",
+  "easy_explain": "3-5 sentences, plain language, for a smart person who does NOT work in this field. Structure it as: (1) what actually happens today and why it hurts — a concrete scene, not an abstraction; (2) who specifically feels that pain and what they do about it now; (3) what this product would do differently, described as if demoing it; (4) why that is worth money to them. NO jargon, NO acronyms without expansion, NO buzzwords ('leverage', 'orchestrate', 'seamless', 'platform'). If a term is unavoidable, define it inline in five words. Write like you are explaining it to a sharp friend over coffee who will ask 'wait, why doesn't X already do that?' — and answer that question. This is not a summary of the thesis; it is the idea made legible.",
   "company": {
     "product": "what you actually build (2-3 concrete sentences)",
     "icp": "the specific first customer you sell to",

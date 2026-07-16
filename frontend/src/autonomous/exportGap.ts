@@ -100,6 +100,15 @@ export function gapToMarkdown(node: TreeNode, project?: Project | null): string 
   L.push(g.thesis || "_(none stated)_");
   L.push("");
 
+  /* Plain-language first: the brief gets pasted into docs and shown to people
+     who do not live in this domain. Older gaps have no easy_explain — omit the
+     section rather than printing an empty heading. */
+  if (g.easy_explain?.trim()) {
+    L.push("## In plain language");
+    L.push(g.easy_explain.trim());
+    L.push("");
+  }
+
   if (g.why_now?.trim()) {
     L.push("## Why now");
     L.push(g.why_now.trim());

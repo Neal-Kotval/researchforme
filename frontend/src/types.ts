@@ -69,6 +69,9 @@ export interface CompanyConcept {
 export interface Gap {
   title: string;
   thesis: string;
+  /** Plain-language explainer for a reader outside this field. May be "" on
+   *  gaps synthesized before the field existed — render the thesis instead. */
+  easy_explain?: string;
   company?: CompanyConcept | null;
   scores: Scores;
   evidence: Evidence[];

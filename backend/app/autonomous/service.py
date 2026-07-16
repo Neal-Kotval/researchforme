@@ -108,7 +108,17 @@ def corroboration_tools_for(
     # Scope: the specific segment title is the sharpest "area"; carry the gap's
     # sub-segment (and the project's) so fetches stay on-target.
     subs = [s for s in (gap_sub_segment, *project.sub_segments) if s]
-    return build_corroboration_tools(segment.title, subs, url_sink=url_sink), url_sink
+    # include_pressure_only: the red team gets `search_outcomes` (who already
+    # tried this and what happened to them) and `search_postmortems` on top of
+    # the default mix. These adapters exist FOR this path — omitting the flag
+    # left them reachable from nowhere, so the lenses that most need prior-art
+    # were running without the two tools built for them.
+    return (
+        build_corroboration_tools(
+            segment.title, subs, url_sink=url_sink, include_pressure_only=True
+        ),
+        url_sink,
+    )
 
 
 # --------------------------------------------------------------------------- #

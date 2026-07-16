@@ -150,19 +150,27 @@ _LENS_PRIORITY: tuple[str, ...] = (
     "demand_mirage",
     "just_a_feature",
     "venture_scale",       # can this be big? — the question YC actually asks
+    "incumbent_countermove",  # who already holds the beachhead? — see below
     "empty_for_a_reason",
     "why_now_fragility",
-    "incumbent_countermove",
     "moat",
 )
 
 _LENS_BY_KEY: dict[str, dict] = {lens["key"]: lens for lens in LENSES}
 
-# How many lenses each rigor level runs. `standard` now includes the venture-scale
-# lens (slot 3) so even a mid-rigor test asks whether the idea can be big.
-_RIGOR_COUNT: dict[str, int] = {"light": 3, "standard": 4, "deep": 7}
+# How many lenses each rigor level runs. `standard` runs the venture-scale lens
+# (slot 3) so even a mid-rigor test asks whether the idea can be big, and the
+# incumbent lens (slot 4) so it also asks who is already standing there.
+#
+# The incumbent promotion is a correction, not a preference. It sat at slot 6 and
+# so never ran below `deep` — meaning the DEFAULT run never asked "could a funded
+# rival close this?". A power-fleet-economics gap scored 83 while a rival had
+# raised $68M from (among others) NVIDIA's own venture arm and shipped inside
+# NVIDIA's Vera Rubin DSX reference design. That is an entry-point kill, and the
+# only lens shaped to catch it was switched off by default.
+_RIGOR_COUNT: dict[str, int] = {"light": 3, "standard": 5, "deep": 7}
 
-_VALID_VERDICTS = frozenset({"survives", "weakens", "kills"})
+_VALID_VERDICTS = frozenset({"survives", "weakens", "kills", "unmeasured"})
 
 
 # --------------------------------------------------------------------------- #
@@ -201,17 +209,28 @@ time, and for each you attempt to prove that lens's kill-question is TRUE.
   carried this signal if it were real? Consumer forums do not discuss B2B
   infrastructure; app-store reviews do not cover developer tooling; a 403'd
   fetch measures the fetcher, not the demand. If the honest state is UNMEASURED,
-  say "UNMEASURED" explicitly in your argument and cap your verdict at
-  "weakens", naming the specific check that WOULD settle it. Killing an
-  unmeasured gap is the single worst error you can make: it destroys a real
-  opportunity and teaches the founder nothing. A gap you cannot measure is a
+  return verdict="unmeasured" and name the specific check that WOULD settle it.
+  Killing an unmeasured gap is the single worst error you can make: it destroys a
+  real opportunity and teaches the founder nothing. A gap you cannot measure is a
   gap to go validate, not a gap to bury.
+- "SURVIVES" MEANS YOU TRIED AND FAILED TO KILL IT — NOT THAT YOU DIDN'T LOOK.
+  A survival is a positive claim: you went looking for the kill and the gap held
+  up anyway. If you did not actually check, the verdict is "unmeasured", not
+  "survives". This distinction is the whole point: an unchecked gap and a
+  battle-tested one must never score the same. Before returning "survives", ask
+  yourself what you actually did to try to kill it, and say so in the argument.
+  For any competitive lens, "I found no competitor" earns "survives" ONLY if you
+  ran a real search for one; absent that, it is "unmeasured".
 
 # VERDICTS (per lens)
-- "kills"    — you built a credible, specific case that this lens's kill-question
-               is TRUE; the gap is fatally wounded on this axis.
-- "weakens"  — the lens lands a real hit but not a fatal one; a genuine concern.
-- "survives" — the gap withstands this lens; say concretely WHY it holds up.
+- "kills"      — you built a credible, specific case that this lens's kill-question
+                 is TRUE; the gap is fatally wounded on this axis.
+- "weakens"    — the lens lands a real hit but not a fatal one; a genuine concern.
+- "survives"   — you ATTEMPTED the kill and the gap withstood it; say concretely
+                 what you tried and why it holds up.
+- "unmeasured" — you could not settle this axis from the evidence and tools
+                 available. Not a hit, not a pass — an open question. Name the
+                 specific check that would settle it.
 
 # OUTPUT CONTRACT — STRICT
 Return ONLY a top-level JSON array (no prose, no markdown fences), one object per
@@ -219,7 +238,7 @@ lens you were asked to apply, each EXACTLY:
 
 {
   "lens": "<the lens key, verbatim>",
-  "verdict": "survives|weakens|kills",
+  "verdict": "survives|weakens|kills|unmeasured",
   "argument": "the specific, structural case for this verdict",
   "evidence": [
     {"source": "reddit|arxiv|hackernews|github|newsletter",
@@ -452,32 +471,49 @@ def _effective_rigor(requested: TestRigor, evaluated: int) -> TestRigor:
 
 
 def _tally(lenses: list[LensVerdict]) -> tuple[int, int, int]:
-    """Count (survived, weakened, killed) across a list of verdicts."""
+    """Count (survived, weakened, killed) across a list of verdicts.
+
+    ``unmeasured`` is deliberately counted in none of the three: it earns no
+    survival bonus and takes no penalty. An axis nobody could check is an open
+    question, not support — see ``score_viability``.
+    """
     survived = sum(1 for lv in lenses if lv.verdict == "survives")
     weakened = sum(1 for lv in lenses if lv.verdict == "weakens")
     killed = sum(1 for lv in lenses if lv.verdict == "kills")
     return survived, weakened, killed
 
 
+def _unmeasured_count(lenses: list[LensVerdict]) -> int:
+    """How many axes the gauntlet could not settle either way."""
+    return sum(1 for lv in lenses if lv.verdict == "unmeasured")
+
+
 def _assemble(lenses: list[LensVerdict], rigor: TestRigor) -> PressureTest:
     """Wrap a list of verdicts into a PressureTest with counts + a one-line summary."""
     survived, weakened, killed = _tally(lenses)
+    unmeasured = _unmeasured_count(lenses)
     n = len(lenses)
     if killed:
         verdict_word = "KILLED"
     elif weakened > survived:
         verdict_word = "WEAKENED"
+    elif unmeasured * 2 > n:
+        # More axes open than settled — the gauntlet did not actually test this.
+        # Saying "SURVIVED" here is the lie the whole unmeasured verdict exists
+        # to stop.
+        verdict_word = "UNTESTED"
     else:
         verdict_word = "SURVIVED"
     summary = (
         f"{verdict_word}: {survived}/{n} lenses survived, {weakened} weakened, "
-        f"{killed} killed ({rigor} rigor)."
+        f"{killed} killed, {unmeasured} unmeasured ({rigor} rigor)."
     )
     return PressureTest(
         lenses=lenses,
         survived=survived,
         weakened=weakened,
         killed=killed,
+        unmeasured=unmeasured,
         test_rigor=rigor,
         summary=summary,
     )
@@ -646,6 +682,11 @@ def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
     how well-grounded the gap is, and whether the lenses corroborated with live
     evidence — so a lightly-tested score reads as less trustworthy than a
     battle-tested one, independent of the number itself.
+
+    An ``unmeasured`` lens scores ZERO — no bonus, no penalty. Only a survival
+    the red team actually earned pays. This is the difference between "we tried
+    to kill it and failed" and "nobody looked", which the engine previously paid
+    identically: four unchecked lenses used to hand a gap +24 for being ignored.
     """
     # Base: default-weighted composite (1..5) stretched to 0..100.
     composite = composite_score(gap.scores, Weights())  # 1..5

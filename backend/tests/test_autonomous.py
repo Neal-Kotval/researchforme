@@ -374,14 +374,21 @@ async def test_pressure_partial_fill_weakens_and_downgrades_rigor():
 
 @pytest.mark.asyncio
 async def test_pressure_partial_fill_keeps_earned_rigor():
-    """Evaluating 4 of 7 deep lenses earns standard rigor, not deep or light."""
+    """Evaluating exactly a standard-run's worth of deep lenses earns standard.
+
+    Pinned to ``_RIGOR_COUNT["standard"]`` rather than a literal: the threshold
+    moved from 4 to 5 when ``incumbent_countermove`` was promoted into the
+    default set, and the invariant under test is "rigor is earned, never
+    laundered" — not the specific count.
+    """
     import json as _json
 
-    from app.autonomous.pressure import pressure_test
+    from app.autonomous.pressure import _LENS_PRIORITY, _RIGOR_COUNT, pressure_test
 
+    n_standard = _RIGOR_COUNT["standard"]
     verdicts = [
         {"lens": k, "verdict": "survives", "argument": "holds"}
-        for k in ("demand_mirage", "just_a_feature", "empty_for_a_reason", "moat")
+        for k in _LENS_PRIORITY[:n_standard]
     ]
 
     class _FakeResult:
@@ -394,8 +401,9 @@ async def test_pressure_partial_fill_keeps_earned_rigor():
     test = await pressure_test(
         _tiny_gap(), "ctx", _FakeClient(), "claude-opus-4-8", "deep"
     )
-    # 4 evaluated of 7 deep lenses -> 3 filled-as-weakens; 4 evaluated earns standard.
-    assert test.survived == 4 and test.weakened == 3
+    # n evaluated of 7 deep lenses -> the rest filled as weakens; n earns standard.
+    assert test.survived == n_standard
+    assert test.weakened == _RIGOR_COUNT["deep"] - n_standard
     assert test.test_rigor == "standard"
 
 

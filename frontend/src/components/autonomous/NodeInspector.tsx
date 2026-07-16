@@ -743,6 +743,19 @@ export default function NodeInspector({
 
       <Markdown className="detail-thesis" text={g.thesis} />
 
+      {/* Plain language, before any jargon. Sits directly under the thesis and
+          above "The company" on purpose: everything below this point is written
+          for someone already fluent in the domain, and an idea you cannot
+          explain to an outsider is one you cannot sell, hire for, or raise on.
+          Gaps synthesized before this field existed have no easy_explain — the
+          block is omitted rather than faked from the thesis. */}
+      {g.easy_explain?.trim() && (
+        <div className="detail-block explain-block">
+          <h4>In plain language</h4>
+          <Markdown className="detail-explain" text={g.easy_explain} />
+        </div>
+      )}
+
       {/* company concept — the standalone business, not a feature */}
       {g.company && (
         <div className="detail-block company-block">

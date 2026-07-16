@@ -444,6 +444,12 @@ input[type="range"]::-moz-range-thumb {
 .detail-title { font-size: 22px; line-height: 1.18; letter-spacing: -0.02em; color: var(--text); }
 .detail-thesis { font-size: 14.5px; color: var(--text-dim); margin-top: 10px; line-height: 1.5; }
 
+/* "In plain language" — the one block written for a reader outside the field.
+   Full-strength ink and a slightly looser measure than the dim supporting prose
+   around it: this is meant to be read, not skimmed past on the way to scores. */
+.explain-block { border-left: 2px solid var(--accent); padding-left: 12px; }
+.detail-explain { color: var(--text); font-size: 14.5px; line-height: 1.65; max-width: 68ch; }
+
 /* rendered Markdown (LLM prose: thesis, rationale) — was a raw-syntax text wall */
 .md { color: var(--text-dim); font-size: 14px; line-height: 1.6; max-width: 74ch; }
 .md > * + * { margin-top: 10px; }

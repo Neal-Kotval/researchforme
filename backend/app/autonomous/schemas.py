@@ -57,7 +57,10 @@ class LensVerdict(BaseModel):
     """One adversarial lens's attempt to kill a gap."""
 
     lens: str                                  # e.g. "empty_for_a_reason"
-    verdict: Literal["survives", "weakens", "kills"]
+    # "unmeasured" = the axis could not be settled either way. Distinct from
+    # "survives", which is a positive claim that the kill was attempted and
+    # failed. Scoring pays the latter and ignores the former.
+    verdict: Literal["survives", "weakens", "kills", "unmeasured"]
     argument: str                              # why it survives / weakens / dies
     evidence: list[Evidence] = Field(default_factory=list)
 
@@ -67,6 +70,7 @@ class PressureTest(BaseModel):
     survived: int = 0
     weakened: int = 0
     killed: int = 0
+    unmeasured: int = 0                        # axes left open, neither hit nor pass
     test_rigor: TestRigor = "standard"
     summary: str = ""                          # one-line verdict of the gauntlet
     self_critique: str = ""                    # strongest reason the score is wrong

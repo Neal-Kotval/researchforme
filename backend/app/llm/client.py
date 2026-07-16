@@ -141,7 +141,8 @@ class ClaudeClient:
             try:
                 if backend == "api":
                     return await self._via_api(
-                        prompt, system, tools, max_turns, timeout, model, temperature
+                        prompt, system, tools, max_turns, timeout, model, temperature,
+                        web,
                     )
                 if backend == "agent-sdk":
                     return await self._via_agent_sdk(
@@ -315,6 +316,7 @@ class ClaudeClient:
         timeout: int,
         model: str,
         temperature: Optional[float] = None,
+        web: bool = False,
     ) -> LLMResult:
         from anthropic import AsyncAnthropic  # type: ignore
 
@@ -327,9 +329,22 @@ class ClaudeClient:
             }
             for t in (tools or [])
         ]
+        # web=True must mean the same thing on every backend. This branch used to
+        # drop the flag on the floor: with ANTHROPIC_API_KEY set, synthesis and
+        # the red team both went open-web-blind while their prompts still told
+        # the model web_search was available. Silent capability loss — the same
+        # shape as the fixture cascade. The server-side tool needs no handler;
+        # the API runs it and feeds results back itself.
+        if web:
+            api_tools.append({"type": "web_search_20250305", "name": "web_search"})
         by_name = {t.name: t for t in (tools or [])}
         messages: list[dict] = [{"role": "user", "content": prompt}]
         calls = 0
+        # URLs the model actually saw in a tool result. The grounding gate treats
+        # these as real (a URL from a live fetch is not a hallucination), so a
+        # backend that runs web_search but never records them would have its
+        # findings dropped as fabricated — capability enabled, evidence binned.
+        tool_urls: set[str] = set()
 
         # Only send temperature when explicitly set — None means provider
         # default, and recent models reject the parameter entirely.
@@ -347,11 +362,27 @@ class ClaudeClient:
                 ),
                 timeout=timeout,
             )
+            # Server-side tools (web_search) are run by the API itself: their
+            # results arrive inline as *_tool_result blocks rather than pausing
+            # the turn, so harvest URLs from every response, not just tool_use
+            # turns.
+            for block in resp.content:
+                btype = getattr(block, "type", "")
+                if btype.endswith("tool_result") or btype == "server_tool_use":
+                    tool_urls.update(_URL_RE.findall(str(getattr(block, "content", ""))))
+                    if btype == "server_tool_use":
+                        calls += 1
+
             if resp.stop_reason != "tool_use":
                 text = "".join(
                     b.text for b in resp.content if getattr(b, "type", "") == "text"
                 )
-                return LLMResult(text=text.strip(), backend="api", tool_calls=calls)
+                return LLMResult(
+                    text=text.strip(),
+                    backend="api",
+                    tool_calls=calls,
+                    tool_urls=sorted(tool_urls),
+                )
 
             messages.append({"role": "assistant", "content": resp.content})
             results = []
@@ -360,6 +391,7 @@ class ClaudeClient:
                     calls += 1
                     spec = by_name.get(block.name)
                     out = await spec.handler(dict(block.input)) if spec else "unknown tool"
+                    tool_urls.update(_URL_RE.findall(str(out)))
                     results.append(
                         {
                             "type": "tool_result",
