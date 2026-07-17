@@ -309,11 +309,23 @@ export interface LibraryProject {
 
 export const PROJECT_STATUSES = ["exploring", "validating", "committed", "shelved"] as const;
 
+export type DocKind = "plan" | "consolidation" | "idea" | "research" | "doc";
+
 export interface LibraryDoc {
   path: string;
   title: string;
   updated_at: string;
   size: number;
+  kind: DocKind;
+  /** An idea worked by the strong model, not a raw import. */
+  developed: boolean;
+}
+
+export interface ProjectBundle {
+  slug: string;
+  title: string;
+  markdown: string;
+  doc_count: number;
 }
 
 export interface LibraryDocContent {
@@ -376,6 +388,13 @@ export function listLibraryDocs(slug: string): Promise<LibraryDoc[]> {
 export function readLibraryDoc(slug: string, path: string): Promise<LibraryDocContent> {
   return request<LibraryDocContent>(
     `/api/library/projects/${encodeURIComponent(slug)}/doc?path=${encodeURIComponent(path)}`,
+  );
+}
+
+/** Every document of a project as one portable markdown blob (copy-whole-project). */
+export function bundleLibraryProject(slug: string): Promise<ProjectBundle> {
+  return request<ProjectBundle>(
+    `/api/library/projects/${encodeURIComponent(slug)}/bundle`,
   );
 }
 

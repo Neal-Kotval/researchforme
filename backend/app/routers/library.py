@@ -45,6 +45,8 @@ class DocOut(BaseModel):
     title: str
     updated_at: str
     size: int
+    kind: str = "doc"          # plan | consolidation | idea | research | doc
+    developed: bool = False
 
 
 class DocContent(BaseModel):

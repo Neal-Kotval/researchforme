@@ -178,6 +178,25 @@ class DocInfo:
     title: str
     updated_at: str
     size: int
+    # Classification for the dashboard + hierarchy view. Derived from path and
+    # frontmatter, so the frontend doesn't have to fetch and parse every doc to
+    # know what kind of thing it is.
+    kind: str = "doc"         # plan | consolidation | idea | research | doc
+    developed: bool = False   # an idea worked by the strong model, not raw import
+
+
+def _doc_kind(relpath: str, meta: dict) -> str:
+    """What sort of document this is, for grouping and iconography."""
+    src = str(meta.get("source") or "")
+    if relpath == "project.md" or src == "gapfinder-plan":
+        return "plan"
+    if relpath == "consolidation.md" or src == "gapfinder-consolidate":
+        return "consolidation"
+    if relpath.startswith("ideas/") or src == "gapfinder":
+        return "idea"
+    if relpath.startswith("research/"):
+        return "research"
+    return "doc"
 
 
 @dataclass
@@ -307,17 +326,23 @@ def list_docs(slug: str) -> list[DocInfo]:
         except OSError:
             continue
         st = p.stat()
+        rel = str(p.relative_to(pdir))
+        meta, _ = parse_frontmatter(text)
         out.append(
             DocInfo(
-                path=str(p.relative_to(pdir)),
+                path=rel,
                 title=_doc_title(p, text),
                 updated_at=datetime.fromtimestamp(st.st_mtime, tz=timezone.utc)
                 .isoformat(timespec="seconds"),
                 size=st.st_size,
+                kind=_doc_kind(rel, meta),
+                developed=bool(meta.get("developed")),
             )
         )
-    # project.md first — it is the spine of the project; then everything else.
-    out.sort(key=lambda d: (d.path != "project.md", d.path))
+    # Reading order: the plan spine first, then the consolidation (the synthesis
+    # across ideas), then ideas, then everything else — alphabetical within each.
+    _kind_order = {"plan": 0, "consolidation": 1, "idea": 2, "research": 3, "doc": 4}
+    out.sort(key=lambda d: (_kind_order.get(d.kind, 9), d.path))
     return out
 
 
