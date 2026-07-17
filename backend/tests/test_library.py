@@ -194,3 +194,37 @@ def test_bundle_concatenates_all_docs_frontmatter_stripped(tmp_path, monkeypatch
     # frontmatter is stripped — no raw 'source: gapfinder' / 'developed:' lines
     assert "\nsource:" not in md
     assert "\ndeveloped:" not in md
+
+
+def test_plan_backup_and_revert(tmp_path, monkeypatch):
+    """Strengthen must be non-destructive: backup, then revert restores it."""
+    import app.library as lib
+
+    monkeypatch.setattr(lib, "library_root", lambda: tmp_path)
+    p = lib.create_project("Revertable")
+    plan = tmp_path / p.slug / "project.md"
+    plan.write_text("---\ntitle: Revertable\n---\n## V1\noriginal plan")
+
+    assert not lib.has_plan_backup(p.slug)
+    lib.backup_plan(p.slug)
+    assert lib.has_plan_backup(p.slug)
+
+    # Simulate a strengthen overwriting the plan with a worse version.
+    plan.write_text("---\ntitle: Revertable\n---\n## V2\nworse plan")
+    assert "worse plan" in plan.read_text()
+
+    lib.revert_plan(p.slug)
+    assert "original plan" in plan.read_text()
+
+    # The backup dir is a dot-dir, so it never shows as a document.
+    doc_paths = {d.path for d in lib.list_docs(p.slug)}
+    assert not any(".history" in dp for dp in doc_paths)
+
+
+def test_revert_without_backup_raises(tmp_path, monkeypatch):
+    import app.library as lib
+
+    monkeypatch.setattr(lib, "library_root", lambda: tmp_path)
+    p = lib.create_project("NoBackup")
+    with pytest.raises(lib.LibraryError):
+        lib.revert_plan(p.slug)

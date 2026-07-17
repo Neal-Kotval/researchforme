@@ -233,10 +233,59 @@ def _doc_title(path: Path, text: str) -> str:
     return path.stem
 
 
+# Backups (the single-level plan undo) live here — a dot-dir so it never shows as
+# a document and never pollutes a bundle or the dashboard.
+HISTORY_DIR = ".history"
+
+
 def _iter_docs(pdir: Path):
     for p in sorted(pdir.rglob("*")):
+        # Skip anything under a dot-directory (e.g. .history backups).
+        if any(part.startswith(".") for part in p.relative_to(pdir).parts[:-1]):
+            continue
         if p.is_file() and p.suffix.lower() in DOC_SUFFIXES:
             yield p
+
+
+def backup_plan(slug: str) -> None:
+    """Snapshot the current project.md so a bad strengthen can be reverted.
+
+    Single-level undo: the previous snapshot is overwritten. Never raises — a
+    failed backup must not block the improvement it protects (worst case, the
+    revert is unavailable, which is no worse than before backups existed).
+    """
+    try:
+        pdir = safe_path(ensure_root(), slug)
+        plan = pdir / "project.md"
+        if not plan.is_file():
+            return
+        hist = pdir / HISTORY_DIR
+        hist.mkdir(exist_ok=True)
+        (hist / "project.prev.md").write_text(
+            plan.read_text(encoding="utf-8", errors="replace"), encoding="utf-8"
+        )
+    except Exception:  # noqa: BLE001 - a backup failure must not block the write
+        pass
+
+
+def has_plan_backup(slug: str) -> bool:
+    try:
+        return (safe_path(ensure_root(), slug) / HISTORY_DIR / "project.prev.md").is_file()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def revert_plan(slug: str) -> None:
+    """Restore the previous project.md from the backup. Raises if none exists."""
+    pdir = safe_path(ensure_root(), slug)
+    prev = pdir / HISTORY_DIR / "project.prev.md"
+    if not prev.is_file():
+        raise LibraryError("No previous version to revert to.")
+    plan = pdir / "project.md"
+    # Swap: the current plan becomes the backup, so revert is itself undoable.
+    current = plan.read_text(encoding="utf-8", errors="replace") if plan.is_file() else ""
+    plan.write_text(prev.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+    prev.write_text(current, encoding="utf-8")
 
 
 # --------------------------------------------------------------------------- #

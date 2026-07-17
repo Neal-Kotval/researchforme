@@ -460,6 +460,10 @@ async def improve_library_project(slug: str) -> ImproveResult:
     }
     if plan_meta.get("created_at"):
         meta["created_at"] = plan_meta["created_at"]
+    # Snapshot the current plan BEFORE overwriting, so a strengthen that scores
+    # worse on re-validation can be reverted — the maturation run showed a plan
+    # go 36 → 26, and there was no way back.
+    lib.backup_plan(slug)
     try:
         doc = lib.write_doc(
             slug,
@@ -470,6 +474,17 @@ async def improve_library_project(slug: str) -> ImproveResult:
     except Exception as exc:  # noqa: BLE001
         raise _handle(exc) from exc
     return ImproveResult(path=doc.path, title=doc.title)
+
+
+@router.post("/library/projects/{slug}/revert-plan")
+def revert_library_plan(slug: str) -> dict:
+    """Restore the plan to the version before the last strengthen. Undoable itself
+    (the swap keeps the reverted-from version as the new backup)."""
+    try:
+        lib.revert_plan(slug)
+        return {"ok": True}
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
 
 
 @router.post("/library/import", response_model=ImportResult)
