@@ -127,6 +127,21 @@ are worthless; name the structural reason they can't or won't serve this need.
   paper. A field with several funded companies selling this today is a 1 or 2,
   no matter how real the pain is. Do not score this from vibes: if the steering
   or your tools surfaced named competitors, they set this number.
+  PROVEN DEMAND IMPLIES COMPETITION. If demand_strength is high because the pain
+  is measured, budgeted, and already converts to dollars, then the field is
+  almost certainly CONTESTED — money attracts entrants. High demand AND high
+  openness is a contradiction you must justify with positive evidence of an open
+  slot, not assume. An unfound competitor is not an absent one: when you cannot
+  find who serves proven demand, score openness DOWN (2-3) and say the field is
+  likely occupied by someone you didn't surface — do not reward the gap for your
+  search's blind spot.
+  CHECK FOR THE PIVOT. The dangerous competitor is rarely a direct-category
+  clone; it is a well-funded ADJACENT incumbent who has just rebranded onto this
+  exact wedge — a general-pipeline vendor now marketing "agentic X", an eval
+  vendor adding cost, a cost vendor adding semantics. Use web_search for
+  "<the adjacent category> + <the new capability>" and for the obvious incumbents
+  by name + the wedge. A funded player already sitting in front of the buyer and
+  aiming its marketing at this exact wedge means openness is 1, not 4.
 - trend_tailwind: how strong is the "why now" tailwind?
 - feasibility: how buildable is this BY THIS FOUNDER, given the resources and
   time horizon their steering context states? Read the steering before scoring.
