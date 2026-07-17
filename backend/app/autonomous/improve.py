@@ -88,16 +88,28 @@ async def improve_project(
     critique_md: str,
     client: ClaudeClient,
     model: str,
+    consolidation_md: str = "",
 ) -> str:
-    """One strong-model pass: current plan + critique → a stronger plan.
+    """One strong-model pass: current plan + critique (+ curator) → a stronger plan.
 
-    Raises :class:`ImproveUnavailable` (→503) rather than writing a fabricated
-    revision when no real backend is reachable.
+    ``consolidation_md``, when present, is the curator's cherry-pick — which ideas
+    to keep, which to cut, and why. The rewrite should honor it: lead with the
+    kept wedge, drop what the curator cut. Raises :class:`ImproveUnavailable`
+    (→503) rather than writing a fabricated revision when no backend is reachable.
     """
     if not plan_md.strip():
         raise ValueError("Need a plan to strengthen.")
     if not critique_md.strip():
         raise ValueError("Need a critique to strengthen against — run the red team first.")
+
+    curator = ""
+    if consolidation_md.strip():
+        curator = (
+            "\n\n===== THE CURATOR'S CHERRY-PICK (honor this selection) =====\n"
+            "A curator has already selected which ideas to keep and cut, with "
+            "reasons. Lead with the kept wedge and do not re-defend what it cut.\n"
+            f"{consolidation_md.strip()}"
+        )
 
     prompt = (
         f"PROJECT: {project_title}\n\n"
@@ -106,6 +118,7 @@ async def improve_project(
         "demands.\n\n"
         f"===== CURRENT PLAN =====\n{plan_md.strip()}\n\n"
         f"===== ADVERSARIAL CRITIQUE (what to confront) =====\n{critique_md.strip()}"
+        f"{curator}"
     )
 
     try:

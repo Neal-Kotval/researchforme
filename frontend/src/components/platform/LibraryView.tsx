@@ -100,6 +100,17 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
   if (error) return <div className="gy-empty">{error}</div>;
   if (projects === null) return <div className="gy-empty">Reading the library…</div>;
 
+  // Validated projects first, best score on top — so the strongest candidate is
+  // the first thing you see; then unvalidated projects by recency. This is the
+  // "which one is fundable?" ordering, not filesystem-alphabetical.
+  const ordered = [...projects].sort((a, b) => {
+    const av = a.viability, bv = b.viability;
+    if (av != null && bv != null) return bv - av;
+    if (av != null) return -1;
+    if (bv != null) return 1;
+    return Date.parse(b.updated_at) - Date.parse(a.updated_at);
+  });
+
   return (
     <div className="pf-view w940 library-view">
       <div className="lib-bar">
@@ -143,20 +154,31 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
         </div>
       ) : (
         <div className="lib-grid">
-          {projects.map((p) => (
-            <button className="lib-card" key={p.slug} onClick={() => onOpenProject(p.slug)}>
+          {ordered.map((p) => (
+            <button
+              className="lib-card"
+              key={p.slug}
+              onClick={() => onOpenProject(p.slug)}
+              title={p.verdict || undefined}
+            >
               <div className="lc-top">
                 <FolderIcon />
                 {p.viability != null && (
                   <span
-                    className={`lc-score ${scoreBand(p.viability)}`}
-                    title="Project critique score — how well the assembled bet survived the red team"
+                    className={`lc-score ${scoreBand(p.viability)}${p.validation_stale ? " stale" : ""}`}
+                    title={
+                      p.validation_stale
+                        ? `Score ${p.viability} is stale — the plan was strengthened since. Re-validate to rescore.`
+                        : "Project critique score — how well the assembled bet survived the red team"
+                    }
                   >
                     {p.viability}
+                    {p.validation_stale && <span className="lc-score-stale">·stale</span>}
                   </span>
                 )}
               </div>
               <span className="lc-title" title={p.title}>{p.title}</span>
+              {p.verdict && <span className="lc-verdict">{p.verdict}</span>}
               <div className="lc-meta">
                 <span className={`lc-status st-${p.status}`}>{p.status}</span>
                 <span>{p.idea_count} idea{p.idea_count === 1 ? "" : "s"}</span>

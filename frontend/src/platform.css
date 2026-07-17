@@ -1209,6 +1209,13 @@
 .lc-score.hi, .lc-score.mid { background: var(--accent-tint); color: var(--accent-strong); }
 .lc-score.lo { background: var(--warn-tint); color: var(--warn); }
 .lc-score.crit { background: var(--unavailable-tint); color: var(--unavailable); }
+.lc-score.stale { opacity: 0.5; }
+.lc-score-stale { font-size: 8px; margin-left: 2px; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.8; }
+.lc-verdict {
+  font-size: 11px; color: var(--text-dim); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .lc-title {
   font-size: 13.5px; font-weight: var(--fw-semibold); letter-spacing: -0.01em; color: var(--text);
   line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;

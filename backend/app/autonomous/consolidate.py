@@ -26,47 +26,50 @@ from ..llm.client import ClaudeClient
 logger = logging.getLogger("gapfinder.consolidate")
 
 CONSOLIDATE_SYSTEM = """\
-You are consolidating several startup ideas that a founder collected into one
+You are the CURATOR for a founder who collected several startup ideas into one
 project. Each idea below is a market-gap proposal with its own thesis, wedge, and
-red-team criticism. Your job is to tell the founder whether these are ONE company
-or several, and what to do next.
+red-team criticism. Your job is NOT just to judge whether they're one company —
+it is to CHERRY-PICK: select the strongest combinable subset, justify every
+inclusion AND every exclusion, and assemble the best possible composite from the
+parts that genuinely fit. Discard the parts that don't, with reasons.
+
+Think like a founder building the strongest company they can from these
+ingredients — keeping the good, cutting the weak, and being honest that the
+result is a SELECTION, not the whole pile forced together.
 
 # WHAT YOU PRODUCE
 A markdown document with these sections, in order:
 
-1. `## Verdict` — one of exactly these, stated in the first line:
-   - "One company." — the ideas share a thesis and belong together.
-   - "A few companies." — they cluster into 2+ distinct businesses.
-   - "Unrelated." — they do not belong in one project.
-   Then one paragraph defending the verdict from the actual ideas.
+1. `## Verdict` — one blunt line: is there a strong company to build from a
+   SUBSET of these ideas, and roughly which subset. (Not a binary "one company
+   vs unrelated" — a selection.)
 
-2. `## The common thread` — the thesis, customer, or capability the ideas share,
-   IF one genuinely exists. If they share only a surface theme ("all AI", "all
-   for developers") and not a real thesis, SAY THAT — a shared tag is not a shared
-   company.
+2. `## The composite — what to combine and why` — the cherry-picked set. For
+   EACH idea you KEEP, one line justifying why it belongs and what it contributes
+   to the combined company (the wedge, a moat input, a channel, an expansion
+   surface). Name how the kept pieces reinforce each other — the real
+   compounding link, if there is one — or say plainly that they're a portfolio
+   held together by a shared buyer rather than a flywheel.
 
-3. `## Where they conflict` — the real tensions: ideas aimed at different buyers,
-   incompatible wedges, assumptions that cannot both hold, or a cheap idea and a
-   capital-intensive one that need different companies. Be specific and name the
-   ideas. If there are no real conflicts, say so — do not invent tension.
+3. `## What's cut, and why` — every idea you DROP, each with a specific reason:
+   already occupied by a funded incumbent, wrong buyer/channel from the rest,
+   redundant with a stronger kept idea, capital profile that needs its own
+   company, or a red-team kill it can't survive. A cut with no justification is
+   not allowed. Cutting nothing is suspicious — most collections have a weak link.
 
-4. `## What doesn't belong` — any idea that should be spun OUT into its own
-   project, and why. Empty is a valid answer; forcing a bad fit is not.
+4. `## The lead — where to start` — of the kept set, which single idea is the
+   wedge and why, what's a later expansion, what to build first.
 
-5. `## Recommended plan` — IF this is one company: the sequenced plan — which idea
-   is the wedge, which are later expansions, what to build first. IF it's several:
-   which cluster to pursue first and why, and what to shelve.
-
-6. `## What would kill the combined bet` — carry through the sharpest red-team
-   points from the individual ideas that apply to the whole. Do not soften them.
+5. `## What would kill the combined bet` — carry the sharpest red-team points from
+   the KEPT ideas forward to the whole. Do not soften them.
 
 # INVIOLABLE RULES
-- Do NOT invent a unifying thesis. If the honest answer is "these are three
-  different companies", the verdict is "Unrelated" or "A few companies" and you
-  say why. A false synthesis is the single worst thing you can produce here.
-- Do NOT launder the criticism. The combined bet inherits the individual ideas'
-  weaknesses; carry the load-bearing ones forward. If demand was UNMEASURED for
-  the ideas, it is UNMEASURED for the combination.
+- CHERRY-PICK, don't force-merge and don't over-prune. Keep what strengthens the
+  company; cut what doesn't; justify both. A false unifying thesis is the worst
+  output — but so is refusing to combine ideas that genuinely reinforce.
+- Do NOT launder the criticism. The composite inherits the kept ideas'
+  weaknesses; carry the load-bearing ones forward. If demand was UNMEASURED, it
+  is UNMEASURED for the composite.
 - Reason ONLY from the ideas given. Do not invent facts, competitors, or numbers.
 - Plain, precise, analytical. No hype. The reader is deciding where to spend a
   year of their life.

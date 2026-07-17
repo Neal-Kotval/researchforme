@@ -319,11 +319,17 @@ async def critique_library_project(slug: str) -> CritiqueResult:
     except Exception as exc:  # noqa: BLE001
         raise _handle(exc) from exc
 
-    # Critique the sharpest available thesis: the consolidation is the synthesis
-    # across ideas; the plan is the fallback. Never the raw ideas — those were
-    # already red-teamed individually; this attacks the assembly.
-    source = next((d for d in docs if d.kind == "consolidation"), None) or next(
-        (d for d in docs if d.kind == "plan"), None
+    # Critique the PLAN (project.md) — the living, canonical thesis that
+    # `improve()` rewrites — so critique↔strengthen form a coherent loop on the
+    # SAME document. Fall back to the consolidation only if there is no plan.
+    #
+    # Targeting the consolidation instead was a real bug: the consolidation is a
+    # one-time "one company or several?" analysis that keeps the holding-pen
+    # framing, so critiquing it after the plan had been narrowed re-attacked the
+    # abandoned four-bet version and scored it near zero — while `improve()` was
+    # strengthening a different doc. Same-document is what makes the loop move.
+    source = next((d for d in docs if d.kind == "plan"), None) or next(
+        (d for d in docs if d.kind == "consolidation"), None
     )
     if source is None:
         raise HTTPException(
@@ -413,9 +419,17 @@ async def improve_library_project(slug: str) -> ImproveResult:
     plan_meta, plan_body = lib.parse_frontmatter(plan_text)
     critique_text, _ = lib.read_doc(slug, critique.path)
 
+    # If the curator has cherry-picked, hand that selection to the rewrite so it
+    # leads with the kept wedge and drops what was cut.
+    consolidation_text = ""
+    consol = next((d for d in docs if d.kind == "consolidation"), None)
+    if consol is not None:
+        consolidation_text, _ = lib.read_doc(slug, consol.path)
+
     try:
         improved = await improve_project(
-            project.title, plan_body, critique_text, get_client(), get_settings().llm_model
+            project.title, plan_body, critique_text, get_client(),
+            get_settings().llm_model, consolidation_md=consolidation_text,
         )
     except ImproveUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
