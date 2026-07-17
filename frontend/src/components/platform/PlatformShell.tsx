@@ -91,6 +91,12 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
   const view = routeToPlatformView(route);
   const meta = VIEW_META[view];
 
+  // An open library project takes over the content area: the per-view top bar
+  // gives way to the project's own toolbar, and the workspace fills edge-to-edge
+  // beside the app sidebar — a focused, filesystem-like fullscreen. The sidebar
+  // stays so navigation (and getting back to the list) is always one click away.
+  const fullscreen = route.view === "library" && !!route.slug;
+
   // The shared governor snapshot for the sidebar usage meter.
   const [usage, setUsage] = useState<GlobalUsage | null>(null);
   useEffect(() => {
@@ -214,28 +220,30 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
         </div>
       </aside>
 
-      <div className="pf-main">
-        <header className="pf-topbar">
-          <div style={{ minWidth: 0 }}>
-            <div className="pf-topbar-titlerow">
-              <h1>{meta.title}</h1>
-              {anyRunning && (
-                <span className="pf-live-pill">
-                  <span className="pf-dot pulse" />agent live
-                </span>
-              )}
+      <div className={`pf-main${fullscreen ? " pf-fullscreen" : ""}`}>
+        {!fullscreen && (
+          <header className="pf-topbar">
+            <div style={{ minWidth: 0 }}>
+              <div className="pf-topbar-titlerow">
+                <h1>{meta.title}</h1>
+                {anyRunning && (
+                  <span className="pf-live-pill">
+                    <span className="pf-dot pulse" />agent live
+                  </span>
+                )}
+              </div>
+              <div className="pf-view-sub">{meta.sub}</div>
             </div>
-            <div className="pf-view-sub">{meta.sub}</div>
-          </div>
-          <div className="pf-topbar-actions">
-            <button className="btn" onClick={() => onNav("assistant")}>
-              <IconChatSm />Ask<span className="pf-kbd">/</span>
-            </button>
-            <button className="btn btn-primary" onClick={onNewExploration}>
-              <IconPlus />New exploration<span className="pf-kbd-dark">N</span>
-            </button>
-          </div>
-        </header>
+            <div className="pf-topbar-actions">
+              <button className="btn" onClick={() => onNav("assistant")}>
+                <IconChatSm />Ask<span className="pf-kbd">/</span>
+              </button>
+              <button className="btn btn-primary" onClick={onNewExploration}>
+                <IconPlus />New exploration<span className="pf-kbd-dark">N</span>
+              </button>
+            </div>
+          </header>
+        )}
         {children}
       </div>
     </div>

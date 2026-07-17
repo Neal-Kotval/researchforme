@@ -24,6 +24,30 @@ function fmtWhen(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+/** Validation score → band class, matching the dashboard's read. */
+function scoreBand(v: number): string {
+  if (v >= 70) return "hi";
+  if (v >= 45) return "mid";
+  if (v >= 25) return "lo";
+  return "crit";
+}
+
+/** A manila-folder glyph — the tab + body of a filesystem folder. */
+function FolderIcon() {
+  return (
+    <svg className="lc-folder" width="46" height="38" viewBox="0 0 46 38" fill="none" aria-hidden>
+      <path
+        d="M3 8a3 3 0 0 1 3-3h11l4 4h19a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8Z"
+        fill="var(--accent-tint)"
+        stroke="var(--accent-strong)"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M3 13h40" stroke="var(--accent-strong)" strokeWidth="1.1" opacity="0.4" />
+    </svg>
+  );
+}
+
 /**
  * The library (Phase 5 W-2): projects are real folders of markdown on disk.
  *
@@ -121,16 +145,23 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
         <div className="lib-grid">
           {projects.map((p) => (
             <button className="lib-card" key={p.slug} onClick={() => onOpenProject(p.slug)}>
-              <div className="lc-titlerow">
-                <span className="lc-title">{p.title}</span>
-                <span className={`lc-status st-${p.status}`}>{p.status}</span>
+              <div className="lc-top">
+                <FolderIcon />
+                {p.viability != null && (
+                  <span
+                    className={`lc-score ${scoreBand(p.viability)}`}
+                    title="Project critique score — how well the assembled bet survived the red team"
+                  >
+                    {p.viability}
+                  </span>
+                )}
               </div>
+              <span className="lc-title" title={p.title}>{p.title}</span>
               <div className="lc-meta">
+                <span className={`lc-status st-${p.status}`}>{p.status}</span>
                 <span>{p.idea_count} idea{p.idea_count === 1 ? "" : "s"}</span>
-                <span>{p.doc_count} doc{p.doc_count === 1 ? "" : "s"}</span>
                 <span>{fmtWhen(p.updated_at)}</span>
               </div>
-              <div className="lc-slug">{p.slug}/</div>
             </button>
           ))}
         </div>

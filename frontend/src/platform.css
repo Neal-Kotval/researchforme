@@ -1181,24 +1181,43 @@
 }
 .lib-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 
-.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+/* Projects as a grid of folders — a filesystem, not a list. */
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); gap: 16px; }
 .lib-card {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 9px;
-  padding: 15px; text-align: left; cursor: pointer; font: inherit; color: inherit;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 16px 16px 14px; text-align: left; cursor: pointer; font: inherit; color: inherit;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
   transition: border-color var(--dur-fast) var(--ease-out),
-              background var(--dur-fast) var(--ease-out);
+              background var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
 }
-.lib-card:hover { border-color: var(--border-strong); background: var(--surface-hover); }
+.lib-card:hover {
+  border-color: var(--border-strong); background: var(--surface-hover);
+  transform: translateY(-2px);
+}
+.lib-card:active { transform: translateY(0); }
 .lib-card:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.lc-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  width: 100%; margin-bottom: 2px;
+}
+.lc-folder { display: block; }
+.lc-score {
+  flex: none; font-family: var(--mono); font-size: 12px; font-weight: var(--fw-semibold);
+  padding: 2px 8px; border-radius: var(--r-pill); line-height: 1.4;
+}
+.lc-score.hi, .lc-score.mid { background: var(--accent-tint); color: var(--accent-strong); }
+.lc-score.lo { background: var(--warn-tint); color: var(--warn); }
+.lc-score.crit { background: var(--unavailable-tint); color: var(--unavailable); }
 .lc-title {
-  font-size: 14px; font-weight: var(--fw-semibold); letter-spacing: -0.01em; color: var(--text);
+  font-size: 13.5px; font-weight: var(--fw-semibold); letter-spacing: -0.01em; color: var(--text);
+  line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .lc-meta {
-  display: flex; gap: 8px; flex-wrap: wrap;
-  font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: auto;
+  font-family: var(--mono); font-size: 10px; color: var(--text-dim);
 }
-.lc-slug { font-family: var(--mono); font-size: 10px; color: var(--text-ghost); margin-top: auto; }
 
 /* ---- project lifecycle status (#10) ------------------------------------- */
 .lc-titlerow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%; }
@@ -1218,6 +1237,28 @@
 
 /* ---- workspace: the project as a document ------------------------------ */
 .workspace { display: flex; flex-direction: column; }
+
+/* Fullscreen workspace: with the app top-bar hidden, the open project fills the
+   whole content area beside the sidebar. The pf-view centering/padding is
+   dropped, the workspace becomes a full-height flex column, and its split grows
+   to fill so the rail and body scroll independently — a focused, app-like view
+   rather than a document floating in a centered column. */
+.pf-fullscreen { overflow: hidden; }
+.pf-fullscreen .pf-view.workspace {
+  max-width: none; margin: 0; padding: 0;
+  flex: 1; min-height: 0; height: 100%;
+}
+.pf-fullscreen .ws-bar {
+  border-radius: 0; border-left: 0; border-right: 0; border-top: 0;
+}
+.pf-fullscreen .ws-error { border-left: 0; border-right: 0; }
+.pf-fullscreen .ws-split {
+  flex: 1; min-height: 0;
+  border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0;
+}
+.pf-fullscreen .ws-body { overflow-y: auto; }
+/* A touch more breathing room for the document in fullscreen. */
+.pf-fullscreen .ws-body { padding: 30px 40px; }
 
 .ws-bar {
   display: flex; align-items: center; gap: 12px; padding: 9px 14px;
