@@ -423,9 +423,22 @@ def _lens_base_score(gap: Gap, key: str) -> int:
 def _neutral_verdict(gap: Gap, key: str) -> LensVerdict:
     """Derive one lens verdict from the gap's own scores — no LLM required.
 
-    Deliberately *neutral* (benefit-of-the-doubt): a middling gap survives; only a
-    genuinely soft axis weakens; and a gap that flags itself ``empty_for_a_reason``
-    is killed by that specific lens, since it has admitted the trap.
+    Used when no LLM verdict is available at all (the model failed, rate-limited,
+    or returned nothing parseable). It can only read the gap's OWN self-reported
+    scores, so it cannot test anything — it can only ask the defendant how the
+    trial went.
+
+    Therefore it returns ``unmeasured``, never ``survives``. It used to return
+    ``survives`` whenever the gap scored itself >= 3, which meant a gap that the
+    red team never examined collected the full survival bonus for grading its own
+    exam. Observed: "Token Dispatch Silicon" scored 98 with all three lenses
+    reading "Heuristic fallback (no LLM verdict available)" and an empty evidence
+    list — 18 of those points were awarded by this function for a test that did
+    not happen, and it would have topped a shortlist.
+
+    The one exception is a real signal, not a self-grade: a gap that flags itself
+    ``empty_for_a_reason`` has admitted the trap, and an admission against
+    interest is worth acting on.
     """
     if key == "empty_for_a_reason" and gap.empty_for_a_reason:
         return LensVerdict(
@@ -437,13 +450,14 @@ def _neutral_verdict(gap: Gap, key: str) -> LensVerdict:
             ),
         )
     score = _lens_base_score(gap, key)
-    verdict = "survives" if score >= 3 else "weakens"
     return LensVerdict(
         lens=key,
-        verdict=verdict,
+        verdict="unmeasured",
         argument=(
-            f"Heuristic fallback (no LLM verdict available): the '{key}' axis rates "
-            f"{score}/5 on the gap's own scores, so it {verdict} a neutral test."
+            f"UNMEASURED — no LLM verdict was available, so this axis was never "
+            f"tested. The gap rates itself {score}/5 here, but a self-report is "
+            f"not a red team: nothing independent checked it. Re-run this gap "
+            f"when a model backend is healthy to get a real verdict."
         ),
     )
 
@@ -453,6 +467,14 @@ def _unevaluated_verdict(key: str) -> LensVerdict:
 
     Deliberately NOT derived from the gap's own self-reported scores — a model
     that engages only one lens must not collect free survivals for the rest.
+
+    Deliberately ``weakens`` and NOT ``unmeasured``, which is the opposite call
+    to :func:`_neutral_verdict` — the asymmetry is intentional. There, no model
+    answered at all, and punishing a gap for our outage would be scoring our own
+    infrastructure. Here the model DID answer and chose to skip this lens, which
+    is a different fact: without a penalty, a model could quietly maximize a gap
+    by engaging only the lenses it expects to pass. The penalty is what makes
+    engaging every lens the cheapest path.
     """
     return LensVerdict(
         lens=key,

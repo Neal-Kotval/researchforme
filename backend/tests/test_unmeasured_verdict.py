@@ -131,3 +131,54 @@ def test_incumbent_lens_runs_at_standard_rigor():
     keys = {lens["key"] for lens in _select_lenses("standard")}
     assert "incumbent_countermove" in keys
     assert _RIGOR_COUNT["standard"] >= 5
+
+
+# --------------------------------------------------------------------------- #
+# The LLM-free fallback must not let a gap grade its own exam                  #
+# --------------------------------------------------------------------------- #
+def test_heuristic_fallback_is_unmeasured_not_survives():
+    """The regression: a gap the red team never ran scored 98.
+
+    "Token Dispatch Silicon" came back with all three lenses reading "Heuristic
+    fallback (no LLM verdict available)", an empty evidence list, and viability
+    98 — 18 of those points awarded for surviving a test that never happened.
+    The fallback can only read the gap's OWN scores, so it cannot test anything;
+    it can only ask the defendant how the trial went.
+    """
+    from app.autonomous.pressure import _neutral_pressure_test
+
+    gap = _tiny_gap()
+    gap.scores.demand_strength = 5
+    gap.scores.willingness_to_pay = 5
+    test = _neutral_pressure_test(gap, "light")
+
+    assert test.survived == 0, "a self-graded exam is not a survival"
+    assert test.unmeasured == len(test.lenses)
+    assert "UNTESTED" in test.summary
+
+
+def test_heuristic_fallback_scores_no_higher_than_its_base():
+    """No lens bonus may come from a gauntlet that never ran."""
+    from app.autonomous.pressure import _neutral_pressure_test
+    from app.analysis.rank import composite_score
+    from app.schemas import Weights
+
+    gap = _tiny_gap()
+    viability, confidence = score_viability(gap, _neutral_pressure_test(gap, "light"))
+    base = (composite_score(gap.scores, Weights()) - 1.0) / 4.0 * 100.0
+    # Only the novelty delta may move it off base — never a survival bonus.
+    from app.autonomous.pressure import _NOVELTY_DELTA
+
+    expected = base + _NOVELTY_DELTA.get(int(gap.novelty), 0.0)
+    assert abs(viability - expected) <= 1
+    assert confidence == "low"
+
+
+def test_self_admitted_trap_still_kills_without_an_llm():
+    """An admission against interest is real signal, not a self-grade."""
+    from app.autonomous.pressure import _neutral_verdict
+
+    gap = _tiny_gap()
+    gap.empty_for_a_reason = True
+    gap.empty_reason = "regulator forbids it"
+    assert _neutral_verdict(gap, "empty_for_a_reason").verdict == "kills"
