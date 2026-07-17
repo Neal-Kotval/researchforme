@@ -171,3 +171,26 @@ def test_refuses_to_use_a_git_repo_as_the_library(tmp_path, monkeypatch):
 def test_default_root_is_not_the_apps_own_repo(monkeypatch):
     monkeypatch.delenv("RESEARCHFORME_DIR", raising=False)
     assert lib.library_root().name != "researchforme"
+
+
+def test_bundle_concatenates_all_docs_frontmatter_stripped(tmp_path, monkeypatch):
+    """The copy-whole-project blob: every doc, reading order, no frontmatter noise."""
+    import app.library as lib
+
+    monkeypatch.setattr(lib, "library_root", lambda: tmp_path)
+    p = lib.create_project("Platform Bet")
+    lib.write_idea(p.slug, "Idea Alpha", "## Alpha\nthe first bet", developed=True)
+    lib.write_idea(p.slug, "Idea Beta", "## Beta\nthe second bet", developed=False)
+
+    md, count = lib.bundle_project(p.slug)
+
+    assert count >= 3                       # project.md + two ideas
+    assert "Platform Bet" in md
+    assert "the first bet" in md and "the second bet" in md
+    assert "# 📄 project.md" in md          # seam markers present
+    assert "# 📄 ideas/" in md
+    # project.md is the spine and must come first
+    assert md.index("project.md") < md.index("ideas/")
+    # frontmatter is stripped — no raw 'source: gapfinder' / 'developed:' lines
+    assert "\nsource:" not in md
+    assert "\ndeveloped:" not in md

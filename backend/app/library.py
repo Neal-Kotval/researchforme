@@ -332,6 +332,33 @@ def read_doc(slug: str, relpath: str) -> tuple[str, float]:
     return p.read_text(encoding="utf-8", errors="replace"), p.stat().st_mtime
 
 
+def bundle_project(slug: str) -> tuple[str, int]:
+    """Concatenate every doc into one portable markdown blob → (text, doc_count).
+
+    Reading order matches ``list_docs``: ``project.md`` (the spine) first, then
+    the rest alphabetically, so the blob reads top-down like the plan it is. Each
+    document is separated by a ``---`` rule and its path as an H1 anchor, so a
+    reader (or a chat assistant it's pasted into) can see the seams. Frontmatter
+    is stripped from each doc: it's machine bookkeeping, and five copies of
+    ``status: exploring`` in one paste is noise.
+    """
+    pinfo = get_project(slug)
+    docs = list_docs(slug)
+    parts = [f"# {pinfo.title}", ""]
+    if pinfo.status:
+        parts.append(f"_Status: {pinfo.status} · {len(docs)} documents_")
+        parts.append("")
+    for d in docs:
+        text, _ = read_doc(slug, d.path)
+        _, body = parse_frontmatter(text)
+        parts.append("---")
+        parts.append(f"# 📄 {d.path}")
+        parts.append("")
+        parts.append(body.strip())
+        parts.append("")
+    return "\n".join(parts).strip() + "\n", len(docs)
+
+
 def write_doc(
     slug: str, relpath: str, content: str, *, base_mtime: Optional[float] = None
 ) -> DocInfo:

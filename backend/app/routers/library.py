@@ -182,6 +182,32 @@ def read_library_doc(slug: str, path: str = Query(min_length=1)) -> DocContent:
         raise _handle(exc) from exc
 
 
+class BundleResult(BaseModel):
+    slug: str
+    title: str
+    markdown: str      # every doc concatenated, reading order, frontmatter stripped
+    doc_count: int
+
+
+@router.get("/library/projects/{slug}/bundle", response_model=BundleResult)
+def bundle_library_project(slug: str) -> BundleResult:
+    """Every document of a project as one portable markdown blob.
+
+    Powers the "copy whole project" button: one request, one paste. Doing this
+    server-side (rather than N client reads stitched together) keeps the reading
+    order and the seam markers authoritative and identical everywhere the blob
+    is consumed.
+    """
+    try:
+        pinfo = lib.get_project(slug)
+        markdown, count = lib.bundle_project(slug)
+        return BundleResult(
+            slug=slug, title=pinfo.title, markdown=markdown, doc_count=count
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+
+
 @router.put("/library/projects/{slug}/doc", response_model=DocOut)
 def write_library_doc(slug: str, body: WriteDocBody) -> DocOut:
     """Write a document. A concurrent external edit is a 409, never a clobber."""
