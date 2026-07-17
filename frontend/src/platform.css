@@ -1381,9 +1381,48 @@
   border-color: var(--accent-tint-2);
 }
 
+/* ---- validation panel (the project red team) --------------------------- */
+.pd-validate {
+  padding: 16px 18px; border: 1px solid var(--border-strong);
+  border-radius: var(--r-md); background: var(--surface-2);
+}
+.pv-empty { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.pv-empty-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; max-width: 62ch; }
+.pv-empty-text em { color: var(--text); font-style: italic; }
+
+.pv-result { display: flex; gap: 18px; align-items: flex-start; }
+.pv-score {
+  flex: none; display: flex; align-items: baseline; gap: 1px;
+  padding: 10px 16px; border-radius: var(--r-md); min-width: 92px;
+  justify-content: center;
+}
+.pv-score-n { font-family: var(--mono); font-size: 34px; font-weight: var(--fw-bold); line-height: 1; }
+.pv-score-d { font-family: var(--mono); font-size: 13px; opacity: 0.7; }
+/* Score bands — fills behind dark text, never colored text (design system). */
+.pv-score.hi   { background: var(--accent-tint-2); }
+.pv-score.mid  { background: var(--accent-tint); }
+.pv-score.lo   { background: var(--warn-tint); }
+.pv-score.crit { background: var(--unavailable-tint); }
+.pv-score.hi .pv-score-n, .pv-score.mid .pv-score-n { color: var(--accent-strong); }
+.pv-score.lo .pv-score-n { color: var(--warn); }
+.pv-score.crit .pv-score-n { color: var(--unavailable); }
+
+.pv-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pv-band { display: flex; align-items: center; gap: 10px; }
+.pv-band-tag {
+  font-size: 10.5px; font-weight: var(--fw-semibold); text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 2px 8px; border-radius: var(--r-pill);
+}
+.pv-band-tag.hi, .pv-band-tag.mid { background: var(--accent-tint); color: var(--accent-strong); }
+.pv-band-tag.lo { background: var(--warn-tint); color: var(--warn); }
+.pv-band-tag.crit { background: var(--unavailable-tint); color: var(--unavailable); }
+.pv-conf { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.pv-verdict { font-size: 13.5px; color: var(--text); line-height: 1.5; margin: 0; max-width: 68ch; }
+
 @media (max-width: 720px) {
   .pd-stats { grid-template-columns: repeat(2, 1fr); }
   .pd-two { grid-template-columns: 1fr; }
+  .pv-result { flex-direction: column; }
 }
 
 /* ---- project chat (W-6) ------------------------------------------------- */

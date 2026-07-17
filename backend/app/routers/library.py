@@ -34,6 +34,9 @@ class ProjectOut(BaseModel):
     doc_count: int
     idea_count: int
     status: str = "exploring"
+    viability: int | None = None    # project critique score, if run
+    confidence: str = ""
+    verdict: str = ""
 
 
 class StatusBody(BaseModel):
@@ -278,6 +281,93 @@ async def consolidate_project(slug: str) -> ConsolidateResult:
     except Exception as exc:  # noqa: BLE001
         raise _handle(exc) from exc
     return ConsolidateResult(path=doc.path, title=doc.title)
+
+
+class CritiqueResult(BaseModel):
+    path: str
+    title: str
+    viability: int
+    confidence: str
+    verdict_line: str
+
+
+@router.post("/library/projects/{slug}/critique", response_model=CritiqueResult)
+async def critique_library_project(slug: str) -> CritiqueResult:
+    """Red-team the ASSEMBLED project — the rigor a gap gets, aimed at the whole.
+
+    Runs the seven project-lenses with live web search against the project's best
+    thesis (its consolidation if present, else the synthesized plan), scores it on
+    the same viability scale a gap uses, and writes ``critique.md`` — verdict,
+    per-lens red team, a cheapest-falsification validation plan, and the strongest
+    reason the verdict is wrong. The viability/confidence/verdict go into the
+    doc's frontmatter so the dashboard and library list can surface and compare
+    them. Honest 503 when no real backend can produce a critique — never a
+    fabricated green light.
+    """
+    from ..autonomous.projectcritique import (
+        CritiqueUnavailable,
+        critique_project,
+        render_critique_markdown,
+    )
+    from ..config import get_settings
+    from ..llm.client import get_client
+
+    try:
+        project = lib.get_project(slug)
+        docs = lib.list_docs(slug)
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+
+    # Critique the sharpest available thesis: the consolidation is the synthesis
+    # across ideas; the plan is the fallback. Never the raw ideas — those were
+    # already red-teamed individually; this attacks the assembly.
+    source = next((d for d in docs if d.kind == "consolidation"), None) or next(
+        (d for d in docs if d.kind == "plan"), None
+    )
+    if source is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No thesis to critique yet — synthesize a plan or consolidate first.",
+        )
+    thesis_md, _ = lib.read_doc(slug, source.path)
+    _, thesis_body = lib.parse_frontmatter(thesis_md)
+
+    try:
+        crit = await critique_project(
+            project.title, thesis_body, get_client(), get_settings().llm_model
+        )
+    except CritiqueUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("critique failed for slug=%r", slug)
+        raise HTTPException(
+            status_code=500, detail=f"Could not critique: {type(exc).__name__}."
+        ) from exc
+
+    meta = {
+        "title": "Critique",
+        "source": "gapfinder-critique",
+        "viability": crit.viability,
+        "confidence": crit.confidence,
+        "verdict": crit.verdict_line,
+    }
+    try:
+        doc = lib.write_doc(
+            slug,
+            "critique.md",
+            lib.render_frontmatter(meta) + render_critique_markdown(crit) + "\n",
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+    return CritiqueResult(
+        path=doc.path,
+        title=doc.title,
+        viability=crit.viability,
+        confidence=crit.confidence,
+        verdict_line=crit.verdict_line,
+    )
 
 
 @router.post("/library/import", response_model=ImportResult)

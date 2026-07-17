@@ -305,11 +305,29 @@ export interface LibraryProject {
   doc_count: number;
   idea_count: number;
   status: string;
+  /** Project critique score, present once the red team has been run. */
+  viability?: number | null;
+  confidence?: string;
+  verdict?: string;
+}
+
+export interface CritiqueResult {
+  path: string;
+  title: string;
+  viability: number;
+  confidence: string;
+  verdict_line: string;
 }
 
 export const PROJECT_STATUSES = ["exploring", "validating", "committed", "shelved"] as const;
 
-export type DocKind = "plan" | "consolidation" | "idea" | "research" | "doc";
+export type DocKind =
+  | "plan"
+  | "critique"
+  | "consolidation"
+  | "idea"
+  | "research"
+  | "doc";
 
 export interface LibraryDoc {
   path: string;
@@ -443,6 +461,15 @@ export function importIdeasInto(
 export function consolidateProject(slug: string): Promise<{ path: string; title: string }> {
   return request<{ path: string; title: string }>(
     `/api/library/projects/${encodeURIComponent(slug)}/consolidate`,
+    { method: "POST", headers: JSON_HEADERS },
+  );
+}
+
+/** Red-team the assembled project: 7 lenses + web search, scored, plus a
+ *  falsification plan. Writes critique.md. Slow (one web-enabled pass). */
+export function critiqueProject(slug: string): Promise<CritiqueResult> {
+  return request<CritiqueResult>(
+    `/api/library/projects/${encodeURIComponent(slug)}/critique`,
     { method: "POST", headers: JSON_HEADERS },
   );
 }

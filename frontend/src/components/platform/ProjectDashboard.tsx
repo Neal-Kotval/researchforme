@@ -10,6 +10,21 @@ interface Props {
   onOpenDoc: (path: string) => void;
   onConsolidate: () => void;
   consolidating: boolean;
+  // Validation (the project red team).
+  viability: number | null;
+  confidence: string;
+  verdict: string;
+  onCritique: () => void;
+  critiquing: boolean;
+  hasThesis: boolean;                 // a plan or consolidation exists to critique
+}
+
+/** Score band → label + class, matching the exploration engine's read. */
+function band(v: number): { label: string; cls: string } {
+  if (v >= 70) return { label: "strong", cls: "hi" };
+  if (v >= 45) return { label: "promising", cls: "mid" };
+  if (v >= 25) return { label: "unproven", cls: "lo" };
+  return { label: "wounded", cls: "crit" };
 }
 
 /** Split a markdown body into its `## Section` blocks, keyed by heading. */
@@ -35,6 +50,7 @@ function pick(secs: Record<string, string>, needles: string[]): string | null {
 
 const KIND_LABEL: Record<string, string> = {
   plan: "Plan",
+  critique: "Critique",
   consolidation: "Consolidation",
   idea: "Ideas",
   research: "Research",
@@ -43,6 +59,7 @@ const KIND_LABEL: Record<string, string> = {
 
 const KIND_ICON: Record<string, string> = {
   plan: "◆",
+  critique: "⚔",
   consolidation: "⋈",
   idea: "◇",
   research: "❑",
@@ -66,6 +83,12 @@ export default function ProjectDashboard({
   onOpenDoc,
   onConsolidate,
   consolidating,
+  viability,
+  confidence,
+  verdict,
+  onCritique,
+  critiquing,
+  hasThesis,
 }: Props) {
   const secs = useMemo(() => sections(planBody ?? ""), [planBody]);
 
@@ -117,6 +140,58 @@ export default function ProjectDashboard({
           <span className="pd-stat-l">document{docs.length === 1 ? "" : "s"}</span>
         </div>
       </div>
+
+      {/* Validation — the project red team. As important as the vision, so it
+          sits right below the numbers, not buried at the bottom. */}
+      <section className="pd-section pd-validate">
+        <h4 className="pd-cap">Validation — the red team on the whole bet</h4>
+        {viability != null ? (
+          <div className="pv-result">
+            <div className={`pv-score ${band(viability).cls}`}>
+              <span className="pv-score-n">{viability}</span>
+              <span className="pv-score-d">/100</span>
+            </div>
+            <div className="pv-body">
+              <div className="pv-band">
+                <span className={`pv-band-tag ${band(viability).cls}`}>
+                  {band(viability).label}
+                </span>
+                <span className="pv-conf">confidence: {confidence || "—"}</span>
+              </div>
+              {verdict && <p className="pv-verdict">{verdict}</p>}
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={critiquing}
+                onClick={onCritique}
+                title="Re-run the red team against the current thesis"
+              >
+                {critiquing ? "Re-running…" : "↻ Re-validate"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="pv-empty">
+            <p className="pv-empty-text">
+              Not validated yet. The red team runs the same seven adversarial
+              lenses a raw idea gets — with live web search for competitors —
+              against the <em>assembled</em> company, scores it, and writes a
+              cheapest-first falsification plan.
+            </p>
+            <button
+              className="btn btn-primary"
+              disabled={critiquing || !hasThesis}
+              onClick={onCritique}
+              title={
+                hasThesis
+                  ? "Run the adversarial red team against this project"
+                  : "Synthesize a plan or consolidate first — there's no thesis to critique yet"
+              }
+            >
+              {critiquing ? "Running the red team…" : "⚔ Validate project"}
+            </button>
+          </div>
+        )}
+      </section>
 
       {vision && (
         <section className="pd-section">

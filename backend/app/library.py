@@ -190,6 +190,8 @@ def _doc_kind(relpath: str, meta: dict) -> str:
     src = str(meta.get("source") or "")
     if relpath == "project.md" or src == "gapfinder-plan":
         return "plan"
+    if relpath == "critique.md" or src == "gapfinder-critique":
+        return "critique"
     if relpath == "consolidation.md" or src == "gapfinder-consolidate":
         return "consolidation"
     if relpath.startswith("ideas/") or src == "gapfinder":
@@ -208,6 +210,12 @@ class ProjectInfo:
     doc_count: int
     idea_count: int
     status: str = "exploring"
+    # The project-level critique score, read from critique.md frontmatter if a
+    # red team has been run. None = not yet validated. Lets the library grid and
+    # dashboard show and compare projects by how well they survived scrutiny.
+    viability: int | None = None
+    confidence: str = ""
+    verdict: str = ""
 
 
 def _doc_title(path: Path, text: str) -> str:
@@ -258,6 +266,21 @@ def _project_info(pdir: Path) -> ProjectInfo:
         status = "exploring"
     mtimes = [p.stat().st_mtime for p in docs] or [pdir.stat().st_mtime]
     updated = datetime.fromtimestamp(max(mtimes), tz=timezone.utc).isoformat(timespec="seconds")
+
+    # Pull the critique score from critique.md's frontmatter, if it's been run.
+    viability: int | None = None
+    confidence = ""
+    verdict = ""
+    crit = pdir / "critique.md"
+    if crit.exists():
+        cmeta, _ = parse_frontmatter(crit.read_text(encoding="utf-8", errors="replace"))
+        try:
+            viability = int(cmeta["viability"]) if cmeta.get("viability") is not None else None
+        except (TypeError, ValueError):
+            viability = None
+        confidence = str(cmeta.get("confidence") or "")
+        verdict = str(cmeta.get("verdict") or "")
+
     return ProjectInfo(
         slug=pdir.name,
         title=title,
@@ -266,6 +289,9 @@ def _project_info(pdir: Path) -> ProjectInfo:
         doc_count=len(docs),
         idea_count=sum(1 for p in docs if p.parent.name == "ideas"),
         status=status,
+        viability=viability,
+        confidence=confidence,
+        verdict=verdict,
     )
 
 
@@ -339,9 +365,11 @@ def list_docs(slug: str) -> list[DocInfo]:
                 developed=bool(meta.get("developed")),
             )
         )
-    # Reading order: the plan spine first, then the consolidation (the synthesis
-    # across ideas), then ideas, then everything else — alphabetical within each.
-    _kind_order = {"plan": 0, "consolidation": 1, "idea": 2, "research": 3, "doc": 4}
+    # Reading order: the plan spine, then the critique (the red team on the whole
+    # bet), the consolidation, ideas, then everything else — alphabetical within.
+    _kind_order = {
+        "plan": 0, "critique": 1, "consolidation": 2, "idea": 3, "research": 4, "doc": 5
+    }
     out.sort(key=lambda d: (_kind_order.get(d.kind, 9), d.path))
     return out
 
