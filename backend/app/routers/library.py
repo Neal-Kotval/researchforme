@@ -153,6 +153,16 @@ def get_library_project(slug: str) -> ProjectOut:
         raise _handle(exc) from exc
 
 
+@router.delete("/library/projects/{slug}")
+def delete_library_project(slug: str) -> dict:
+    """Permanently delete a project folder and all its documents. Irreversible."""
+    try:
+        lib.delete_project(slug)
+        return {"ok": True}
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+
+
 @router.post("/library/projects/{slug}/status", response_model=ProjectOut)
 def set_library_project_status(slug: str, body: StatusBody) -> ProjectOut:
     """Move a project along its lifecycle (exploring/validating/committed/shelved)."""

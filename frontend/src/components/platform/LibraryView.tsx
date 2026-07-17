@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ApiError,
   createLibraryProject,
+  deleteLibraryProject,
   getLibraryRoot,
   listLibraryProjects,
   type LibraryProject,
@@ -62,6 +63,8 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     try {
@@ -94,6 +97,19 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
       setError(e instanceof ApiError ? e.message : "Could not create the project.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const confirmDelete = async (slug: string) => {
+    setDeleting(true);
+    try {
+      await deleteLibraryProject(slug);
+      setPendingDelete(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not delete the project.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -155,36 +171,71 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
       ) : (
         <div className="lib-grid">
           {ordered.map((p) => (
-            <button
-              className="lib-card"
-              key={p.slug}
-              onClick={() => onOpenProject(p.slug)}
-              title={p.verdict || undefined}
-            >
-              <div className="lc-top">
-                <FolderIcon />
-                {p.viability != null && (
-                  <span
-                    className={`lc-score ${scoreBand(p.viability)}${p.validation_stale ? " stale" : ""}`}
-                    title={
-                      p.validation_stale
-                        ? `Score ${p.viability} is stale — the plan was strengthened since. Re-validate to rescore.`
-                        : "Project critique score — how well the assembled bet survived the red team"
-                    }
-                  >
-                    {p.viability}
-                    {p.validation_stale && <span className="lc-score-stale">·stale</span>}
-                  </span>
-                )}
-              </div>
-              <span className="lc-title" title={p.title}>{p.title}</span>
-              {p.verdict && <span className="lc-verdict">{p.verdict}</span>}
-              <div className="lc-meta">
-                <span className={`lc-status st-${p.status}`}>{p.status}</span>
-                <span>{p.idea_count} idea{p.idea_count === 1 ? "" : "s"}</span>
-                <span>{fmtWhen(p.updated_at)}</span>
-              </div>
-            </button>
+            <div className="lib-card-wrap" key={p.slug}>
+              <button
+                className="lib-card"
+                onClick={() => onOpenProject(p.slug)}
+                title={p.verdict || undefined}
+              >
+                <div className="lc-top">
+                  <FolderIcon />
+                  {p.viability != null && (
+                    <span
+                      className={`lc-score ${scoreBand(p.viability)}${p.validation_stale ? " stale" : ""}`}
+                      title={
+                        p.validation_stale
+                          ? `Score ${p.viability} is stale — the plan was strengthened since. Re-validate to rescore.`
+                          : "Project critique score — how well the assembled bet survived the red team"
+                      }
+                    >
+                      {p.viability}
+                      {p.validation_stale && <span className="lc-score-stale">·stale</span>}
+                    </span>
+                  )}
+                </div>
+                <span className="lc-title" title={p.title}>{p.title}</span>
+                {p.verdict && <span className="lc-verdict">{p.verdict}</span>}
+                <div className="lc-meta">
+                  <span className={`lc-status st-${p.status}`}>{p.status}</span>
+                  <span>{p.idea_count} idea{p.idea_count === 1 ? "" : "s"}</span>
+                  <span>{fmtWhen(p.updated_at)}</span>
+                </div>
+              </button>
+
+              <button
+                className="lc-del"
+                title="Delete this project"
+                aria-label={`Delete ${p.title}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPendingDelete(p.slug);
+                }}
+              >
+                ×
+              </button>
+
+              {pendingDelete === p.slug && (
+                <div className="lc-confirm" onClick={(e) => e.stopPropagation()}>
+                  <span className="lc-confirm-q">Delete this project?</span>
+                  <div className="lc-confirm-btns">
+                    <button
+                      className="btn btn-sm lc-confirm-del"
+                      disabled={deleting}
+                      onClick={() => void confirmDelete(p.slug)}
+                    >
+                      {deleting ? "Deleting…" : "Delete"}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={deleting}
+                      onClick={() => setPendingDelete(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

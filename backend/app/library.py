@@ -305,6 +305,25 @@ def _project_info(pdir: Path) -> ProjectInfo:
     )
 
 
+def delete_project(slug: str) -> None:
+    """Remove a project directory and everything in it. Irreversible.
+
+    Guarded by ``safe_path`` (must resolve under the library root) and a
+    directory check, so a traversal or a stray file can't be used to delete
+    anything outside a project folder. These are the user's files — the app can
+    delete a project it can see, and nothing else.
+    """
+    import shutil
+
+    pdir = safe_path(ensure_root(), slug)
+    if not pdir.is_dir():
+        raise LibraryError(f"No such project: {slug!r}")
+    if pdir.resolve().parent != ensure_root().resolve():
+        # A project is always a direct child of the root; refuse anything else.
+        raise LibraryError("Refusing to delete a path that is not a project folder.")
+    shutil.rmtree(pdir)
+
+
 def get_project(slug: str) -> ProjectInfo:
     pdir = safe_path(ensure_root(), slug)
     if not pdir.is_dir():

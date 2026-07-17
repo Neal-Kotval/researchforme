@@ -395,6 +395,13 @@ export function getLibraryProject(slug: string): Promise<LibraryProject> {
   return request<LibraryProject>(`/api/library/projects/${encodeURIComponent(slug)}`);
 }
 
+/** Permanently delete a project folder and all its documents. Irreversible. */
+export function deleteLibraryProject(slug: string): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/api/library/projects/${encodeURIComponent(slug)}`, {
+    method: "DELETE",
+  });
+}
+
 export function setProjectStatus(slug: string, status: string): Promise<LibraryProject> {
   return request<LibraryProject>(`/api/library/projects/${encodeURIComponent(slug)}/status`, {
     method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ status }),
