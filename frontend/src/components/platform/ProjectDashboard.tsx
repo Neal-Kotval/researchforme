@@ -10,13 +10,17 @@ interface Props {
   onOpenDoc: (path: string) => void;
   onConsolidate: () => void;
   consolidating: boolean;
-  // Validation (the project red team).
+  // Validation (the project red team) + the improve loop.
   viability: number | null;
   confidence: string;
   verdict: string;
+  validationStale: boolean;           // plan revised after the critique
   onCritique: () => void;
   critiquing: boolean;
   hasThesis: boolean;                 // a plan or consolidation exists to critique
+  hasCritique: boolean;               // a critique exists to strengthen against
+  onImprove: () => void;
+  improving: boolean;
 }
 
 /** Score band → label + class, matching the exploration engine's read. */
@@ -86,9 +90,13 @@ export default function ProjectDashboard({
   viability,
   confidence,
   verdict,
+  validationStale,
   onCritique,
   critiquing,
   hasThesis,
+  hasCritique,
+  onImprove,
+  improving,
 }: Props) {
   const secs = useMemo(() => sections(planBody ?? ""), [planBody]);
 
@@ -147,7 +155,7 @@ export default function ProjectDashboard({
         <h4 className="pd-cap">Validation — the red team on the whole bet</h4>
         {viability != null ? (
           <div className="pv-result">
-            <div className={`pv-score ${band(viability).cls}`}>
+            <div className={`pv-score ${band(viability).cls}${validationStale ? " stale" : ""}`}>
               <span className="pv-score-n">{viability}</span>
               <span className="pv-score-d">/100</span>
             </div>
@@ -158,15 +166,33 @@ export default function ProjectDashboard({
                 </span>
                 <span className="pv-conf">confidence: {confidence || "—"}</span>
               </div>
+              {validationStale && (
+                <div className="pv-stale">
+                  The plan was strengthened since this score — re-validate to
+                  score the new version.
+                </div>
+              )}
               {verdict && <p className="pv-verdict">{verdict}</p>}
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={critiquing}
-                onClick={onCritique}
-                title="Re-run the red team against the current thesis"
-              >
-                {critiquing ? "Re-running…" : "↻ Re-validate"}
-              </button>
+              <div className="pv-actions">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  disabled={critiquing}
+                  onClick={onCritique}
+                  title="Re-run the red team against the current thesis"
+                >
+                  {critiquing ? "Re-running…" : "↻ Re-validate"}
+                </button>
+                {hasCritique && (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={improving}
+                    onClick={onImprove}
+                    title="Rewrite the plan to confront the critique: narrow to the strongest wedge, cut what doesn't belong, schedule the falsification tests."
+                  >
+                    {improving ? "Strengthening…" : "↑ Strengthen against the critique"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ) : (

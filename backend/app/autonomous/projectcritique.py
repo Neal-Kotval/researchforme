@@ -260,19 +260,23 @@ def _synthetic_gap(project_title: str, thesis_md: str, obj: dict) -> Gap:
 # Project-calibrated scoring deltas. Deliberately NOT the gap constants.
 #
 # A rigorous red team of a real COMPANY weakens on nearly every lens — every
-# genuine business has seven honest concerns, so "weakens" is the expected
-# baseline, not a ding worth -9. At the gap calibration, six weakens (-54) score
-# LOWER than a single fatal kill (capped at 40) — so a project with six manageable
-# concerns would rank below one with a fatal flaw. That is backwards.
+# genuine business has honest concerns on every axis, so "weakens" is the
+# EXPECTED BASELINE, not a real ding. The signal that separates projects is
+# kills (fatal, structural) and survives (a genuine, hard-won strength), not the
+# count of concerns. So weakens are gently penalized (-3), a kill is fatal and
+# dominates via the cap, a survival is a real positive worth chasing (+7), and
+# unmeasured is zero — an open question to go resolve, surfaced separately.
 #
-# Here a weaken is a mild -5 (present but survivable), a kill is fatal and
-# dominates via the cap, a survival is a real, rare positive, and unmeasured is
-# zero — an open question to go resolve, surfaced separately, never a free pass
-# and never a penalty for our failure to settle it.
-_P_SURVIVE = 6.0
-_P_WEAKEN = 5.0
-_P_KILL = 22.0
-_P_KILL_CAP = 42.0
+# The earlier calibration (-5/weaken) was still too harsh: a real early-stage bet
+# that weakens everywhere and has one fatal flaw landed at 0, which reads as
+# "dead" when the honest verdict is "unproven, one thing to fix". A project with
+# NO kill is never dead — at worst it is unproven; only a kill takes it toward
+# zero. (This mirrors the day's lesson from the other direction: don't let an
+# unproven-but-alive bet score like a disproven one.)
+_P_SURVIVE = 7.0
+_P_WEAKEN = 3.0
+_P_KILL = 20.0
+_P_KILL_CAP = 40.0
 
 
 def _score_project(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:

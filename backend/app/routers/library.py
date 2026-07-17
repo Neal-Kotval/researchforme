@@ -37,6 +37,7 @@ class ProjectOut(BaseModel):
     viability: int | None = None    # project critique score, if run
     confidence: str = ""
     verdict: str = ""
+    validation_stale: bool = False  # plan revised after the critique was written
 
 
 class StatusBody(BaseModel):
@@ -368,6 +369,83 @@ async def critique_library_project(slug: str) -> CritiqueResult:
         confidence=crit.confidence,
         verdict_line=crit.verdict_line,
     )
+
+
+class ImproveResult(BaseModel):
+    path: str
+    title: str
+
+
+@router.post("/library/projects/{slug}/improve", response_model=ImproveResult)
+async def improve_library_project(slug: str) -> ImproveResult:
+    """Strengthen the plan against its own critique — the generative half of the loop.
+
+    Reads the current plan and the critique of it, and rewrites the plan to
+    confront the findings: narrow to the strongest wedge, cut what the red team
+    said doesn't belong, schedule the falsification, and confront the moat
+    honestly. Overwrites ``project.md``. The critique is left in place but is now
+    older than the plan, so the dashboard marks its score stale and invites a
+    re-validation — the honest loop is critique → strengthen → re-validate, and
+    the score moves only if the substance did. 400 if there's no critique yet;
+    503 (never a fabricated revision) if no backend can produce one.
+    """
+    from ..autonomous.improve import ImproveUnavailable, improve_project
+    from ..config import get_settings
+    from ..llm.client import get_client
+
+    try:
+        project = lib.get_project(slug)
+        docs = lib.list_docs(slug)
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+
+    plan = next((d for d in docs if d.kind == "plan"), None)
+    critique = next((d for d in docs if d.kind == "critique"), None)
+    if plan is None:
+        raise HTTPException(status_code=400, detail="No plan to strengthen.")
+    if critique is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No critique to strengthen against — run Validate first.",
+        )
+
+    plan_text, plan_mtime = lib.read_doc(slug, plan.path)
+    plan_meta, plan_body = lib.parse_frontmatter(plan_text)
+    critique_text, _ = lib.read_doc(slug, critique.path)
+
+    try:
+        improved = await improve_project(
+            project.title, plan_body, critique_text, get_client(), get_settings().llm_model
+        )
+    except ImproveUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("improve failed for slug=%r", slug)
+        raise HTTPException(
+            status_code=500, detail=f"Could not strengthen: {type(exc).__name__}."
+        ) from exc
+
+    # Preserve identity/lifecycle frontmatter; mark it a revision.
+    meta = {
+        "title": plan_meta.get("title") or project.title,
+        "status": plan_meta.get("status") or project.status,
+        "source": "gapfinder-plan",
+        "revised": True,
+    }
+    if plan_meta.get("created_at"):
+        meta["created_at"] = plan_meta["created_at"]
+    try:
+        doc = lib.write_doc(
+            slug,
+            plan.path,
+            lib.render_frontmatter(meta) + improved + "\n",
+            base_mtime=plan_mtime,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise _handle(exc) from exc
+    return ImproveResult(path=doc.path, title=doc.title)
 
 
 @router.post("/library/import", response_model=ImportResult)

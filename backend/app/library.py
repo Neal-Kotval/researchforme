@@ -216,6 +216,10 @@ class ProjectInfo:
     viability: int | None = None
     confidence: str = ""
     verdict: str = ""
+    # True when the plan was revised AFTER the critique was written, so the score
+    # describes a plan that no longer exists — the UI invites a re-validation
+    # rather than showing a stale number as current.
+    validation_stale: bool = False
 
 
 def _doc_title(path: Path, text: str) -> str:
@@ -271,6 +275,7 @@ def _project_info(pdir: Path) -> ProjectInfo:
     viability: int | None = None
     confidence = ""
     verdict = ""
+    validation_stale = False
     crit = pdir / "critique.md"
     if crit.exists():
         cmeta, _ = parse_frontmatter(crit.read_text(encoding="utf-8", errors="replace"))
@@ -280,6 +285,10 @@ def _project_info(pdir: Path) -> ProjectInfo:
             viability = None
         confidence = str(cmeta.get("confidence") or "")
         verdict = str(cmeta.get("verdict") or "")
+        # Stale when the plan was rewritten after the critique — the score then
+        # describes a plan that no longer exists.
+        if main.exists() and main.stat().st_mtime > crit.stat().st_mtime + 1:
+            validation_stale = True
 
     return ProjectInfo(
         slug=pdir.name,
@@ -292,6 +301,7 @@ def _project_info(pdir: Path) -> ProjectInfo:
         viability=viability,
         confidence=confidence,
         verdict=verdict,
+        validation_stale=validation_stale,
     )
 
 

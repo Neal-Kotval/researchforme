@@ -309,6 +309,8 @@ export interface LibraryProject {
   viability?: number | null;
   confidence?: string;
   verdict?: string;
+  /** The plan was revised after the critique — the score is stale. */
+  validation_stale?: boolean;
 }
 
 export interface CritiqueResult {
@@ -470,6 +472,15 @@ export function consolidateProject(slug: string): Promise<{ path: string; title:
 export function critiqueProject(slug: string): Promise<CritiqueResult> {
   return request<CritiqueResult>(
     `/api/library/projects/${encodeURIComponent(slug)}/critique`,
+    { method: "POST", headers: JSON_HEADERS },
+  );
+}
+
+/** Strengthen the plan against its own critique — narrow, cut, schedule the
+ *  tests. Overwrites project.md; the critique becomes stale. Slow (one pass). */
+export function improveProject(slug: string): Promise<{ path: string; title: string }> {
+  return request<{ path: string; title: string }>(
+    `/api/library/projects/${encodeURIComponent(slug)}/improve`,
     { method: "POST", headers: JSON_HEADERS },
   );
 }
