@@ -716,6 +716,7 @@ _SURVIVE_BONUS = 6.0
 _WEAKEN_PENALTY = 9.0
 _KILL_PENALTY = 26.0
 _KILL_CAP = 40          # a gap with any kill verdict cannot score above this
+_UNTESTED_CAP = 45      # a gap whose red team never ran (all-unmeasured) can't read "strong"
 
 # Obviousness penalty / originality bonus, applied from gap.novelty (1..5).
 # `novelty` was collected, shown to the red team, used as a moat proxy in the
@@ -771,6 +772,18 @@ def score_viability(gap: Gap, test: PressureTest) -> tuple[int, Confidence]:
 
     if killed:
         viability = min(viability, float(_KILL_CAP))
+
+    # A red team that NEVER RAN cannot certify a gap as strong. When every lens is
+    # unmeasured (the model failed and the deterministic fallback filled them all
+    # in), viability is just the gap's OWN self-reported composite with no
+    # adversarial adjustment — and that self-report can be high. Observed: gaps
+    # showing 77 with 0/3 real lenses, an untested number reading as "strong". Cap
+    # a fully-untested gap at a modest ceiling: it is a candidate to go test, not
+    # a validated bet. (Confidence already flags it low; this stops the NUMBER
+    # from lying.)
+    unmeasured = _unmeasured_count(test.lenses)
+    if test.lenses and unmeasured == len(test.lenses):
+        viability = min(viability, float(_UNTESTED_CAP))
 
     viability_int = int(max(0, min(100, round(viability))))
     corroboration = sum(len(lv.evidence) for lv in test.lenses)
