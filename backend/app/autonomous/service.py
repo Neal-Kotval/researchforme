@@ -52,8 +52,15 @@ from .engine import (
     expand_structural,
     is_duplicate_title,
     kind_is_structural,
+    make_node,
     node_priority,
     root_node,
+)
+from .evolve import (
+    crossover_gaps,
+    mutate_gap,
+    select_crossover_pairs,
+    select_mutation_targets,
 )
 from .fit import score_founder_fit
 from .governor import UsageGovernor, get_governor
@@ -144,6 +151,20 @@ _BASE_PRESSURE = 1500
 _BASE_FIT = 900  # founder-fit judge: steering block + gap payload, tiny output
 _BASE_DIGEST = 900  # end-of-run digest: gap summaries + steering, small output
 _BASE_PACK = 3500  # research pack: strong model over the full gap payload
+_BASE_EVOLVE = 1800  # crossover/mutation operator: two-parent payload, one gap out
+
+# Evolutionary recombination: how many generations to run once the top-down
+# frontier drains, and how many offspring to attempt per generation. Bounded so a
+# tree "spins" a while chasing non-obvious hybrids without running forever — the
+# hard budget/node/time caps still apply on every loop iteration.
+_MAX_GENERATIONS = 5
+_OFFSPRING_PER_GEN = 6
+# Viability at or above which a gap earns the expensive validation enrichment
+# (value model + novelty scan), even if it didn't clear the ⭐ star bar (75). The
+# honest score distribution clusters the strongest gaps in the high 60s/low 70s —
+# just under the star — so a star-only gate would almost never run the very
+# analysis the founder asked for. This floor targets the top ~2-3 gaps per tree.
+_ENRICH_FLOOR = 62
 
 # States a project rests in permanently until a user action restarts it.
 _TERMINAL: frozenset[ProjectStatus] = frozenset(
@@ -189,6 +210,8 @@ class _Runtime:
     next_milestone: int = 0
     last_mode: Optional[ExplorerMode] = None
     pending_start: bool = False  # start() was called with no running loop; retry later
+    generations: int = 0  # evolutionary recombination rounds run after the frontier drained
+    recombined: set[str] = field(default_factory=set)  # offspring node ids already minted
 
 
 # --------------------------------------------------------------------------- #
@@ -696,6 +719,18 @@ class ExplorerService:
                     if extra:
                         rt.frontier.push_all(extra)
                         continue
+                    # The tree's top-down search has drained — every space worth
+                    # branching has been branched. Before declaring the run
+                    # exhausted, run an evolutionary GENERATION: cross and mutate
+                    # the gap pool to reach ideas decomposition structurally
+                    # cannot (non-obvious hybrids, contrarian twists). Offspring
+                    # are scored through the same gauntlet; genuinely-new ones
+                    # keep the run alive (loop-until-dry, capped).
+                    produced = await self._recombine_generation(
+                        rt, project, mode, spent
+                    )
+                    if produced > 0:
+                        continue
                     await self._finish(
                         project_id,
                         ("exhausted", "Frontier exhausted — no more nodes to explore."),
@@ -810,63 +845,11 @@ class ExplorerService:
 
         for child in children:
             if child.kind is NodeKind.GAP_CANDIDATE and child.gap is not None:
-                # Show the candidate mid-gauntlet so the live tree can pulse it.
-                child.state = NodeState.PRESSURE_TESTING
-                self._save_node(child, EventType.NODE_ADDED)
                 new_candidates += 1
-
-                rigor = self.governor.rigor_for(budget, spent)
-                # Wire the live-corroboration seam (SPEC §5): at standard/deep
-                # rigor the red team can pull fresh evidence from real sources to
-                # verify a kill or rescue; light rigor stays tool-free and cheap.
-                tools, url_sink = corroboration_tools_for(
-                    node, child.gap.sub_segment, project, rigor
+                cand_tokens, viability = await self._score_gap_candidate(
+                    rt, project, node, child, budget, spent
                 )
-                test = await pressure_test(
-                    child.gap,
-                    child.rationale,
-                    self.client,
-                    project.pressure_model,
-                    rigor,
-                    tools=tools,
-                    url_sink=url_sink,
-                )
-                viability, confidence = score_viability(child.gap, test)
-
-                # Adversarial self-critique (SPEC feature C): after scoring, a
-                # cheap meta-pass records the single strongest reason the score
-                # is wrong. Gated to real rigor so light/curbing stays cheap.
-                if rigor in _CORROBORATION_RIGORS:
-                    test.self_critique = await adversarial_self_critique(
-                        child.gap, viability, test, self.client, project.pressure_model
-                    )
-
-                # Founder fit (orthogonal to viability): one cheap-model call
-                # grading "is this space for YOU" against the steering context.
-                # Skipped entirely (fit stays None) when no steering was given;
-                # degrades to None on any LLM/parse failure — never fabricated.
-                if steering_context_block(project):
-                    fit, fit_reason = await score_founder_fit(
-                        child.gap, viability, project, self.client,
-                        project.decompose_model,
-                    )
-                    child.fit = fit
-                    child.fit_reason = fit_reason
-                    step_tokens += self._est(_BASE_FIT, len(fit_reason))
-
-                child.pressure_test = test
-                child.viability = viability
-                child.confidence = confidence
-                child.star = (
-                    viability >= budget.star_threshold and confidence != "low"
-                )
-                child.kind = NodeKind.GAP
-                child.state = NodeState.SCORED
-                self._save_node(child, EventType.NODE_UPDATED)
-
-                step_tokens += self._est(
-                    _BASE_PRESSURE, len(test.model_dump_json())
-                )
+                step_tokens += cand_tokens
                 new_gaps += 1
                 if child.star:
                     new_stars += 1
@@ -919,6 +902,90 @@ class ExplorerService:
             f"({new_gaps} scored gaps, {new_stars}★).",
         )
 
+    async def _score_gap_candidate(
+        self,
+        rt: _Runtime,
+        project: Project,
+        parent_node: Node,
+        child: Node,
+        budget: Budget,
+        spent: int,
+    ) -> tuple[int, int]:
+        """Drag ONE gap candidate through the full gauntlet and promote it.
+
+        Pressure-test (rigor from the governor, live-corroboration tools at real
+        rigor) → viability + confidence → adversarial self-critique → founder fit
+        → ⭐ → promote ``GAP_CANDIDATE`` to ``GAP``. Mutates ``child`` in place and
+        persists it. Returns ``(estimated_tokens, viability)``.
+
+        Extracted so BOTH the segment-synthesis loop and the evolutionary
+        recombination pass score offspring through the identical path — a bad
+        crossover dies in the same gauntlet as any synthesized gap. Never raises
+        (the callers already run under a guard).
+        """
+        # Show the candidate mid-gauntlet so the live tree can pulse it.
+        child.state = NodeState.PRESSURE_TESTING
+        self._save_node(child, EventType.NODE_ADDED)
+        step_tokens = 0
+
+        rigor = self.governor.rigor_for(budget, spent)
+        # Wire the live-corroboration seam (SPEC §5): at standard/deep rigor the
+        # red team can pull fresh evidence from real sources to verify a kill or
+        # rescue; light rigor stays tool-free and cheap.
+        tools, url_sink = corroboration_tools_for(
+            parent_node, child.gap.sub_segment, project, rigor
+        )
+        test = await pressure_test(
+            child.gap,
+            child.rationale,
+            self.client,
+            project.pressure_model,
+            rigor,
+            tools=tools,
+            url_sink=url_sink,
+        )
+        viability, confidence = score_viability(child.gap, test)
+
+        # Adversarial self-critique (SPEC feature C): after scoring, a cheap
+        # meta-pass records the single strongest reason the score is wrong. Gated
+        # to real rigor so light/curbing stays cheap.
+        if rigor in _CORROBORATION_RIGORS:
+            test.self_critique = await adversarial_self_critique(
+                child.gap, viability, test, self.client, project.pressure_model
+            )
+
+        # Founder fit (orthogonal to viability): one cheap-model call grading "is
+        # this space for YOU" against the steering context. Skipped entirely (fit
+        # stays None) when no steering was given; degrades to None on any
+        # LLM/parse failure — never fabricated.
+        if steering_context_block(project):
+            fit, fit_reason = await score_founder_fit(
+                child.gap, viability, project, self.client,
+                project.decompose_model,
+            )
+            child.fit = fit
+            child.fit_reason = fit_reason
+            step_tokens += self._est(_BASE_FIT, len(fit_reason))
+
+        child.pressure_test = test
+        child.viability = viability
+        child.confidence = confidence
+        child.star = viability >= budget.star_threshold and confidence != "low"
+        child.kind = NodeKind.GAP
+        child.state = NodeState.SCORED
+        self._save_node(child, EventType.NODE_UPDATED)
+
+        step_tokens += self._est(_BASE_PRESSURE, len(test.model_dump_json()))
+
+        # Winner-only validation enrichment (active-learning: expensive analysis
+        # runs on the ideas that cleared the bar, not every candidate). Models the
+        # status-quo cost + ROI delta and places the gap against funded incumbents.
+        # Best-effort: never raises, never alters the calibrated viability.
+        if (child.star or viability >= _ENRICH_FLOOR) and rigor in _CORROBORATION_RIGORS:
+            step_tokens += await self._enrich_winner(project, child)
+
+        return step_tokens, viability
+
     # ------------------------------------------------------------------ #
     # Stop conditions, milestones, completeness                           #
     # ------------------------------------------------------------------ #
@@ -969,6 +1036,187 @@ class ExplorerService:
         (SPEC P5) that could re-inject skipped modalities.
         """
         return []
+
+    async def _enrich_winner(self, project: Project, child: Node) -> int:
+        """Attach value-model + novelty-scan to a starred gap. Returns est. tokens.
+
+        Both degrade to None on any failure and leave the node's score untouched —
+        this is decision-support the founder asked for (current-state cost → ROI
+        delta) plus a reality check against funded incumbents, not a re-score.
+        """
+        from .novelty import novelty_scan
+        from .valuemodel import model_value
+
+        est = 0
+        try:
+            value, novelty = await asyncio.gather(
+                model_value(child.gap, project, self.client, project.pressure_model),
+                novelty_scan(child.gap, self.client, project.pressure_model),
+                return_exceptions=True,
+            )
+        except Exception:  # noqa: BLE001 - enrichment must never break scoring.
+            return 0
+        if value is not None and not isinstance(value, BaseException):
+            child.value_model = value.model_dump()
+            est += self._est(_BASE_FIT, len(child.value_model.get("annual_value", "")))
+        if novelty is not None and not isinstance(novelty, BaseException):
+            child.novelty_scan = novelty.model_dump()
+            est += self._est(_BASE_PRESSURE, len(novelty.model_dump().get("rationale", "")))
+        if child.value_model or child.novelty_scan:
+            self._save_node(child, EventType.NODE_UPDATED)
+        return est
+
+    # ------------------------------------------------------------------ #
+    # Evolutionary recombination — crossover + mutation over the gap pool #
+    # ------------------------------------------------------------------ #
+    async def _recombine_generation(
+        self, rt: _Runtime, project: Project, mode: ExplorerMode, spent: int
+    ) -> int:
+        """Run ONE evolutionary generation over the scored gap pool.
+
+        Top-down decomposition only ever reaches ideas that enumeration finds —
+        the obvious, already-occupied ones. This is the move it structurally
+        cannot make: take the gaps already found and CROSS them (fuse two into a
+        non-obvious hybrid) and MUTATE them (twist one along a creative axis —
+        invert the buyer, flip the model, go contrarian). Parents are picked for
+        viability AND novelty AND distance, so the pool diversifies instead of
+        converging (quality-diversity).
+
+        Offspring become ``GAP_CANDIDATE`` nodes scored through the exact same
+        gauntlet as any synthesized gap (:meth:`_score_gap_candidate`), so a weak
+        recombination dies like anything else. Returns the number of NEW scored
+        gaps minted — a positive count keeps the run alive for another generation
+        (loop-until-dry), zero lets it exhaust. Never raises.
+        """
+        # Bounded number of generations — the tree "spins" a while, not forever.
+        if rt.generations >= _MAX_GENERATIONS:
+            return 0
+        # A fixture backend can't fuse or twist anything — it returns canned text.
+        if getattr(self.client, "backend", "") == "fixture":
+            return 0
+
+        try:
+            nodes = self.store.get_nodes(project.id)
+        except Exception:  # noqa: BLE001 - a read failure must not stall the loop.
+            return 0
+        gap_nodes = [
+            n for n in nodes
+            if n.kind is NodeKind.GAP and n.gap is not None and n.viability is not None
+        ]
+        if len(gap_nodes) < 2:  # need a pool to recombine.
+            return 0
+
+        rt.generations += 1
+        by_title = {n.gap.title.lower(): n for n in gap_nodes}
+        scored = [(n.gap, n.viability) for n in gap_nodes]
+        steering = steering_context_block(project) or ""
+        model = project.synth_model
+
+        # Split this generation's offspring budget between fusion and twisting.
+        n_cross = max(1, _OFFSPRING_PER_GEN // 2)
+        n_mut = _OFFSPRING_PER_GEN - n_cross
+        pairs = select_crossover_pairs(scored, n_cross)
+        muts = select_mutation_targets(scored, n_mut)
+
+        self._log(
+            project.id,
+            f"Recombination gen {rt.generations}: crossing {len(pairs)} pair(s), "
+            f"mutating {len(muts)} idea(s) from a pool of {len(gap_nodes)}.",
+        )
+
+        # Run every operator concurrently, each in a shared governor slot.
+        async def _cross(a: Gap, b: Gap):
+            async with self.governor.slot():
+                child = await crossover_gaps(a, b, self.client, model, steering)
+            return ("crossover", a, child)
+
+        async def _mut(g: Gap, strat: str):
+            async with self.governor.slot():
+                child = await mutate_gap(g, strat, self.client, model, steering)
+            return (f"mut:{strat}", g, child)
+
+        ops = [_cross(a, b) for a, b in pairs] + [_mut(g, s) for g, s in muts]
+        outcomes = await asyncio.gather(*ops, return_exceptions=True)
+
+        # Turn valid offspring into GAP_CANDIDATE nodes, deduped against the pool.
+        proposed = {t.lower() for t in self._proposed_gap_titles(project.id)}
+        candidates: list[Node] = []
+        parent_of: dict[str, Node] = {}  # offspring node id -> its parent gap node
+        for outcome in outcomes:
+            if isinstance(outcome, BaseException):
+                continue
+            origin, parent_gap, child_gap = outcome
+            if child_gap is None:
+                continue
+            title_key = child_gap.title.strip().lower()
+            if not title_key or title_key in proposed:
+                continue  # duplicate name of something already in the tree.
+            parent_node = by_title.get(parent_gap.title.lower())
+            if parent_node is None:
+                continue
+            child = make_node(
+                project.id, parent_node, NodeKind.GAP_CANDIDATE,
+                child_gap.title,
+                rationale=f"Evolutionary offspring ({origin}) of "
+                          f"'{parent_gap.title}'. {child_gap.thesis}",
+                keywords=list(child_gap.tags or []),
+                depth=parent_node.depth + 1,
+            )
+            if child.id in rt.recombined:  # already minted in a prior generation.
+                continue
+            child.gap = child_gap
+            rt.recombined.add(child.id)
+            proposed.add(title_key)
+            parent_of[child.id] = parent_node
+            candidates.append(child)
+
+        if not candidates:
+            return 0
+
+        # Synonym dedup (cheap model) before paying Opus to red-team offspring.
+        candidates = await self._drop_semantic_duplicates(project, candidates)
+        if not candidates:
+            return 0
+
+        # Score each offspring through the identical gauntlet.
+        budget = project.budget
+        step_tokens = 0
+        new_gaps = new_stars = 0
+        max_viab = 0
+        for child in candidates:
+            parent_node = parent_of.get(child.id) or child
+            try:
+                cand_tokens, viability = await self._score_gap_candidate(
+                    rt, project, parent_node, child, budget, spent
+                )
+            except Exception:  # noqa: BLE001 - one bad offspring can't sink the gen.
+                continue
+            step_tokens += cand_tokens + self._est(_BASE_EVOLVE, 0)
+            new_gaps += 1
+            if child.star:
+                new_stars += 1
+            max_viab = max(max_viab, viability)
+
+        self.governor.record_usage(step_tokens)
+
+        def _stats(p: Project) -> None:
+            s = p.stats
+            s.tokens_spent += step_tokens
+            s.nodes += len(candidates)
+            s.candidates += len(candidates)
+            s.gaps += new_gaps
+            s.stars += new_stars
+            if max_viab > s.max_viability:
+                s.max_viability = max_viab
+            s.mode = mode
+
+        self._mutate(project_id=project.id, fn=_stats)
+        self._log(
+            project.id,
+            f"Recombination gen {rt.generations} → {new_gaps} offspring scored, "
+            f"{new_stars}★ (best {max_viab}).",
+        )
+        return new_gaps
 
     # ------------------------------------------------------------------ #
     # Status transitions (all guarded, all through the store)             #

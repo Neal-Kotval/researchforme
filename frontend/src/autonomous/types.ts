@@ -79,6 +79,33 @@ export interface PressureTest {
   self_critique: string;
 }
 
+/** Costed status-quo → ROI case, run on ⭐ gaps (see Node.value_model). */
+export interface ValueModel {
+  status_quo: string;
+  current_cost: string;
+  cost_drivers: string[];
+  solution_delta: string;
+  annual_value: string;
+  assumptions: string[];
+  confidence: string;
+}
+
+/** One real, funded company that sits near a gap. */
+export interface NearestCompany {
+  name: string;
+  url: string;
+  why_similar: string;
+  funded: string;
+}
+
+/** Distance from the nearest funded incumbent (see Node.novelty_scan). */
+export interface NoveltyScan {
+  nearest_known: NearestCompany[];
+  novelty_0_100: number;
+  verdict: string;
+  rationale: string;
+}
+
 export interface TreeNode {
   id: string;
   project_id: string;
@@ -99,6 +126,10 @@ export interface TreeNode {
    *  or scoring unavailable — render nothing for null, never a fake 0. */
   fit: number | null;
   fit_reason: string;
+  /** Validation enrichment, run only on ⭐ gaps (cost tracks winners). null =
+   *  not run / unavailable — render nothing for null, never a placeholder. */
+  value_model: ValueModel | null;
+  novelty_scan: NoveltyScan | null;
   /** Engine star: auto-set when viability clears the project's star_threshold.
    *  A measurement — the user never writes it. */
   star: boolean;

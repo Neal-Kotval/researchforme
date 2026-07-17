@@ -111,6 +111,14 @@ class Node(BaseModel):
     # or scoring unavailable — never fabricated. Mirrors types.ts.
     fit: Optional[int] = None
     fit_reason: str = ""
+    # Validation enrichment (run only on ⭐ gaps, so cost tracks winners):
+    #   value_model — status-quo cost this gap attacks + defensible annual ROI
+    #                 (the founder's "model the current state and the delta" ask).
+    #   novelty_scan — nearest funded companies + how much open space remains.
+    # Stored as plain dicts (the source models live in valuemodel.py / novelty.py)
+    # to keep the Node schema decoupled; None = not run or unavailable.
+    value_model: Optional[dict] = None
+    novelty_scan: Optional[dict] = None
     # Engine star: auto-set when viability clears ``Budget.star_threshold``. This
     # is a *measurement*, so the user never writes it — overloading it with a
     # manual favourite would corrupt the stars stat and the idle-deepening rule,

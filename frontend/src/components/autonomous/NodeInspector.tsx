@@ -803,6 +803,94 @@ export default function NodeInspector({
         </div>
       )}
 
+      {/* Value model — the costed status-quo → ROI case (⭐ gaps only). The
+          founder asked for a validation step that models the current state and
+          how much cost the idea removes; this renders it when present. */}
+      {node.value_model && (
+        <div className="detail-block value-block">
+          <h4>
+            What it's worth
+            {node.value_model.confidence && (
+              <span className={`value-conf ${node.value_model.confidence}`}>
+                {node.value_model.confidence} confidence
+              </span>
+            )}
+          </h4>
+          {node.value_model.annual_value && (
+            <div className="value-headline">{node.value_model.annual_value}</div>
+          )}
+          <div className="kv-grid">
+            {node.value_model.status_quo && (
+              <div className="kv">
+                <div className="kv-k">Status quo today</div>
+                <div className="kv-v">{node.value_model.status_quo}</div>
+              </div>
+            )}
+            {node.value_model.current_cost && (
+              <div className="kv">
+                <div className="kv-k">What that costs</div>
+                <div className="kv-v">{node.value_model.current_cost}</div>
+              </div>
+            )}
+            {node.value_model.solution_delta && (
+              <div className="kv">
+                <div className="kv-k">How this cuts it</div>
+                <div className="kv-v">{node.value_model.solution_delta}</div>
+              </div>
+            )}
+          </div>
+          {node.value_model.cost_drivers.length > 0 && (
+            <div className="value-drivers">
+              {node.value_model.cost_drivers.map((d, i) => (
+                <span className="value-chip" key={i}>{d}</span>
+              ))}
+            </div>
+          )}
+          {node.value_model.assumptions.length > 0 && (
+            <div className="value-assump">
+              <span className="fr-k">Rests on</span>
+              <ul>
+                {node.value_model.assumptions.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Novelty scan — how much open space is left above funded incumbents.
+          Directly answers the founder's recurring "is this already occupied?". */}
+      {node.novelty_scan && (
+        <div className="detail-block novelty-block">
+          <h4>
+            Open space
+            <span className={`novelty-verdict ${node.novelty_scan.verdict}`}>
+              {node.novelty_scan.verdict || "—"} · {node.novelty_scan.novelty_0_100}/100
+            </span>
+          </h4>
+          {node.novelty_scan.rationale && <p className="novelty-why">{node.novelty_scan.rationale}</p>}
+          {node.novelty_scan.nearest_known.length > 0 && (
+            <div className="novelty-near">
+              <span className="fr-k">Nearest funded</span>
+              {node.novelty_scan.nearest_known.map((c, i) => (
+                <div className="near-co" key={i}>
+                  <div className="near-head">
+                    {c.url ? (
+                      <a href={c.url} target="_blank" rel="noreferrer">{c.name || c.url}</a>
+                    ) : (
+                      <span>{c.name || "—"}</span>
+                    )}
+                    {c.funded && <span className="near-funded">{c.funded}</span>}
+                  </div>
+                  {c.why_similar && <div className="near-why">{c.why_similar}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* base scores */}
       <div className="detail-scorebar">
         {SCORE_KEYS.map((k) => (

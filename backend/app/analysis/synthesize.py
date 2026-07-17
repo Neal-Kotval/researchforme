@@ -209,6 +209,18 @@ An observability/dev-tool framing is allowed — but only when it genuinely beat
 these alternatives, not by default. If several gaps in one batch share a shape,
 that is a signal you stopped thinking; diversify them.
 
+# SAMPLE FROM THE TAIL, NOT THE MODE
+You were trained to emit the single most typical answer — which, for "find a
+market gap", is exactly the obvious idea a hundred other founders already had.
+Fight that. Before you write, silently enumerate the range of framings this
+evidence could support, from the most obvious (highest-probability, what everyone
+would say first) to the genuinely non-obvious (low-probability, what a domain
+insider would say only after thinking). Deliberately spend most of your gaps in
+the lower-probability tail — the surprising-but-defensible reads — and include an
+obvious framing only if it is truly strong. A gap a smart outsider would have
+guessed in ten seconds is worth little; the ones worth returning are the ones
+that made even you pause.
+
 # OUTPUT CONTRACT — STRICT
 Return ONLY a top-level JSON array (no prose, no markdown fences) of 0-8 gap
 objects — return ONLY what the evidence supports; returning fewer (or zero)
