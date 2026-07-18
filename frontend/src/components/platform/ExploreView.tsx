@@ -10,6 +10,7 @@ import {
 } from "../../autonomous/types";
 import { ACTIVE_STATUSES, latestActive } from "../../hooks/useProjects";
 import ViabChip from "../autonomous/ViabChip";
+import FitChip from "../autonomous/FitChip";
 import { Button, Card, Chip, EmptyState, Segmented } from "../ui";
 import { RunCard, type RunControlReq } from "../ui/RunCard";
 
@@ -185,6 +186,7 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
               {gaps.map((g) => (
                 <button key={g.id} className="ui-row" onClick={() => onOpenNode(pid, g.id)}>
                   <ViabChip value={g.viability} trust={nodeTrust(g)} star={g.star} />
+                  <FitChip value={g.fit} labeled />
                   <div className="ui-row-main">
                     <div className="ui-row-title">{g.gap?.title ?? g.title}</div>
                     <div className="ui-row-cap">{gapStatus(g)}</div>

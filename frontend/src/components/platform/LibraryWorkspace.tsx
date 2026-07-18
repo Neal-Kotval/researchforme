@@ -3,6 +3,7 @@ import { Segmented } from "../ui";
 import LibraryView from "./LibraryView";
 import StarredView from "./StarredView";
 import GraveyardView from "./GraveyardView";
+import IdeasPanel from "./IdeasPanel";
 
 type LibraryTab = "overview" | "projects";
 
@@ -40,7 +41,11 @@ export default function LibraryWorkspace({ slug, onOpenProject, onOpenNode, onIm
         <div className="lib-split">
           <div className="lib-split-col">
             <div className="lib-split-head">Your ideas</div>
-            <StarredView onOpenNode={onOpenNode} onImported={onImported} />
+            <IdeasPanel onOpenNode={onOpenNode} onSeeDetailed={() => { window.location.hash = "#/compare"; }} />
+            <div className="lib-starred-sec">
+              <div className="lib-split-head">Starred</div>
+              <StarredView onOpenNode={onOpenNode} onImported={onImported} />
+            </div>
           </div>
           <div className="lib-split-col">
             <div className="lib-split-head">Graveyard</div>
