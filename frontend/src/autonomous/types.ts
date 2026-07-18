@@ -103,6 +103,9 @@ export interface NoveltyScan {
   nearest_known: NearestCompany[];
   novelty_0_100: number;
   verdict: string;
+  /** If the open space is empty for a structural reason (adverse selection,
+   *  correlated risk, regulatory barrier, commoditizing input, low demand). */
+  structural_risk?: string;
   rationale: string;
 }
 

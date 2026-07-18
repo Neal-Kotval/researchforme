@@ -870,6 +870,12 @@ export default function NodeInspector({
             </span>
           </h4>
           {node.novelty_scan.rationale && <p className="novelty-why">{node.novelty_scan.rationale}</p>}
+          {node.novelty_scan.structural_risk && (
+            <div className="novelty-trap">
+              <span className="trap-k">⚠︎ Empty for a reason</span>
+              <p>{node.novelty_scan.structural_risk}</p>
+            </div>
+          )}
           {node.novelty_scan.nearest_known.length > 0 && (
             <div className="novelty-near">
               <span className="fr-k">Nearest funded</span>
