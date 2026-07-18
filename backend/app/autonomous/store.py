@@ -452,6 +452,8 @@ class TreeStore:
         try:
             while True:
                 event = await queue.get()
+                if event is None:  # shutdown sentinel — close the stream cleanly.
+                    return
                 yield event
         finally:
             with self._lock:
@@ -460,6 +462,18 @@ class TreeStore:
                     subs.remove(entry)
                     if not subs:
                         self._subscribers.pop(project_id, None)
+
+    def close_all_subscribers(self) -> None:
+        """Push a shutdown sentinel to every open SSE stream so their generators
+        return instead of blocking uvicorn's graceful shutdown forever (the reason
+        a plain restart used to hang on open connections). Loop-safe."""
+        with self._lock:
+            entries = [e for lst in self._subscribers.values() for e in lst]
+        for queue, loop in entries:
+            try:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+            except Exception:  # noqa: BLE001 - a dead loop/queue just can't be closed.
+                pass
 
     # ------------------------------------------------------------------ #
     # Deletion                                                           #

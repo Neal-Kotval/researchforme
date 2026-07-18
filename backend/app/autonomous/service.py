@@ -391,6 +391,26 @@ class ExplorerService:
                 parked.append(updated)
         return parked
 
+    async def shutdown(self) -> None:
+        """Stop every worker and close every SSE stream for a clean process exit.
+
+        Without this a restart hangs: uvicorn waits on open SSE connections whose
+        generators block forever on an empty queue, and worker tasks can be killed
+        mid-write. We flag-stop each worker, cancel its task, briefly await the
+        unwind, then sentinel-close the streams. Never raises."""
+        tasks = []
+        for rt in list(self._runtimes.values()):
+            rt.stop = True
+            if rt.task is not None and not rt.task.done():
+                rt.task.cancel()
+                tasks.append(rt.task)
+        if tasks:
+            try:
+                await asyncio.wait(tasks, timeout=3)
+            except Exception:  # noqa: BLE001 - best-effort unwind.
+                pass
+        self.store.close_all_subscribers()
+
     # ================================================================== #
     # Controls (SPEC §6.3)                                               #
     # ================================================================== #

@@ -46,13 +46,36 @@ app.include_router(library_router, prefix="/api")
 
 
 @app.on_event("startup")
-def _reconcile_orphaned_runs() -> None:
+async def _reconcile_orphaned_runs() -> None:
     """Park projects left RUNNING by a previous process (workers don't survive
     restarts) so the UI shows an honest paused-with-Resume state, not a
-    perpetually 'sprinting' ghost."""
+    perpetually 'sprinting' ghost.
+
+    Opt-in ``AP_AUTO_RESUME`` (env) instead re-starts those runs immediately —
+    for unattended operation where a restart should transparently continue the
+    work rather than wait for a human to click Resume. Off by default: a boot
+    must never begin spending tokens on its own unless explicitly told to."""
+    import os
+
     from .autonomous.service import get_service
 
-    get_service().reconcile_on_boot()
+    service = get_service()
+    parked = service.reconcile_on_boot()
+    if parked and os.getenv("AP_AUTO_RESUME", "").strip().lower() in ("1", "true", "yes", "on"):
+        for project in parked:
+            try:
+                await service.resume(project.id)
+            except Exception:  # noqa: BLE001 - one bad resume can't block boot.
+                pass
+
+
+@app.on_event("shutdown")
+async def _graceful_shutdown() -> None:
+    """Stop workers and close SSE streams so a restart doesn't hang on open
+    connections (previously required a kill -9)."""
+    from .autonomous.service import get_service
+
+    await get_service().shutdown()
 
 
 @app.on_event("startup")
