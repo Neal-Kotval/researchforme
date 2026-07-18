@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
+/** How the exploration's tree is drawn — a first-class, deep-linkable view. */
+export type TreeMode = "canvas" | "evolution" | "list";
+
 export type Route =
   | { view: "home" }
-  | { view: "exploration"; projectId: string; nodeId: string | null }
+  | { view: "exploration"; projectId: string; nodeId: string | null; mode?: TreeMode }
   | { view: "explore" }
   | { view: "pressure" }
   | { view: "compare" }
@@ -29,14 +32,18 @@ export function parseHash(hash: string): Route {
   if (parts[0] === "library" && parts[1]) {
     return { view: "library", slug: decodeURIComponent(parts[1]) };
   }
-  // ["e", projectId] or ["e", projectId, "n", nodeId]
+  // ["e", projectId] · ["e", projectId, "n", nodeId] · ["e", projectId, mode]
   if (parts[0] === "e" && parts[1]) {
     const projectId = decodeURIComponent(parts[1]);
     if (parts[2] === "n" && parts[3]) {
       return { view: "exploration", projectId, nodeId: decodeURIComponent(parts[3]) };
     }
-    if (parts.length === 2) {
-      return { view: "exploration", projectId, nodeId: null };
+    const MODES: Record<string, TreeMode> = { evolution: "evolution", list: "list" };
+    const mode = MODES[parts[2] ?? ""];  // canvas is the default → left off the route
+    if (parts.length <= 3) {
+      return mode
+        ? { view: "exploration", projectId, nodeId: null, mode }
+        : { view: "exploration", projectId, nodeId: null };
     }
   }
   if (parts.length === 1 && FLAT_VIEWS[parts[0]]) return FLAT_VIEWS[parts[0]];
@@ -54,7 +61,9 @@ export function routeToHash(route: Route): string {
   if (route.view === "starred") return "#/starred";
   if (route.view === "library") return route.slug ? `#/library/${encodeURIComponent(route.slug)}` : "#/library";
   const base = `#/e/${encodeURIComponent(route.projectId)}`;
-  return route.nodeId ? `${base}/n/${encodeURIComponent(route.nodeId)}` : base;
+  if (route.nodeId) return `${base}/n/${encodeURIComponent(route.nodeId)}`;
+  if (route.mode && route.mode !== "canvas") return `${base}/${route.mode}`;
+  return base;
 }
 
 /**
@@ -81,6 +90,9 @@ export function useHashRoute() {
   const navNode = useCallback((projectId: string, nodeId: string) => {
     window.location.hash = routeToHash({ view: "exploration", projectId, nodeId });
   }, []);
+  const navMode = useCallback((projectId: string, mode: TreeMode) => {
+    window.location.hash = routeToHash({ view: "exploration", projectId, nodeId: null, mode });
+  }, []);
   const navView = useCallback(
     (view: "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library") => {
       window.location.hash = routeToHash({ view } as Route);
@@ -88,5 +100,5 @@ export function useHashRoute() {
     []
   );
 
-  return { route, navHome, navProject, navNode, navView };
+  return { route, navHome, navProject, navNode, navMode, navView };
 }

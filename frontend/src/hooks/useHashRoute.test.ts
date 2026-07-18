@@ -22,6 +22,21 @@ describe("parseHash", () => {
       nodeId: "xyz",
     });
   });
+  it("parses the evolution branch view as a deep-linkable mode", () => {
+    expect(parseHash("#/e/abc/evolution")).toEqual({
+      view: "exploration",
+      projectId: "abc",
+      nodeId: null,
+      mode: "evolution",
+    });
+  });
+  it("omits mode for the default canvas view", () => {
+    expect(parseHash("#/e/abc/canvas")).toEqual({
+      view: "exploration",
+      projectId: "abc",
+      nodeId: null,
+    });
+  });
   it("falls back to home on a malformed hash", () => {
     expect(parseHash("#/garbage/here")).toEqual({ view: "home" });
   });
@@ -51,6 +66,10 @@ describe("parseHash", () => {
 describe("routeToHash + parseHash round-trip", () => {
   it("round-trips a node route with awkward characters", () => {
     const r: Route = { view: "exploration", projectId: "a b", nodeId: "n 1" };
+    expect(parseHash(routeToHash(r))).toEqual(r);
+  });
+  it("round-trips the evolution branch view", () => {
+    const r: Route = { view: "exploration", projectId: "a b", nodeId: null, mode: "evolution" };
     expect(parseHash(routeToHash(r))).toEqual(r);
   });
   it("formats home as '#/'", () => {

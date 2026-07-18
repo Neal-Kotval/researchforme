@@ -213,11 +213,12 @@ interface ExplorerViewProps {
   navHome: () => void;
   navProject: (projectId: string) => void;
   navNode: (projectId: string, nodeId: string) => void;
+  navMode: (projectId: string, mode: "canvas" | "evolution" | "list") => void;
   /** ⌘K "new exploration" — open the new-exploration dialog when this bumps. */
   newExplorationSignal?: number;
 }
 
-export default function ExplorerView({ route, navHome, navProject, navNode, newExplorationSignal }: ExplorerViewProps) {
+export default function ExplorerView({ route, navHome, navProject, navNode, navMode, newExplorationSignal }: ExplorerViewProps) {
   const [state, dispatch] = useReducer(reduce, { byId: {}, order: [] });
   const [loaded, setLoaded] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -254,11 +255,18 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
   }, []);
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "nodes">("nodes");
-  const [treeMode, setTreeMode] = useState<"canvas" | "list" | "evolution">("canvas");
 
   // Navigation is derived from the URL — never held as separate state.
   const activeId = route.view === "exploration" ? route.projectId : null;
   const selectedId = route.view === "exploration" ? route.nodeId : null;
+  // The tree draw-mode is a routable, deep-linkable part of the URL (#/e/:id,
+  // #/e/:id/evolution, #/e/:id/list) — not local state — so it survives refresh,
+  // is shareable, and the browser back button walks the views.
+  const treeMode: "canvas" | "list" | "evolution" =
+    route.view === "exploration" ? (route.mode ?? "canvas") : "canvas";
+  const setTreeMode = (mode: "canvas" | "list" | "evolution") => {
+    if (activeId) navMode(activeId, mode);
+  };
 
   const orderSig = state.order.join(",");
 

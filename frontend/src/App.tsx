@@ -3,6 +3,7 @@ import { createProject } from "./autonomous/api";
 import type { CreateProjectRequest, ScoutCandidate } from "./autonomous/types";
 import { useHashRoute } from "./hooks/useHashRoute";
 import { useProjects } from "./hooks/useProjects";
+import { Mounted } from "./motion";
 import CommandPalette from "./components/CommandPalette";
 import ExplorerView from "./components/autonomous/ExplorerView";
 import NewExplorationDialog, { type DialogPrefill } from "./components/autonomous/NewExplorationDialog";
@@ -29,7 +30,7 @@ function typingInField(): boolean {
 }
 
 export default function App() {
-  const { route, navHome, navProject, navNode, navView } = useHashRoute();
+  const { route, navHome, navProject, navNode, navMode, navView } = useHashRoute();
   const { projects, refresh } = useProjects();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -74,6 +75,7 @@ export default function App() {
     <>
       <PlatformShell route={route} projects={projects} onNav={navView} onNewExploration={openNew}>
         <main className="pf-content">
+          <Mounted k={route.view} className="pf-view-fade">
           {route.view === "home" && (
             <HomeView
               projects={projects}
@@ -98,6 +100,7 @@ export default function App() {
                 navHome={navHome}
                 navProject={navProject}
                 navNode={navNode}
+                navMode={navMode}
               />
             </div>
           )}
@@ -127,6 +130,7 @@ export default function App() {
           {route.view === "assistant" && (
             <AssistantView onNav={navView} onActed={refresh} />
           )}
+          </Mounted>
         </main>
       </PlatformShell>
 
