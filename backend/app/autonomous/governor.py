@@ -98,7 +98,10 @@ class UsageGovernor:
             if env and env.isdigit() and int(env) > 0:
                 max_concurrency = int(env)
             else:
-                max_concurrency = max(4, min(12, (os.cpu_count() or 4) * 2))
+                # Fan out wide by default — the rate-limit backoff (§6.1) is the
+                # real safety valve, so a big semaphore just means idle slots when
+                # the backend is slow, not overload. Clamp raised 12 → 32.
+                max_concurrency = max(8, min(32, (os.cpu_count() or 4) * 3))
         self._max_concurrency = max_concurrency
         self._sem = asyncio.Semaphore(max_concurrency)
         self._lock = threading.Lock()
@@ -158,8 +161,9 @@ class UsageGovernor:
             return 1
         if pace == "sprint":
             return cap
-        # balanced: roughly half the cap, at least one.
-        return max(1, cap // 2)
+        # balanced: three-quarters of the cap (raised from half), at least one —
+        # so several projects still each fan out wide without a project starving.
+        return max(1, (cap * 3) // 4)
 
     # ----------------------------------------------------------------- #
     # Metering & rate-limit feedback                                    #
