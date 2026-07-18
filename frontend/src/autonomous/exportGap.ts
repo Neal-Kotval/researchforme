@@ -200,6 +200,44 @@ export function gapToMarkdown(node: TreeNode, project?: Project | null): string 
     L.push("");
   }
 
+  /* ---- winner validation: costed value + novelty vs funded incumbents ---- */
+  const vm = node.value_model;
+  if (vm) {
+    L.push("## What it's worth (status quo → ROI)");
+    if (vm.status_quo) L.push(`**Status quo today:** ${vm.status_quo}`);
+    if (vm.current_cost) L.push(`**What that costs:** ${vm.current_cost}`);
+    if (vm.solution_delta) L.push(`**How this cuts it:** ${vm.solution_delta}`);
+    if (vm.annual_value) L.push(`**Estimated annual value:** ${vm.annual_value}`);
+    if (vm.cost_drivers?.length) {
+      L.push("");
+      L.push("Cost drivers:");
+      for (const d of vm.cost_drivers) L.push(`- ${d}`);
+    }
+    if (vm.assumptions?.length) {
+      L.push("");
+      L.push(`_Rests on: ${vm.assumptions.join("; ")}. Confidence: ${vm.confidence || "unstated"}._`);
+    }
+    L.push("");
+  }
+
+  const nv = node.novelty_scan;
+  if (nv) {
+    L.push("## Open space (novelty vs funded incumbents)");
+    L.push(`**Verdict:** ${nv.verdict || "—"} · novelty ${nv.novelty_0_100}/100`);
+    if (nv.rationale) L.push(nv.rationale);
+    if (nv.structural_risk) L.push(`\n**⚠ Empty for a reason:** ${nv.structural_risk}`);
+    if (nv.nearest_known?.length) {
+      L.push("");
+      L.push("Nearest funded players:");
+      for (const c of nv.nearest_known) {
+        const funded = c.funded ? ` (${c.funded})` : "";
+        const url = c.url ? ` — ${c.url}` : "";
+        L.push(`- **${c.name || "unnamed"}**${funded}: ${c.why_similar}${url}`);
+      }
+    }
+    L.push("");
+  }
+
   /* -------------------------------------------------------- the hand-off -- */
   L.push("---");
   L.push("## What I'd like from you");
