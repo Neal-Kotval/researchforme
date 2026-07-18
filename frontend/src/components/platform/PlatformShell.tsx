@@ -4,12 +4,13 @@ import type { GlobalUsage, Project } from "../../autonomous/types";
 import type { Route } from "../../hooks/useHashRoute";
 
 /** Which sidebar item a route lights up. */
-export type PlatformView = "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library";
+export type PlatformView = "home" | "explore" | "autonomous" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library";
 
 export function routeToPlatformView(route: Route): PlatformView {
   switch (route.view) {
     case "explore":
     case "exploration": return "explore";
+    case "autonomous": return "autonomous";
     case "pressure": return "pressure";
     case "compare": return "compare";
     case "assistant": return "assistant";
@@ -23,6 +24,7 @@ export function routeToPlatformView(route: Route): PlatformView {
 const VIEW_META: Record<PlatformView, { title: string; sub: string }> = {
   home: { title: "Home", sub: "Ideas that survived the red team, and what the engine is doing right now." },
   explore: { title: "Explore", sub: "The engine is hunting live across signal. Pause anytime — it resumes where it stopped." },
+  autonomous: { title: "Autonomous research", sub: "Point the engine at a market, hand it a budget — it maps, synthesizes, and red-teams on its own." },
   pressure: { title: "Pressure-test", sub: "Six adversarial lenses attack every candidate before it reaches you." },
   compare: { title: "Compare", sub: "Weigh the survivors by fit × viability. Every score carries its provenance." },
   assistant: { title: "Assistant", sub: "Drive the whole platform in plain language, through its tool layer." },
@@ -41,6 +43,15 @@ function fmtTok(n: number): string {
 const ic = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 const IconHome = () => (<svg {...ic}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>);
 const IconExplore = () => (<svg {...ic}><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3" /><circle cx="12" cy="12" r="2" /></svg>);
+/** Autonomous — an orbiting nucleus: the engine that runs itself. */
+const IconAuto = () => (
+  <svg {...ic}>
+    <circle cx="12" cy="12" r="2.1" />
+    <ellipse cx="12" cy="12" rx="9" ry="4" />
+    <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(60 12 12)" />
+    <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(120 12 12)" />
+  </svg>
+);
 const IconShield = () => (<svg {...ic}><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" /></svg>);
 const IconBars = () => (<svg {...ic}><path d="M5 21V10M12 21V4M19 21v-7" /></svg>);
 const IconChat = () => (<svg {...ic}><path d="M4 5h16v11H8l-4 4V5Z" /></svg>);
@@ -151,6 +162,7 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
             {navItem("home", "Home", <IconHome />)}
             {navItem("explore", "Explore", <IconExplore />,
               anyRunning ? <span className="pf-nav-live">live</span> : undefined)}
+            {navItem("autonomous", "Autonomous research", <IconAuto />)}
             {navItem("pressure", "Pressure-test", <IconShield />)}
             {navItem("compare", "Compare", <IconBars />)}
           </nav>

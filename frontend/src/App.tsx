@@ -10,6 +10,7 @@ import NewExplorationDialog, { type DialogPrefill } from "./components/autonomou
 import PlatformShell from "./components/platform/PlatformShell";
 import HomeView from "./components/platform/HomeView";
 import ExploreView from "./components/platform/ExploreView";
+import AutonomousView from "./components/platform/AutonomousView";
 import PressureTestView from "./components/platform/PressureTestView";
 import CompareView from "./components/platform/CompareView";
 import GraveyardView from "./components/platform/GraveyardView";
@@ -90,6 +91,13 @@ export default function App() {
               projects={projects}
               onOpenProject={navProject}
               onOpenNode={navNode}
+              onNewExploration={openNew}
+            />
+          )}
+          {route.view === "autonomous" && (
+            <AutonomousView
+              projects={projects}
+              onOpenProject={navProject}
               onNewExploration={openNew}
             />
           )}

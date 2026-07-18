@@ -468,6 +468,40 @@
 }
 .pf-run-stack { display: flex; flex-direction: column; gap: 11px; }
 
+/* Autonomous — the "how the loop works" step strip. */
+.pf-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+}
+.pf-step {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 15px 16px;
+  display: flex;
+  gap: 11px;
+}
+.pf-step-n {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.pf-step-t { font-size: 13px; font-weight: var(--fw-semibold); }
+.pf-step-d { font-size: 12px; color: var(--text-faint); margin-top: 3px; line-height: 1.45; }
+
 .pf-scout-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -938,6 +972,7 @@
   .pf-view-sub { display: none; }
   .pf-view { padding: 18px 16px 32px; }
   .pf-grid3 { grid-template-columns: 1fr; }
+  .pf-steps { grid-template-columns: 1fr; }
   .pf-explore-cols { grid-template-columns: 1fr; }
   .pf-run-card { flex-direction: column; }
   .pf-run-spend { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 12px 0 0; }

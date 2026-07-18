@@ -7,6 +7,7 @@ export type Route =
   | { view: "home" }
   | { view: "exploration"; projectId: string; nodeId: string | null; mode?: TreeMode }
   | { view: "explore" }
+  | { view: "autonomous" }
   | { view: "pressure" }
   | { view: "compare" }
   | { view: "assistant" }
@@ -17,6 +18,7 @@ export type Route =
 /** Flat-view hash segments (platform screens without params). */
 const FLAT_VIEWS: Record<string, Route> = {
   explore: { view: "explore" },
+  autonomous: { view: "autonomous" },
   "pressure-test": { view: "pressure" },
   compare: { view: "compare" },
   assistant: { view: "assistant" },
@@ -54,6 +56,7 @@ export function parseHash(hash: string): Route {
 export function routeToHash(route: Route): string {
   if (route.view === "home") return "#/";
   if (route.view === "explore") return "#/explore";
+  if (route.view === "autonomous") return "#/autonomous";
   if (route.view === "pressure") return "#/pressure-test";
   if (route.view === "compare") return "#/compare";
   if (route.view === "assistant") return "#/assistant";
@@ -94,7 +97,7 @@ export function useHashRoute() {
     window.location.hash = routeToHash({ view: "exploration", projectId, nodeId: null, mode });
   }, []);
   const navView = useCallback(
-    (view: "home" | "explore" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library") => {
+    (view: "home" | "explore" | "autonomous" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library") => {
       window.location.hash = routeToHash({ view } as Route);
     },
     []
