@@ -80,10 +80,21 @@
   text-align: left;
   width: 100%;
 }
-.pf-nav-item svg { flex: none; }
-.pf-nav-item .pf-txt { flex: 1; min-width: 0; }
-.pf-nav-item:hover { background: var(--surface-hover); }
-.pf-nav-item.active { color: var(--text); background: var(--surface-hover); }
+.pf-nav-item { position: relative; }
+.pf-nav-item svg { flex: none; position: relative; z-index: 1; }
+.pf-nav-item .pf-txt { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.pf-nav-item .pf-nav-live, .pf-nav-item .pf-kbd { position: relative; z-index: 1; }
+.pf-nav-item:hover:not(.active) { background: var(--surface-hover); }
+.pf-nav-item.active { color: var(--text); background: transparent; }
+/* The sliding highlight that travels between nav items (motion layoutId). Under
+   reduced motion it simply appears under the active item — same affordance, no travel. */
+.pf-nav-ink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--r-xl);
+  background: var(--surface-hover);
+}
 .pf-nav-item:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 
 .pf-nav-live {
@@ -290,6 +301,9 @@
   flex-direction: column;
 }
 .pf-content.hidden { display: none; }
+/* The per-view cross-fade wrapper must be invisible to layout: it inherits the
+   flex-column growth of .pf-content so every view lays out exactly as before. */
+.pf-view-fade { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 /* Width-capped per the handoff, but centered in the content region so wide
    monitors don't read as a half-empty screen. */
@@ -720,12 +734,12 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
-  min-width: 640px;
+  min-width: 760px;
 }
 .cmp-row {
   display: grid;
-  grid-template-columns: 70px 70px 1fr 150px 110px;
-  gap: 14px;
+  grid-template-columns: 64px 60px 96px 1fr 96px 130px 100px;
+  gap: 12px;
   align-items: center;
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
@@ -749,6 +763,34 @@
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
+
+/* novelty verdict chip — the honest second axis in the shortlist */
+.nv-chip {
+  font-size: 10.5px; font-weight: var(--fw-semibold); white-space: nowrap;
+  padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border);
+  color: var(--text-dim); font-variant-numeric: tabular-nums;
+}
+.nv-chip.nv-none { color: var(--text-ghost); border-style: dashed; }
+.nv-chip.nv-open, .nv-chip.nv-novel {
+  color: var(--good, #2f855a); border-color: color-mix(in srgb, var(--good, #2f855a) 40%, transparent);
+}
+.nv-chip.nv-adjacent {
+  color: var(--warn, #b7791f); border-color: color-mix(in srgb, var(--warn, #b7791f) 40%, transparent);
+}
+.nv-chip.nv-occupied {
+  color: var(--bad, #c53030); border-color: color-mix(in srgb, var(--bad, #c53030) 40%, transparent);
+}
+.cmp-worth { font-size: 12px; }
+.worth-chip {
+  font-weight: var(--fw-semibold); color: var(--text); font-variant-numeric: tabular-nums;
+  cursor: help; border-bottom: 1px dotted var(--border-strong);
+}
+.worth-none { color: var(--text-ghost); }
+.cmp-filter {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: var(--text-dim); cursor: pointer; user-select: none;
+}
+.cmp-filter input { accent-color: var(--accent); cursor: pointer; }
 
 /* -------------------------------------------------------------- assistant -- */
 .as-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -899,9 +941,11 @@
   .pf-explore-cols { grid-template-columns: 1fr; }
   .pf-run-card { flex-direction: column; }
   .pf-run-spend { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 12px 0 0; }
-  .cmp-row { grid-template-columns: 56px 56px 1fr 90px; }
-  .cmp-row .cmp-prov,
-  .cmp-row.head span:nth-child(4) { display: none; }
+  /* compact: Viab · Novelty · Idea · Worth (drop Fit, Provenance, Choose) */
+  .cmp-row { grid-template-columns: 52px 84px minmax(0, 1fr) 84px; gap: 8px; }
+  .cmp-row > *:nth-child(2),
+  .cmp-row > *:nth-child(6),
+  .cmp-row > *:nth-child(7) { display: none; }
 }
 
 @media (max-width: 560px) {
