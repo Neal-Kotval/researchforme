@@ -129,7 +129,7 @@ export default function PressureTestView({ onOpenNode, onNewExploration }: Props
             <div className="rt-summary-actions">
               <ViabChip value={n.viability} trust={nodeTrust(n)} star={n.star} />
               <FitChip value={n.fit} labeled />
-              <Button variant="primary" onClick={() => onOpenNode(current.pid, n.id)}>Open in explorer</Button>
+              <Button variant="secondary" onClick={() => onOpenNode(current.pid, n.id)}>Open in explorer</Button>
             </div>
           </div>
         </Card>

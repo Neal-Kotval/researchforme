@@ -106,7 +106,7 @@ export default function CompareView({ onOpenNode, onNewExploration }: Props) {
                     </td>
                     <td>{roi ? <span className="ui-chip ui-chip--slate ui-chip--sm" title={roi.full}>{roi.text}</span> : <span style={{ color: "var(--text-tertiary)" }}>—</span>}</td>
                     <td>{signals} signal{signals === 1 ? "" : "s"} · rt {pt.survived}/{pt.lenses.length}</td>
-                    <td className="ui-table-num"><Button variant={lead ? "primary" : "quiet"} size="sm" onClick={() => onOpenNode(i.pid, n.id)}>Choose</Button></td>
+                    <td className="ui-table-num"><Button variant={lead ? "secondary" : "quiet"} size="sm" onClick={() => onOpenNode(i.pid, n.id)}>Choose</Button></td>
                   </tr>
                 );
               })}

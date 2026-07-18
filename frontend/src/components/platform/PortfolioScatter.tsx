@@ -183,7 +183,7 @@ export default function PortfolioScatter({ onOpenNode }: Props) {
           )}
         </div>
       ) : (
-        <div className="pf-empty">
+        <div style={{ fontSize: "var(--fs-secondary)", color: "var(--slate)", lineHeight: 1.5, maxWidth: "62ch" }}>
           Nothing is plottable yet — the 2×2 needs gaps scored under founder steering.
           Every scored gap below ran without steering, so it has no fit.
         </div>
