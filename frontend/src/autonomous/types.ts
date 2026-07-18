@@ -133,6 +133,10 @@ export interface TreeNode {
    *  not run / unavailable — render nothing for null, never a placeholder. */
   value_model: ValueModel | null;
   novelty_scan: NoveltyScan | null;
+  /** Evolutionary lineage: a crossover offspring's SECOND parent (parent_id holds
+   *  the first). null for tree nodes and single-parent mutations. Lets the
+   *  force graph draw both parents merging into the offspring. */
+  cross_parent_id?: string | null;
   /** Engine star: auto-set when viability clears the project's star_threshold.
    *  A measurement — the user never writes it. */
   star: boolean;

@@ -1140,16 +1140,18 @@ class ExplorerService:
             f"mutating {len(muts)} idea(s) from a pool of {len(gap_nodes)}.",
         )
 
-        # Run every operator concurrently, each in a shared governor slot.
+        # Run every operator concurrently, each in a shared governor slot. Each
+        # outcome is (origin, primary_parent, child, second_parent|None) — the
+        # second parent lets a crossover offspring record both lineages.
         async def _cross(a: Gap, b: Gap):
             async with self.governor.slot():
                 child = await crossover_gaps(a, b, self.client, model, steering)
-            return ("crossover", a, child)
+            return ("crossover", a, child, b)
 
         async def _mut(g: Gap, strat: str):
             async with self.governor.slot():
                 child = await mutate_gap(g, strat, self.client, model, steering)
-            return (f"mut:{strat}", g, child)
+            return (f"mut:{strat}", g, child, None)
 
         ops = [_cross(a, b) for a, b in pairs] + [_mut(g, s) for g, s in muts]
         outcomes = await asyncio.gather(*ops, return_exceptions=True)
@@ -1161,7 +1163,7 @@ class ExplorerService:
         for outcome in outcomes:
             if isinstance(outcome, BaseException):
                 continue
-            origin, parent_gap, child_gap = outcome
+            origin, parent_gap, child_gap, second_parent = outcome
             if child_gap is None:
                 continue
             title_key = child_gap.title.strip().lower()
@@ -1181,6 +1183,12 @@ class ExplorerService:
             if child.id in rt.recombined:  # already minted in a prior generation.
                 continue
             child.gap = child_gap
+            # Record the second parent so the force graph can draw both lineages
+            # of a crossover converging into the offspring.
+            if second_parent is not None:
+                sp = by_title.get(second_parent.title.lower())
+                if sp is not None and sp.id != parent_node.id:
+                    child.cross_parent_id = sp.id
             rt.recombined.add(child.id)
             proposed.add(title_key)
             parent_of[child.id] = parent_node

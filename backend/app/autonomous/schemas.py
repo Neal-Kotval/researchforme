@@ -119,6 +119,11 @@ class Node(BaseModel):
     # to keep the Node schema decoupled; None = not run or unavailable.
     value_model: Optional[dict] = None
     novelty_scan: Optional[dict] = None
+    # Evolutionary lineage: a crossover offspring has TWO parents — parent_id holds
+    # the first (its tree placement), this holds the second, so the live force
+    # graph can draw both edges converging (the "bubbles merging" moment). None for
+    # ordinary tree nodes and single-parent mutations.
+    cross_parent_id: Optional[str] = None
     # Engine star: auto-set when viability clears ``Budget.star_threshold``. This
     # is a *measurement*, so the user never writes it — overloading it with a
     # manual favourite would corrupt the stars stat and the idle-deepening rule,

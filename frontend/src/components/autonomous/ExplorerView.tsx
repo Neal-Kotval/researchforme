@@ -23,6 +23,7 @@ import {
 import ExplorationSidebar from "./ExplorationSidebar";
 import ExplorationTree from "./ExplorationTree";
 import GraphCanvas from "./GraphCanvas";
+import EvolutionGraph from "./EvolutionGraph";
 import NodeInspector from "./NodeInspector";
 import RunControls from "./RunControls";
 import UsageMeter from "./UsageMeter";
@@ -253,7 +254,7 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
   }, []);
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "nodes">("nodes");
-  const [treeMode, setTreeMode] = useState<"canvas" | "list">("canvas");
+  const [treeMode, setTreeMode] = useState<"canvas" | "list" | "evolution">("canvas");
 
   // Navigation is derived from the URL — never held as separate state.
   const activeId = route.view === "exploration" ? route.projectId : null;
@@ -542,6 +543,13 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                       selectedId={selectedId}
                       onSelect={selectNode}
                     />
+                  ) : treeMode === "evolution" ? (
+                    <EvolutionGraph
+                      nodes={active!.nodes}
+                      rootId={rootId}
+                      selectedId={selectedId}
+                      onSelect={selectNode}
+                    />
                   ) : (
                     <ExplorationTree
                       nodes={active!.nodes}
@@ -556,6 +564,11 @@ export default function ExplorerView({ route, navHome, navProject, navNode, newE
                       onClick={() => setTreeMode("canvas")}
                       title="Infinite canvas"
                     >⛶ Canvas</button>
+                    <button
+                      className={treeMode === "evolution" ? "on" : ""}
+                      onClick={() => setTreeMode("evolution")}
+                      title="Live evolution — animated force graph"
+                    >✺ Evolution</button>
                     <button
                       className={treeMode === "list" ? "on" : ""}
                       onClick={() => setTreeMode("list")}
