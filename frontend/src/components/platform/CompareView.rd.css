@@ -1,0 +1,47 @@
+/* CompareView — the "rd" (redesign) layer.
+   Defines the selectors CompareView.tsx references that live outside
+   platform.css: the section eyebrow, the centered empty/loading/error
+   state, and the shortlist's count · rank · staggered-row accents. */
+
+/* Root: the portfolio + shortlist panels stack; .pfm margins do the spacing. */
+.rd-compare { display: flex; flex-direction: column; }
+
+/* Small uppercase kicker above a section title. */
+.rd-eyebrow {
+  font-size: 10.5px;
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  margin-bottom: 5px;
+}
+
+/* Empty / loading / error — a centered card layered on .pf-empty.
+   Two-class selector so these win over .pf-empty regardless of load order. */
+.pf-empty.rd-empty {
+  max-width: none;
+  padding: 40px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rd-empty-glyph { font-size: 30px; line-height: 1; margin-bottom: 12px; opacity: 0.85; }
+.rd-empty-title { font-size: 15px; font-weight: var(--fw-semibold); color: var(--text); margin-bottom: 5px; }
+.rd-empty-body {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+/* Shortlist intro emphasis · per-row rank · the staggered row group. */
+.cmp-count { font-weight: var(--fw-semibold); color: var(--text); }
+.cmp-rank {
+  color: var(--text-ghost);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+}
+.cmp-rows { display: flex; flex-direction: column; }
