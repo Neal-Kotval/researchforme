@@ -124,6 +124,15 @@ export function setUsagePolicy(policy: UsagePolicy): Promise<GlobalUsage> {
   });
 }
 
+/** Set the shared concurrency ceiling (1–100) live → fresh snapshot. */
+export function setConcurrency(max_concurrency: number): Promise<GlobalUsage> {
+  return request<GlobalUsage>("/api/usage/concurrency", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ max_concurrency }),
+  });
+}
+
 /** Every scored gap across projects (H1) — the Compare 2×2 dataset. Pure
  *  store rollup, no LLM. `fit: null` gaps belong in the no-steering strip. */
 export function getPortfolio(): Promise<PortfolioItem[]> {

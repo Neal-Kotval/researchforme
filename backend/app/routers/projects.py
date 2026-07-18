@@ -32,7 +32,7 @@ from typing import AsyncIterator, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..autonomous.schemas import (
     ControlAction,
@@ -94,6 +94,25 @@ def set_usage_policy(req: UsagePolicyRequest) -> dict:
     """Set a dynamic usage limit; the governor auto-shapes spend around it."""
     gov = get_governor()
     gov.set_policy(daily_cap_tokens=req.daily_cap_tokens, limit_pct=req.limit_pct)
+    return gov.snapshot()
+
+
+class ConcurrencyRequest(BaseModel):
+    """Set the shared max concurrency live (how many agents run in parallel)."""
+
+    max_concurrency: int = Field(ge=1, le=100)
+
+
+@router.post("/usage/concurrency")
+async def set_concurrency(req: ConcurrencyRequest) -> dict:
+    """Turn the shared concurrency ceiling up/down (1–100) without a restart.
+
+    Applies immediately to every running exploration — raising it wakes waiting
+    expansions so more agents fan out at once; lowering it lets in-flight work
+    finish and holds new work back. The rate-limit backoff is still the safety
+    valve, so a high setting just means idle slots when the backend is slow."""
+    gov = get_governor()
+    await gov.set_max_concurrency(req.max_concurrency)
     return gov.snapshot()
 
 

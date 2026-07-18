@@ -103,7 +103,11 @@ class UsageGovernor:
                 # the backend is slow, not overload. Clamp raised 12 → 32.
                 max_concurrency = max(8, min(32, (os.cpu_count() or 4) * 3))
         self._max_concurrency = max_concurrency
-        self._sem = asyncio.Semaphore(max_concurrency)
+        # A RESIZABLE concurrency gate (not a fixed Semaphore) so the ceiling can
+        # be turned up/down live from the UI without a restart. `_active` counts
+        # in-flight slots; `slot()` waits on the condition while active >= max.
+        self._active = 0
+        self._cc_cond = asyncio.Condition()
         self._lock = threading.Lock()
 
         # Rolling spend + rate accounting (global across projects).
@@ -143,11 +147,25 @@ class UsageGovernor:
             async with governor.slot():
                 await expand(node)
         """
-        await self._sem.acquire()
+        async with self._cc_cond:
+            while self._active >= self._max_concurrency:
+                await self._cc_cond.wait()
+            self._active += 1
         try:
             yield
         finally:
-            self._sem.release()
+            async with self._cc_cond:
+                self._active -= 1
+                self._cc_cond.notify()
+
+    async def set_max_concurrency(self, n: int) -> int:
+        """Change the shared concurrency ceiling live (1–100). Waking any waiters
+        when it grows. Returns the clamped value actually applied."""
+        n = max(1, min(100, int(n)))
+        self._max_concurrency = n
+        async with self._cc_cond:
+            self._cc_cond.notify_all()  # let waiters through if we just grew
+        return n
 
     def concurrency_for(self, budget: Budget) -> int:
         """Advisory number of expansions to run in parallel for this project's pace.
@@ -384,6 +402,7 @@ class UsageGovernor:
                 "backoff_remaining_s": max(0.0, self._backoff_until - now) if in_backoff else 0.0,
                 "recent_limits": len(self._limit_hits),
                 "max_concurrency": self._max_concurrency,
+                "active_concurrency": self._active,
                 # Usage-shaping policy + derived gauge fields.
                 "daily_cap": self._global_daily_cap,
                 "limit_pct": self._usage_limit_pct,

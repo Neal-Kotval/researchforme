@@ -385,6 +385,7 @@ export interface GlobalUsage {
   backoff_remaining_s: number;
   recent_limits: number;
   max_concurrency: number;
+  active_concurrency?: number;
   // Usage-shaping policy + derived gauge fields.
   daily_cap: number | null;
   limit_pct: number;

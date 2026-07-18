@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getUsage, setUsagePolicy } from "../../autonomous/api";
+import { getUsage, setUsagePolicy, setConcurrency } from "../../autonomous/api";
 import type { ExplorerMode, GlobalUsage, Project, UsageLevel } from "../../autonomous/types";
 
 interface Props {
@@ -38,6 +38,8 @@ export default function GlobalUsageBar({ projects }: Props) {
   const [editing, setEditing] = useState(false);
   const [capInput, setCapInput] = useState("");
   const [pctInput, setPctInput] = useState(95);
+  const [concInput, setConcInput] = useState(32);
+  const [concDirty, setConcDirty] = useState(false);
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -65,6 +67,21 @@ export default function GlobalUsageBar({ projects }: Props) {
       setPctInput(Math.round((usage.limit_pct ?? 1) * 100));
     }
   }, [usage?.daily_cap, usage?.limit_pct]);
+
+  // Track the live concurrency ceiling until the user starts dragging the slider.
+  useEffect(() => {
+    if (usage?.max_concurrency != null && !concDirty) setConcInput(usage.max_concurrency);
+  }, [usage?.max_concurrency, concDirty]);
+
+  const applyConcurrency = async (n: number) => {
+    try {
+      const u = await setConcurrency(n);
+      setUsage(u);
+      setConcDirty(false);
+    } catch {
+      /* keep the slider where the user left it */
+    }
+  };
 
   const running = projects.filter((p) => p.status === "running").length;
   const mode: ExplorerMode = usage?.mode ?? "paused";
@@ -114,6 +131,10 @@ export default function GlobalUsageBar({ projects }: Props) {
         </span>
         <span className="gu-sep">·</span>
         <span className="gu-metric"><b>{running}</b> running</span>
+        <span className="gu-sep">·</span>
+        <span className="gu-metric" title="Agents working in parallel right now / the ceiling you set">
+          <b>{usage?.active_concurrency ?? 0}</b>/{usage?.max_concurrency ?? concInput} agents
+        </span>
         {usage?.in_backoff && (
           <>
             <span className="gu-sep">·</span>
@@ -123,13 +144,39 @@ export default function GlobalUsageBar({ projects }: Props) {
       </div>
 
       <div className="gu-right">
-        <button className="gu-limit-btn" onClick={() => setEditing((v) => !v)} title="Set a dynamic usage limit">
-          ⚙ {usage?.daily_cap ? `limit ${pctInput}%` : "set limit"}
+        <button className="gu-limit-btn" onClick={() => setEditing((v) => !v)} title="Set concurrency + a dynamic usage limit">
+          ⚙ {concInput} agents{usage?.daily_cap ? ` · ${pctInput}%` : ""}
         </button>
       </div>
 
       {editing && (
         <div className="gu-popover" onClick={(e) => e.stopPropagation()}>
+          <div className="gu-pop-title">Parallel agents</div>
+          <label className="gu-pop-row gu-pop-conc">
+            <span>Run <b>{concInput}</b> at once</span>
+            <input
+              type="range" min={1} max={100} step={1}
+              value={concInput}
+              onChange={(e) => { setConcInput(Number(e.target.value)); setConcDirty(true); }}
+              onMouseUp={() => applyConcurrency(concInput)}
+              onKeyUp={() => applyConcurrency(concInput)}
+              onTouchEnd={() => applyConcurrency(concInput)}
+            />
+          </label>
+          <div className="gu-pop-quick">
+            {[8, 16, 32, 64, 100].map((n) => (
+              <button
+                key={n}
+                className={`gu-quick${concInput === n ? " on" : ""}`}
+                onClick={() => { setConcInput(n); applyConcurrency(n); }}
+              >{n}</button>
+            ))}
+          </div>
+          <p className="gu-pop-hint">
+            How many explorations expand in parallel across all runs. The rate-limit backoff is
+            the safety valve, so a high setting just idles spare slots when the model is slow.
+          </p>
+          <div className="gu-pop-divider" />
           <div className="gu-pop-title">Dynamic usage limit</div>
           <label className="gu-pop-row">
             <span>Daily token cap (100%)</span>
