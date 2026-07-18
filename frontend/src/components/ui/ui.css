@@ -263,7 +263,7 @@
 .tpf-row:hover { background: var(--slate-06); }
 .tpf-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tpf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.tpf-label { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: var(--ls-label); color: var(--slate); font-weight: var(--fw-medium); }
+.tpf-label { font-size: var(--fs-label); color: var(--slate); font-weight: var(--fw-medium); }
 .tpf-mode { font-size: var(--fs-label); color: var(--slate); text-transform: capitalize; }
 .tpf-cap { font-size: var(--fs-label); color: var(--slate); margin-top: 7px; font-variant-numeric: tabular-nums; }
 .tpf-pop {
@@ -303,7 +303,7 @@
 @media (max-width: 560px) { .ui-steps { grid-template-columns: 1fr; } }
 
 /* ---- row list (Explore candidate gaps · Compare unscored) -------------- */
-.ui-rowlist { display: flex; flex-direction: column; border: 1px solid var(--slate-12); border-radius: var(--r-card); overflow: hidden; background: var(--surface); }
+.ui-rowlist { display: flex; flex-direction: column; }
 .ui-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; width: 100%; text-align: left;
   background: none; border: none; border-bottom: 1px solid var(--slate-08); cursor: pointer;
   transition: background var(--dur-ui) var(--ease-out); }
@@ -316,14 +316,14 @@
 .ui-row-chev { flex: none; color: var(--slate-55); display: inline-flex; }
 
 /* ---- live feed (Explore) ---------------------------------------------- */
-.ui-feed { display: flex; flex-direction: column; border: 1px solid var(--slate-12); border-radius: var(--r-card); overflow: hidden; background: var(--surface); }
+.ui-feed { display: flex; flex-direction: column; }
 .ui-feed-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--slate-08); font-size: var(--fs-secondary); }
 .ui-feed-row:last-child { border-bottom: none; }
 .ui-feed-text { flex: 1; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ui-feed-time { flex: none; color: var(--slate); font-variant-numeric: tabular-nums; }
 
 /* ---- two-column split (Explore) --------------------------------------- */
-.ui-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.ui-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
 .ui-colhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; min-height: 36px; }
 .ui-colhead-title { font-size: var(--fs-card); font-weight: var(--fw-semibold); color: var(--ink); }
 @media (max-width: 900px) { .ui-split { grid-template-columns: 1fr; } }
@@ -370,7 +370,7 @@
 /* ---- Pressure-test (red team) ----------------------------------------- */
 .rt-header { margin-bottom: 20px; }
 .rt-eyebrow { font-size: var(--fs-secondary); color: var(--slate); display: flex; align-items: center; gap: 8px; }
-.rt-title { font-size: var(--fs-title); font-weight: var(--fw-semibold); color: var(--ink); letter-spacing: -0.01em; margin-top: 4px; }
+.rt-title { font-size: 18px; font-weight: var(--fw-semibold); color: var(--ink); letter-spacing: -0.01em; margin-top: 4px; }
 .rt-lenslist { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; margin-bottom: 16px; }
 .rt-lensrow { display: flex; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--slate-08); align-items: flex-start; }
 .rt-lensrow:last-child { border-bottom: none; }
@@ -458,6 +458,7 @@
 /* ---- Assistant (Claude/ChatGPT chat) ---------------------------------- */
 .as-wrap2 { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .as-thread2 { flex: 1; overflow-y: auto; }
+.as-thread2.as-empty { display: flex; flex-direction: column; justify-content: center; }
 .as-col { max-width: 760px; margin: 0 auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 26px; }
 .as-role { font-size: var(--fs-label); color: var(--slate); margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
 .as-role .pf-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--slate); }

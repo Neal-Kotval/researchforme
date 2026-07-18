@@ -21,6 +21,7 @@ interface Props {
  */
 export default function LibraryWorkspace({ slug, onOpenProject, onOpenNode, onImported }: Props) {
   const [tab, setTab] = useState<LibraryTab>("overview");
+  const seeDetailed = () => { window.location.hash = "#/compare"; };
 
   // A specific project takes over the whole area (its own filesystem-like view).
   if (slug) return <LibraryView slug={slug} onOpenProject={onOpenProject} />;
@@ -41,10 +42,13 @@ export default function LibraryWorkspace({ slug, onOpenProject, onOpenNode, onIm
         <div className="lib-split">
           <div className="lib-split-col">
             <div className="lib-split-head">Your ideas</div>
-            <IdeasPanel onOpenNode={onOpenNode} onSeeDetailed={() => { window.location.hash = "#/compare"; }} />
+            <IdeasPanel sections={["top"]} onOpenNode={onOpenNode} onSeeDetailed={seeDetailed} />
             <div className="lib-starred-sec">
-              <div className="lib-split-head">Starred</div>
+              <div className="ideas-sec-head"><span>Starred</span></div>
               <StarredView onOpenNode={onOpenNode} onImported={onImported} />
+            </div>
+            <div className="lib-starred-sec">
+              <IdeasPanel sections={["recent"]} onOpenNode={onOpenNode} onSeeDetailed={seeDetailed} />
             </div>
           </div>
           <div className="lib-split-col">

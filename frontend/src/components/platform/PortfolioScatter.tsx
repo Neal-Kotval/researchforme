@@ -95,20 +95,20 @@ export default function PortfolioScatter({ onOpenNode }: Props) {
             <line x1={PAD} y1={H / 2} x2={W - PAD} y2={H / 2} className="pf-sc-mid" />
             {/* quadrant labels */}
             <text x={W - PAD - 8} y={PAD + 16} textAnchor="end" className="pf-sc-quad strong">
-              {QUADRANT_LABELS.investigate.toUpperCase()}
+              {QUADRANT_LABELS.investigate}
             </text>
             <text x={PAD + 8} y={PAD + 16} className="pf-sc-quad">
-              {QUADRANT_LABELS.market_not_yours.toUpperCase()}
+              {QUADRANT_LABELS.market_not_yours}
             </text>
             <text x={W - PAD - 8} y={H - PAD - 8} textAnchor="end" className="pf-sc-quad">
-              {QUADRANT_LABELS.yours_weak_market.toUpperCase()}
+              {QUADRANT_LABELS.yours_weak_market}
             </text>
             <text x={PAD + 8} y={H - PAD - 8} className="pf-sc-quad">
-              {QUADRANT_LABELS.skip.toUpperCase()}
+              {QUADRANT_LABELS.skip}
             </text>
             {/* axes */}
             <text x={W / 2} y={H - 8} textAnchor="middle" className="pf-sc-axis">
-              FOUNDER FIT →
+              Founder fit →
             </text>
             <text
               x={12}
@@ -117,7 +117,7 @@ export default function PortfolioScatter({ onOpenNode }: Props) {
               transform={`rotate(-90 12 ${H / 2})`}
               className="pf-sc-axis"
             >
-              VIABILITY →
+              Viability →
             </text>
             {/* dots — trust-encoded; the fit ring marks steering-scored gaps */}
             {plotted.map((i) => {

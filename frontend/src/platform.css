@@ -1032,10 +1032,10 @@
 .pf-sc-frame { fill: none; stroke: var(--border); }
 .pf-sc-mid { stroke: var(--border); stroke-dasharray: 3 4; }
 .pf-sc-quad {
-  font: 650 9px var(--mono); letter-spacing: 0.06em; fill: var(--text-ghost);
+  font: var(--fw-semibold) 10px var(--font); fill: var(--text-ghost);
 }
-.pf-sc-quad.strong { fill: var(--text-dim); }
-.pf-sc-axis { font: 650 9px var(--mono); letter-spacing: 0.06em; fill: var(--text-faint); }
+.pf-sc-quad.strong { fill: var(--slate); }
+.pf-sc-axis { font: var(--fw-semibold) 10px var(--font); fill: var(--slate); }
 .pf-sc-dot { cursor: pointer; }
 .pf-sc-dot:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .pf-sc-dot.passed { opacity: 0.4; }
@@ -1054,7 +1054,7 @@
   border-radius: var(--r-md); box-shadow: var(--shadow-md);
 }
 .pf-sc-tip-title { font-size: 12.5px; font-weight: var(--fw-semibold); line-height: 1.35; }
-.pf-sc-tip-meta { font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+.pf-sc-tip-meta { font-size: 11px; color: var(--slate); margin-top: 4px; }
 .pf-sc-tip-flow { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 
 /* the no-steering strip: real scores, honestly off the plot */
@@ -1064,10 +1064,9 @@
 }
 .pf-nofit-head { margin-bottom: 10px; }
 .pf-nofit-title {
-  display: block; font-size: 11px; font-weight: 650; text-transform: uppercase;
-  letter-spacing: 0.04em; color: var(--text-faint);
+  display: block; font-size: var(--fs-secondary); font-weight: var(--fw-semibold); color: var(--slate);
 }
-.pf-nofit-sub { font-size: 11.5px; color: var(--text-faint); line-height: 1.5; }
+.pf-nofit-sub { font-size: var(--fs-secondary); color: var(--slate); line-height: 1.5; }
 .pf-nofit-rows { display: flex; flex-direction: column; }
 .pf-nofit-row {
   display: flex; align-items: center; gap: 10px;

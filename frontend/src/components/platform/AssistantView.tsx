@@ -76,7 +76,7 @@ export default function AssistantView({ onNav, onActed }: Props) {
 
   return (
     <div className="as-wrap2">
-      <div className="as-thread2">
+      <div className={`as-thread2${msgs.length === 0 ? " as-empty" : ""}`}>
         <div className="as-col">
           {/* standing intro — assistant, plain text */}
           <div>

@@ -22,11 +22,6 @@ interface Props {
   onActed: () => void;
 }
 
-const ArrowMark = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"
-    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7" /><path d="M8.5 7H17v8.5" /></svg>
-);
-
 /**
  * Home (v3 consolidation): the Claude-style hero — a greeting, a big composer
  * with an Explore | Ask toggle, and quick-action chips. The engine's findings
@@ -96,7 +91,7 @@ export default function HomeView({
   return (
     <>
       <div className="home-hero">
-        <div className="home-greet"><span className="home-greet-mark"><ArrowMark /></span>What are we hunting?</div>
+        <div className="home-greet">What are we hunting?</div>
 
         <div className="home-modes">
           <div className="home-mode-seg" role="tablist" aria-label="Composer mode">

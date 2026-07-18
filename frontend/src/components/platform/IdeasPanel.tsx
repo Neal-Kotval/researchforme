@@ -8,6 +8,8 @@ interface Props {
   onOpenNode: (pid: string, nodeId: string) => void;
   /** Opens the full portfolio (the "wiki/tree" of every idea). */
   onSeeDetailed: () => void;
+  /** Which sections to render — lets Starred sit between top-rated and recent. */
+  sections?: ("top" | "recent")[];
 }
 
 const Chevron = () => (
@@ -36,7 +38,7 @@ function IdeaRow({ it, onOpen }: { it: PortfolioItem; onOpen: () => void }) {
  * ones, across every run. Starred ideas + export live below (StarredView).
  * "See detailed" opens the full portfolio — the wiki/2×2 of every idea.
  */
-export default function IdeasPanel({ onOpenNode, onSeeDetailed }: Props) {
+export default function IdeasPanel({ onOpenNode, onSeeDetailed, sections = ["top", "recent"] }: Props) {
   const [items, setItems] = useState<PortfolioItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,19 +57,23 @@ export default function IdeasPanel({ onOpenNode, onSeeDetailed }: Props) {
 
   return (
     <div className="ideas-panel">
-      <div className="ideas-sec-head">
-        <span>Top rated</span>
-        <Button variant="quiet" size="sm" onClick={onSeeDetailed}>See detailed →</Button>
-      </div>
-      {topRated.length > 0 ? (
-        <div className="ui-rowlist">
-          {topRated.map((it) => <IdeaRow key={it.node_id} it={it} onOpen={() => onOpenNode(it.project_id, it.node_id)} />)}
-        </div>
-      ) : (
-        <Card pad><div className="ui-empty"><div className="ui-empty-title">No rated ideas yet</div><div className="ui-empty-body">Ideas appear here as runs score their candidate gaps.</div></div></Card>
+      {sections.includes("top") && (
+        <>
+          <div className="ideas-sec-head">
+            <span>Top rated</span>
+            <Button variant="quiet" size="sm" onClick={onSeeDetailed}>See detailed →</Button>
+          </div>
+          {topRated.length > 0 ? (
+            <div className="ui-rowlist">
+              {topRated.map((it) => <IdeaRow key={it.node_id} it={it} onOpen={() => onOpenNode(it.project_id, it.node_id)} />)}
+            </div>
+          ) : (
+            <Card pad><div className="ui-empty"><div className="ui-empty-title">No rated ideas yet</div><div className="ui-empty-body">Ideas appear here as runs score their candidate gaps.</div></div></Card>
+          )}
+        </>
       )}
 
-      {recent.length > 0 && (
+      {sections.includes("recent") && recent.length > 0 && (
         <>
           <div className="ideas-sec-head"><span>Recent</span></div>
           <div className="ui-rowlist">
