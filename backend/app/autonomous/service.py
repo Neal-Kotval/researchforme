@@ -1062,6 +1062,22 @@ class ExplorerService:
         if novelty is not None and not isinstance(novelty, BaseException):
             child.novelty_scan = novelty.model_dump()
             est += self._est(_BASE_PRESSURE, len(novelty.model_dump().get("rationale", "")))
+            # Novelty GATES the star (funnel): a gap can score high on viability and
+            # still sit on top of a funded incumbent — the exact trap that made a
+            # "92/open" idea die in the deep critique. If the (now incumbent-aware)
+            # scan confirms the space is OCCUPIED, the engine's ⭐ is wrong, so pull
+            # it. Conservative bar — only a confirmed "occupied" (the scan is still
+            # a touch generous vs the 7-lens critique), so open/adjacent ideas keep
+            # their star. Demote only; never promote on novelty.
+            if child.star and (
+                novelty.verdict == "occupied" or novelty.novelty_0_100 < 25
+            ):
+                child.star = False  # reason is self-evident from the attached scan.
+                self._log(
+                    project.id,
+                    f"Unstarred '{child.gap.title[:48]}' — novelty scan found it "
+                    f"occupied ({novelty.novelty_0_100}/100).",
+                )
         if child.value_model or child.novelty_scan:
             self._save_node(child, EventType.NODE_UPDATED)
         return est

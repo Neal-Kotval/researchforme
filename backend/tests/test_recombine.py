@@ -158,6 +158,60 @@ async def test_fixture_backend_refuses_to_recombine(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_occupied_novelty_pulls_the_star(tmp_path, monkeypatch):
+    """A high-viability gap the novelty scan confirms occupied loses its ⭐."""
+    import app.autonomous.novelty as novelty_mod
+    import app.autonomous.valuemodel as vm_mod
+    from app.autonomous.novelty import NoveltyScan, NearestCompany
+
+    service, store, project = _make_service(tmp_path)
+
+    async def _occupied(gap, client, model):  # noqa: ANN001
+        return NoveltyScan(
+            nearest_known=[NearestCompany(name="BigCo", why_similar="ships this")],
+            novelty_0_100=12, verdict="occupied",
+            rationale="BigCo already sells exactly this to the same buyer.",
+        )
+
+    async def _no_value(gap, project, client, model):  # noqa: ANN001
+        return None
+
+    monkeypatch.setattr(novelty_mod, "novelty_scan", _occupied)
+    monkeypatch.setattr(vm_mod, "model_value", _no_value)
+
+    node = _seed_gap_node(store, project.id, "Occupied idea", 90)
+    node.star = True
+    await service._enrich_winner(project, node)
+    assert node.star is False, "an occupied space must not keep the engine's star"
+    assert node.novelty_scan["verdict"] == "occupied"
+
+
+@pytest.mark.asyncio
+async def test_open_novelty_keeps_the_star(tmp_path, monkeypatch):
+    """An open/adjacent verdict leaves a legitimately-starred gap starred."""
+    import app.autonomous.novelty as novelty_mod
+    import app.autonomous.valuemodel as vm_mod
+    from app.autonomous.novelty import NoveltyScan
+
+    service, store, project = _make_service(tmp_path)
+
+    async def _open(gap, client, model):  # noqa: ANN001
+        return NoveltyScan(nearest_known=[], novelty_0_100=70, verdict="open",
+                           rationale="Real room on a distinct angle.")
+
+    async def _no_value(gap, project, client, model):  # noqa: ANN001
+        return None
+
+    monkeypatch.setattr(novelty_mod, "novelty_scan", _open)
+    monkeypatch.setattr(vm_mod, "model_value", _no_value)
+
+    node = _seed_gap_node(store, project.id, "Open idea", 88)
+    node.star = True
+    await service._enrich_winner(project, node)
+    assert node.star is True, "novelty gates by demotion only — open keeps the star"
+
+
+@pytest.mark.asyncio
 async def test_thin_pool_does_not_recombine(tmp_path, monkeypatch):
     from app.autonomous import service as service_mod
     from app.autonomous.schemas import ExplorerMode
