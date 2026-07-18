@@ -9,8 +9,9 @@ import {
   type TreeSnapshot,
 } from "../../autonomous/types";
 import { ACTIVE_STATUSES, latestActive } from "../../hooks/useProjects";
-import FitChip from "../autonomous/FitChip";
 import ViabChip from "../autonomous/ViabChip";
+import { Button, Card, Chip, EmptyState, Segmented } from "../ui";
+import { RunCard, type RunControlReq } from "../ui/RunCard";
 
 interface Props {
   projects: Project[];
@@ -19,16 +20,7 @@ interface Props {
   onNewExploration: () => void;
 }
 
-interface LogRow {
-  at: string;
-  message: string;
-}
-
-function fmtTok(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return `${Math.round(n)}`;
-}
+interface LogRow { at: string; message: string; }
 
 function ago(iso: string): string {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
@@ -47,11 +39,11 @@ function feedSrc(message: string): string {
   return "engine";
 }
 
-/** Right-column status word for a candidate row (mirrors the run states). */
+/** Right-column status caption for a candidate row (mirrors the run states). */
 function gapStatus(n: TreeNode): string {
   if (n.state === "pressure_testing") return "in red team";
   if (n.pressure_test && n.pressure_test.lenses.length > 0) {
-    return `red team ${n.pressure_test.survived}/${n.pressure_test.lenses.length}`;
+    return `red team ${n.pressure_test.survived}/${n.pressure_test.lenses.length} lenses`;
   }
   if (n.state === "scored") return "queued for red team";
   if (n.state === "synthesizing") return "synthesizing";
@@ -59,29 +51,25 @@ function gapStatus(n: TreeNode): string {
   return n.state.replace(/_/g, " ");
 }
 
+const Chevron = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+);
+
 /**
- * Explore (design handoff §2): watch the agent hunt live. A crop-mark-framed
- * run summary with real controls, candidate gaps on the left, the live event
- * feed on the right — all fed by the run's SSE stream. The full tree stays a
- * click away at #/e/:pid.
+ * Explore (v3 §Explore): watch the agent hunt live. The shared RunCard header
+ * with Resume/Curb, candidate-gap rows on the left, the live event feed on the
+ * right — all fed by the run's SSE stream. The full tree stays a click away.
  */
 export default function ExploreView({ projects, onOpenProject, onOpenNode, onNewExploration }: Props) {
-  const activeRuns = useMemo(
-    () => projects.filter((p) => ACTIVE_STATUSES.has(p.status)),
-    [projects]
-  );
+  const activeRuns = useMemo(() => projects.filter((p) => ACTIVE_STATUSES.has(p.status)), [projects]);
   const [selectedPid, setSelectedPid] = useState<string | null>(null);
-  // Prefer the freshest active run; with nothing active, keep showing the most
-  // recent run (final stats + a "done" pill) instead of dropping to empty.
   const newestAny = useMemo(
-    () =>
-      [...projects].sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""))[0] ??
-      null,
+    () => [...projects].sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""))[0] ?? null,
     [projects]
   );
   const pid = selectedPid ?? latestActive(projects)?.id ?? newestAny?.id ?? null;
 
-  // Live mirror of the selected run, folded from its SSE stream.
   const [project, setProject] = useState<Project | null>(null);
   const [nodes, setNodes] = useState<Record<string, TreeNode>>({});
   const [logs, setLogs] = useState<LogRow[]>([]);
@@ -115,7 +103,7 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
   }, [pid]);
 
   const [busy, setBusy] = useState(false);
-  const act = async (req: Parameters<typeof control>[1]) => {
+  const act = async (req: RunControlReq) => {
     if (!pid) return;
     setBusy(true);
     try {
@@ -129,13 +117,12 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
 
   if (!pid) {
     return (
-      <div className="pf-view">
-        <div className="pf-empty">
-          No active run to watch. Point the engine at a domain and this screen
-          becomes its live feed.
-          <br />
-          <button className="btn btn-primary" onClick={onNewExploration}>＋ New exploration</button>
-        </div>
+      <div className="pf-view ui-page">
+        <Card pad>
+          <EmptyState title="No active run to watch"
+            body="Point the engine at a domain and this screen becomes its live feed — the gaps it finds and the signals it reads, in real time."
+            action={{ label: "New exploration", onClick: onNewExploration, iconLeft: "＋" }} />
+        </Card>
       </div>
     );
   }
@@ -143,13 +130,6 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
   const p = project ?? projects.find((x) => x.id === pid) ?? null;
   const running = p?.status === "running";
   const pausedFamily = p != null && ACTIVE_STATUSES.has(p.status) && !running;
-  const mode = running
-    ? (p!.stats.mode === "curbing" ? "curbing" : "sprinting")
-    : pausedFamily
-      ? "paused"
-      : "done";
-  const modeWord = mode === "done" ? (p?.status ?? "done").replace(/_/g, " ") : mode;
-  const cap = p?.budget.max_tokens ?? null;
 
   const gaps = Object.values(nodes)
     .filter((n) => n.kind === "gap" || n.kind === "gap_candidate")
@@ -157,157 +137,92 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
     .slice(0, 6);
 
   return (
-    <div className="pf-view">
+    <div className="pf-view ui-page">
       {activeRuns.length > 1 && (
-        <div className="pt-picker" role="tablist" aria-label="Active runs">
-          {activeRuns.map((r) => (
-            <button
-              key={r.id}
-              role="tab"
-              aria-selected={r.id === pid}
-              className={r.id === pid ? "on" : ""}
-              onClick={() => setSelectedPid(r.id)}
-            >
-              {r.domain}
-            </button>
-          ))}
-        </div>
+        <Segmented items={activeRuns.map((r) => ({ id: r.id, label: r.domain }))}
+          value={pid} onChange={setSelectedPid} ariaLabel="Active runs" />
       )}
 
-      {/* Run summary — radius 0, crop-mark corner ticks (handoff spec) */}
-      <div className="pf-run-summary">
-        <span className="pf-tick tl" /><span className="pf-tick tr" />
-        <span className="pf-tick bl" /><span className="pf-tick br" />
-        <div className="pf-run-summary-head">
-          <div className="pf-run-summary-title">
-            <span>{p?.domain ?? "…"}</span>
-            <span className={`pf-pill ${mode}`}>
-              <span className={`pf-dot${running && mode === "sprinting" ? " pulse" : ""}`} />
-              {modeWord}
-            </span>
-          </div>
-          <div className="pf-run-summary-actions">
-            {running && (
-              <button className="btn" disabled={busy} onClick={() => act({ action: "pause" })}>
-                Pause run
-              </button>
-            )}
-            {pausedFamily && (
-              <button className="btn" disabled={busy} onClick={() => act({ action: "resume" })}>
-                Resume run
-              </button>
-            )}
-            {(running || pausedFamily) && (
-              <button
-                className="btn"
-                disabled={busy || p?.budget.pace === "eco"}
-                onClick={() => act({ action: "set_pace", pace: "eco" })}
-                title="Drop the pace to eco — the governor spends slower"
-              >
-                Curb spend
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="pf-run-summary-stats">
-          <span className="pf-stat"><b>{p?.stats.nodes ?? "—"}</b><small>nodes mapped</small></span>
-          <span className="pf-stat accent"><b>{p?.stats.candidates ?? "—"}</b><small>candidate gaps</small></span>
-          <span className="pf-stat"><b>{p?.stats.stars ?? "—"}</b><small>starred</small></span>
-          <span className="pf-stat">
-            <b>{p ? fmtTok(p.stats.tokens_spent) : "—"}</b>
-            <small>{cap ? `of ${fmtTok(cap)} tok cap` : "tok · no cap"}</small>
-          </span>
-        </div>
-      </div>
+      {p ? (
+        <RunCard p={p} onOpen={() => onOpenProject(pid)} onControl={act} busy={busy} />
+      ) : (
+        <Card pad><div className="ui-empty-body" style={{ textAlign: "center" }}>Connecting to the run…</div></Card>
+      )}
 
-      {/* finished runs leave a one-line digest behind (H4) — the full card
-          lives on the run's Overview tab in the explorer drill-in */}
-      {mode === "done" && p && (() => {
+      {/* finished runs leave a one-line digest behind */}
+      {!running && !pausedFamily && p && (() => {
         const d = normalizeDigest(p.digest);
         if (!d) return null;
         return (
-          <div className="pf-digest-strip">
-            <span className="pf-digest-label">
-              Run digest
-              {d.degraded && (
-                <span
-                  className="pf-digest-degraded"
-                  title="The model was unavailable when this run ended — this digest was computed deterministically, not written by the model."
-                >
-                  {" "}· deterministic fallback
-                </span>
-              )}
-            </span>
-            <span className="pf-digest-text">
-              {d.top_spaces.length > 0 && (
-                <>Top: {d.top_spaces.map((s) => s.title).join(" · ")}. </>
-              )}
-              {d.kill_pattern && <>Kill pattern: {d.kill_pattern}</>}
-            </span>
-            <button className="btn btn-sm" onClick={() => onOpenProject(pid)}>
-              Full digest ▸
-            </button>
-          </div>
+          <Card pad className="ui-chiprow" style={{ justifyContent: "space-between", gap: 14 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="ui-stat-label" style={{ marginBottom: 4 }}>
+                Run digest
+                {d.degraded && (
+                  <span title="The model was unavailable when this run ended — this digest was computed deterministically, not written by the model.">
+                    {" · "}deterministic fallback
+                  </span>
+                )}
+              </div>
+              <div className="ui-row-cap">
+                {d.top_spaces.length > 0 && <>Top: {d.top_spaces.map((s) => s.title).join(" · ")}. </>}
+                {d.kill_pattern && <>Kill pattern: {d.kill_pattern}</>}
+              </div>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => onOpenProject(pid)}>Full digest</Button>
+          </Card>
         );
       })()}
 
-      <div className="pf-explore-cols">
-        <div>
-          <div className="pf-col-head">
-            <span className="pf-col-title">Candidate gaps</span>
-            <button className="btn btn-sm" onClick={() => onOpenProject(pid)}>
-              Open full tree ▸
-            </button>
+      <div className="ui-split">
+        <section>
+          <div className="ui-colhead">
+            <span className="ui-colhead-title">Candidate gaps</span>
+            <Button variant="secondary" size="sm" onClick={() => onOpenProject(pid)}>Open full tree</Button>
           </div>
           {gaps.length > 0 ? (
-            <div className="pf-gap-stack">
+            <div className="ui-rowlist">
               {gaps.map((g) => (
-                <button key={g.id} className="pf-gap-card" onClick={() => onOpenNode(pid, g.id)}>
-                  <div className="pf-gap-chips">
-                    <ViabChip value={g.viability} trust={nodeTrust(g)} star={g.star} />
-                    <FitChip value={g.fit} labeled />
-                    <span className="pf-gap-status">{gapStatus(g)}</span>
+                <button key={g.id} className="ui-row" onClick={() => onOpenNode(pid, g.id)}>
+                  <ViabChip value={g.viability} trust={nodeTrust(g)} star={g.star} />
+                  <div className="ui-row-main">
+                    <div className="ui-row-title">{g.gap?.title ?? g.title}</div>
+                    <div className="ui-row-cap">{gapStatus(g)}</div>
                   </div>
-                  <div className="pf-gap-title">{g.gap?.title ?? g.title}</div>
+                  <span className="ui-row-chev"><Chevron /></span>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="pf-empty">
-              No candidate gaps yet — the engine is still mapping the space.
-            </div>
+            <Card pad>
+              <EmptyState title="No candidate gaps yet" body="The engine is still mapping the space — gaps appear here as it synthesizes them." />
+            </Card>
           )}
-        </div>
+        </section>
 
-        <div>
-          <div className="pf-col-head">
-            <span className="pf-col-title">Live activity</span>
-            {running && (
-              <span className="pf-streaming">
-                <span className="pf-dot pulse" />streaming
-              </span>
-            )}
+        <section>
+          <div className="ui-colhead">
+            <span className="ui-colhead-title">Live activity</span>
+            {running && <Chip tone="tint" dot="accent" pulse>streaming</Chip>}
           </div>
           {logs.length > 0 ? (
-            <div className="pf-feed">
+            <div className="ui-feed">
               {logs.slice(0, 8).map((l, i) => (
-                <div className="pf-feed-row" key={`${l.at}-${i}`}>
-                  <span className="src-chip">{feedSrc(l.message)}</span>
-                  <span className="pf-feed-text">{l.message}</span>
-                  <span className="pf-feed-time">{ago(l.at)}</span>
+                <div className="ui-feed-row" key={`${l.at}-${i}`}>
+                  <span className="ui-chip ui-chip--slate ui-chip--sm">{feedSrc(l.message)}</span>
+                  <span className="ui-feed-text">{l.message}</span>
+                  <span className="ui-feed-time">{ago(l.at)}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="pf-empty">
-              {running
-                ? "Waiting for the next event…"
-                : pausedFamily
-                  ? "The run is paused — no events streaming."
-                  : "The run has finished — no events streaming."}
-            </div>
+            <Card pad>
+              <EmptyState
+                title={running ? "Waiting for the next event…" : pausedFamily ? "The run is paused" : "The run has finished"}
+                body={running ? undefined : pausedFamily ? "No events streaming while paused — resume to watch it hunt again." : "No events streaming — reopen the full tree to review what it found."} />
+            </Card>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

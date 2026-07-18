@@ -1,130 +1,197 @@
 /* ============================================================================
-   Design tokens — Market Gap Finder
-   Synced to the "Gap Finder — Platform (light)" design handoff: near-white
-   warm-green-grey canvas, near-black ink, charcoal primary buttons, a single
-   GREEN accent used as a highlighter (fills behind dark text — never colored
-   text; "accent-ink" near-black covers the rare text/dot/sparkline use),
-   hairline borders, 8px cards, Inter Tight UI + JetBrains Mono metadata.
-   Light only. Single source of truth.
+   Design tokens — Gap Finder v3 ("first-party Apple/Meta" light redesign)
+   Single source of truth. Every color in the app derives from the six palette
+   values below — no other hex, no default grays. Legacy semantic token names
+   are kept and REMAPPED onto the palette so components migrate incrementally
+   without breaking. Light only.
    ========================================================================== */
 
 :root {
-  /* ---- surfaces (near-white, warm-green-grey neutrals) ------------------- */
-  --bg: #f6f7f5;          /* app canvas (dotted-grid dots ride --border) */
-  --surface: #ffffff;     /* cards / primary content */
-  --surface-side: #fbfcfb;/* the fixed sidebar */
-  --surface-2: #f5f7f4;   /* insets, table header, command blocks */
-  --surface-3: #eef1ee;   /* chips, tracks, tertiary fills */
-  --surface-hover: #f0f1ee; /* nav-active / hover fills */
+  /* ======================================================================
+     v3 CANONICAL PALETTE — the only six source colors
+     ====================================================================== */
+  --bg:     #FFFFFF;   /* app + card background */
+  --ink:    #321E48;   /* primary text, headings, primary buttons */
+  --slate:  #43637E;   /* secondary text, icons; opacity steps → borders */
+  --accent: #65DCD5;   /* THE accent: live dots, fills, focus rings, details */
+  --tint:   #D9FFF4;   /* tinted surfaces: selected nav, hovers, score pills */
+  --danger: #B04A42;   /* kill/destructive semantics ONLY */
 
-  /* ---- lines & elevation (borders carry structure; shadows ~none) ------- */
-  --border: #e5e8e2;        /* hairline */
-  --border-strong: #d6d9d3;
-  --ring: rgba(31, 31, 26, 0.35);   /* ink focus ring — no colored chrome */
-  --shadow-sm: 0 1px 2px rgba(31, 31, 26, 0.05);
-  --shadow-md: 0 1px 2px rgba(31, 31, 26, 0.05), 0 2px 5px rgba(31, 31, 26, 0.04);
-  --shadow-lg: 0 14px 36px -14px rgba(31, 31, 26, 0.22);
+  /* accent is a FILL — ink rides on top, never white; never accent-as-text.
+     A darkened teal exists only for the rare case ink-on-tint needs a hairline. */
+  --accent-deep: #2C8F89;      /* teal dark enough for a detail stroke if needed */
+  --accent-hover: #4FCEC6;     /* hover fill (still light — ink on top) */
+  --danger-hover: #9C4039;
 
-  /* ---- ink (body values clear 4.5:1 on --surface) ------------------------ */
-  --text: #1c1e1b;        /* primary text, headings */
-  --text-dim: #5b5e54;    /* secondary body */
-  --text-faint: #8a8d81;  /* labels, captions */
-  --text-ghost: #9ea196;  /* decorative only */
-  --text-on-accent: #ffffff;
+  /* ---- slate opacity ladder (neutrals; all real text ≥4.5:1 verified) ---- */
+  --slate-88: color-mix(in srgb, var(--slate) 88%, #fff);
+  --slate-70: color-mix(in srgb, var(--slate) 70%, #fff);
+  --slate-55: color-mix(in srgb, var(--slate) 55%, #fff);
+  --slate-15: color-mix(in srgb, var(--slate) 15%, #fff);
+  --slate-12: color-mix(in srgb, var(--slate) 12%, #fff);
+  --slate-10: color-mix(in srgb, var(--slate) 10%, #fff);
+  --slate-08: color-mix(in srgb, var(--slate) 8%, #fff);
+  --slate-06: color-mix(in srgb, var(--slate) 6%, #fff);
+  --slate-05: color-mix(in srgb, var(--slate) 5%, #fff);
+  --slate-04: color-mix(in srgb, var(--slate) 4%, #fff);
 
-  /* ---- accent (GREEN highlighter — fills behind dark text) -------------- */
-  /* --accent-strong is the "accent-ink": the rare text/hover use is near-   */
-  /* black, never green text on white (handoff hard rule).                   */
-  --accent: #54b56a;          /* the highlighter fill */
-  --accent-bright: #63c077;   /* hover fill */
-  --accent-strong: #26261f;   /* accent-ink — text / dots / sparklines */
-  --accent-tint: #e9f4ec;     /* selected row, soft fills */
-  --accent-tint-2: #c9e5d2;   /* soft borders */
+  /* ======================================================================
+     SURFACES (white app; whisper-slate only where separation truly helps)
+     ====================================================================== */
+  --surface: var(--bg);                /* cards / content — white */
+  --sidebar: var(--slate-04);          /* sidebar panel (slate 4%) */
+  --hover: var(--slate-05);            /* row/button hover (slate 5%) */
+  --pressed: var(--slate-08);          /* active nav pill, pressed (slate 8%) */
+  --surface-side: var(--sidebar);
+  --surface-2: var(--slate-04);        /* insets, table header */
+  --surface-3: var(--slate-08);        /* chips, tracks */
+  --surface-hover: var(--hover);       /* hover fills */
 
-  /* ---- primary action (charcoal buttons, white text) -------------------- */
-  --primary: #1c1c1a;
-  --primary-hover: #34342e;
-  --primary-fg: #ffffff;
+  /* ---- lines & elevation — FLAT at rest; shadow only on floating layers --- */
+  --border: var(--slate-10);           /* hairline (slate 10%) */
+  --border-strong: color-mix(in srgb, var(--slate) 20%, #fff);
+  --ring: var(--accent);               /* focus ring is the accent */
+  --shadow-sm: none;
+  --shadow-md: none;                   /* nothing is elevated at rest */
+  --shadow-lg: 0 8px 24px rgba(50, 30, 72, 0.10); /* menus / popovers / dialogs only */
+  --shadow-card-hover: none;           /* card hover = --hover bg, not elevation */
 
-  /* ---- highlight (marker chips/pills: dark text on the green fill) ------ */
-  --highlight: #54b56a;
-  --highlight-ink: #1f1f1a;
-  --highlight-border: #2f9550;  /* hairline on highlighter chips/pills */
-  --highlight-tint: #eaf4ec;    /* lead-row wash (Compare) */
+  /* ======================================================================
+     INK / TEXT (ink primary; slate secondary; lighter steps decorative)
+     ====================================================================== */
+  --text: var(--ink);          /* primary text, headings */
+  --text-dim: var(--slate);    /* secondary body/icons — 5.9:1 on white */
+  --text-faint: var(--slate-88); /* captions/labels — ~4.6:1 on white */
+  --text-ghost: var(--slate-55); /* DECORATIVE only (placeholder dots, ticks) */
+  --text-on-accent: var(--ink);  /* ink rides on accent/tint (never white) */
+  --text-on-ink: #fff;           /* white on the ink primary button */
+  --text-secondary: var(--slate);
+  --text-tertiary: var(--slate-55);
 
-  /* ---- semantic states --------------------------------------------------- */
-  --live: #2f9550;         --live-tint: #e9f4ec;             /* live / sprinting */
-  --warn: #a9701a;         --warn-tint: rgba(224, 169, 74, 0.12); /* curbing, weakens, medium confidence */
-  --unavailable: #c8352f;  --unavailable-tint: rgba(242, 100, 95, 0.1); /* kills / danger */
-  --empty: #9ea196;        --empty-tint: #eef1ee;
+  /* ======================================================================
+     ACCENT family — remapped to teal (fills/dots/rings; ink on top)
+     ====================================================================== */
+  --accent-bright: var(--accent-hover);
+  --accent-strong: var(--ink);     /* was "accent-ink": links/text → ink now */
+  --accent-tint: var(--tint);      /* selected row / soft fills */
+  --accent-tint-2: color-mix(in srgb, var(--accent) 45%, #fff); /* soft border */
 
-  /* ---- provenance (reserved — memo §2) ----------------------------------- */
-  /* Amber means exactly one thing: "this data is canned/fixture, not live". */
-  --mock: #9a6b00;         --mock-tint: #f6eed7;
+  /* ---- primary action (ink fill, white text) ---------------------------- */
+  --primary: var(--ink);
+  --primary-hover: color-mix(in srgb, var(--ink) 86%, #000);
+  --primary-fg: #fff;
 
-  /* ---- founder fit (memo §1, restyled to the handoff's neutral chip) ----- */
-  /* Fit is the founder's number — a quiet warm-neutral chip, distinct from   */
-  /* the market's viability ramp but no longer a loud second accent.          */
-  --fit: #6f6a52;
-  --fit-strong: #57533f;
-  --fit-tint: #f2f2ee;
+  /* ---- highlight (marker chips/pills: ink text on the tint fill) --------- */
+  --highlight: var(--tint);
+  --highlight-ink: var(--ink);
+  --highlight-border: var(--accent-tint-2);
+  --highlight-tint: var(--tint);
 
-  /* ---- data ramp (warm grey → accent green; denser = stronger) ----------- */
-  --ramp-0: #cfd2ca;   /* low — warm grey */
-  --ramp-1: #b2d4bb;
-  --ramp-2: #83c093;
-  --ramp-3: #54b56a;   /* the accent green */
-  --ramp-4: #2f9550;   /* high — deep green */
-  --data-neutral: #6f6f66;  /* single-hue bars / sparklines — warm grey */
+  /* ======================================================================
+     SEMANTIC STATES — collapsed to the palette (no green/amber survive)
+       running/live   → accent (dot/fill), ink text
+       curbing/weaken → slate (neutral, quiet)
+       killed/danger  → danger (the one non-core color)
+     ====================================================================== */
+  --live: var(--accent);          --live-tint: var(--tint);
+  --warn: var(--slate);           --warn-tint: var(--slate-08);
+  --unavailable: var(--danger);   --unavailable-tint: color-mix(in srgb, var(--danger) 8%, #fff);
+  --empty: var(--text-ghost);     --empty-tint: var(--slate-06);
 
-  /* ---- source badge hues (muted warm graphite) --------------------------- */
-  --src-reddit: #5b5e54;      --src-reddit-tint: #eef1ee;
-  --src-arxiv: #5b5e54;       --src-arxiv-tint: #eef1ee;
-  --src-hn: #5b5e54;          --src-hn-tint: #eef1ee;
-  --src-github: #5b5e54;      --src-github-tint: #eef1ee;
-  --src-newsletter: #5b5e54;  --src-newsletter-tint: #eef1ee;
+  /* fixture/canned-data marker (palette has no amber → quiet slate outline) */
+  --mock: var(--slate);           --mock-tint: var(--slate-08);
+
+  /* good / warn / bad (confidence & novelty verdicts) — safe, readable now;
+     restyled into tint/slate/danger chips per page during migration. */
+  --good: var(--ink);
+  --bad: var(--danger);
+
+  /* founder fit — quiet slate chip (the founder's number, not a 2nd accent) */
+  --fit: var(--slate);
+  --fit-strong: color-mix(in srgb, var(--slate) 80%, #000);
+  --fit-tint: var(--slate-06);
+
+  /* ---- viability data ramp (pale slate → accent teal; denser = stronger) - */
+  /* all are light fills → ink numeral on top stays high-contrast */
+  --ramp-0: color-mix(in srgb, var(--slate) 16%, #fff);   /* low */
+  --ramp-1: color-mix(in srgb, var(--accent) 24%, #fff);
+  --ramp-2: color-mix(in srgb, var(--accent) 46%, #fff);
+  --ramp-3: color-mix(in srgb, var(--accent) 72%, #fff);
+  --ramp-4: var(--accent);                                /* high */
+  --data-neutral: var(--slate);
+
+  /* ---- source badge hues (single quiet slate) --------------------------- */
+  --src-reddit: var(--slate);     --src-reddit-tint: var(--slate-08);
+  --src-arxiv: var(--slate);      --src-arxiv-tint: var(--slate-08);
+  --src-hn: var(--slate);         --src-hn-tint: var(--slate-08);
+  --src-github: var(--slate);     --src-github-tint: var(--slate-08);
+  --src-newsletter: var(--slate); --src-newsletter-tint: var(--slate-08);
 
   color-scheme: light;
 
-  /* ---- typography (Inter Tight UI · JetBrains Mono metadata/numbers) ---- */
-  --font: "Inter Tight Variable", "Inter Variable", "Inter", ui-sans-serif,
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* ======================================================================
+     TYPOGRAPHY — Apple system sans everywhere; mono ONLY paths + token counts
+     ====================================================================== */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Inter Variable", Inter, system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 680;
 
-  /* type scale (~1.25 ratio) */
-  --fs-xs: 11px;
-  --fs-sm: 12.5px;
-  --fs-base: 14px;
-  --fs-md: 15px;
-  --fs-lg: 19px;
-  --fs-xl: 24px;
+  /* v3 canonical type scale (ChatGPT/Claude-quiet) — nothing outside it.
+     22/semibold page titles · 16/semibold section+card titles · 15 body (1.6)
+     · 13 secondary · 12 medium SENTENCE-CASE labels, slate. No uppercase
+     except table column headers. */
+  --fs-title: 22px;
+  --fs-card: 16px;
+  --fs-body: 15px;
+  --fs-secondary: 13px;
+  --fs-label: 12px;
+  --ls-label: 0;
 
-  /* ---- spacing (4px base) ----------------------------------------------- */
+  /* legacy scale — remapped near the canonical steps to nudge un-migrated CSS */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+
+  /* ---- spacing (8px grid; 4px half-steps allowed) ----------------------- */
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+  --sp-12: 48px; --sp-16: 64px;
 
-  /* ---- radius (handoff: cards/buttons 7–8px, chips/badges 3–4px) -------- */
-  --r-xs: 3px;
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 8px;
-  --r-xl: 8px;
-  --r-pill: 6px;
+  /* ---- radius (cards 16 · buttons/fields 12 · chips/badges 8) ----------- */
+  --r-card: 16px;
+  --r-btn: 12px;
+  --r-field: 12px;
+  --r-chip: 8px;
+  /* legacy radii nudged toward the new shapes */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 16px;
+  --r-pill: 999px;
 
-  /* ---- motion ----------------------------------------------------------- */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 0.14s;
-  --dur-mid: 0.24s;
+  /* ---- motion (150–180ms ease-out; opacity/transform only) -------------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 0.16s;
+  --dur-mid: 0.18s;
+  --dur-ui: 0.16s;
 
   /* ---- layout ----------------------------------------------------------- */
-  --maxw: 1320px;
+  --maxw: 800px;         /* centered reading column ~800px (Compare goes wider) */
 
   /* ---- z-index ---------------------------------------------------------- */
   --z-sticky: 40;
   --z-scrim: 60;
   --z-drawer: 61;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0s; --dur-mid: 0s; --dur-ui: 0s; }
 }

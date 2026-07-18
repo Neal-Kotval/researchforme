@@ -7,16 +7,10 @@ import { Mounted } from "./motion";
 import CommandPalette from "./components/CommandPalette";
 import ExplorerView from "./components/autonomous/ExplorerView";
 import NewExplorationDialog, { type DialogPrefill } from "./components/autonomous/NewExplorationDialog";
-import PlatformShell from "./components/platform/PlatformShell";
+import PlatformShell, { routeToPlatformView } from "./components/platform/PlatformShell";
 import HomeView from "./components/platform/HomeView";
-import ExploreView from "./components/platform/ExploreView";
-import AutonomousView from "./components/platform/AutonomousView";
-import PressureTestView from "./components/platform/PressureTestView";
-import CompareView from "./components/platform/CompareView";
-import GraveyardView from "./components/platform/GraveyardView";
-import StarredView from "./components/platform/StarredView";
-import LibraryView from "./components/platform/LibraryView";
-import AssistantView from "./components/platform/AssistantView";
+import ExploreWorkspace, { type ExploreTab } from "./components/platform/ExploreWorkspace";
+import LibraryWorkspace from "./components/platform/LibraryWorkspace";
 
 /** True while the user is typing somewhere a bare-key shortcut must not fire. */
 function typingInField(): boolean {
@@ -72,72 +66,60 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [openNew, navView, paletteOpen, dialog]);
 
+  // Consolidated routing: every hash resolves into Home / Explore / Library.
+  const section = routeToPlatformView(route);
+  const exploreTab: ExploreTab =
+    route.view === "autonomous" ? "autonomous"
+    : route.view === "pressure" ? "pressure"
+    : route.view === "compare" ? "compare"
+    : "live";
+  const homeMode = route.view === "assistant" ? "ask" : "explore";
+  const librarySlug = route.view === "library" ? route.slug : null;
+  const openLibrary = (slug: string | null) => {
+    window.location.hash = slug ? `#/library/${encodeURIComponent(slug)}` : "#/library";
+  };
+
   return (
     <>
-      <PlatformShell route={route} projects={projects} onNav={navView} onNewExploration={openNew}>
+      <PlatformShell route={route} projects={projects} onNav={navView}
+        onAsk={() => navView("assistant")} onNewExploration={openNew}>
         <main className="pf-content">
-          <Mounted k={route.view} className="pf-view-fade">
-          {route.view === "home" && (
-            <HomeView
-              projects={projects}
-              onOpenProject={navProject}
-              onOpenNode={navNode}
-              onNewExploration={openNew}
-              onExploreCandidate={openScoutPrefill}
-            />
-          )}
-          {route.view === "explore" && (
-            <ExploreView
-              projects={projects}
-              onOpenProject={navProject}
-              onOpenNode={navNode}
-              onNewExploration={openNew}
-            />
-          )}
-          {route.view === "autonomous" && (
-            <AutonomousView
-              projects={projects}
-              onOpenProject={navProject}
-              onNewExploration={openNew}
-            />
-          )}
-          {route.view === "exploration" && (
-            <div className="shell explorer-shell">
-              <ExplorerView
-                route={route}
-                navHome={navHome}
-                navProject={navProject}
-                navNode={navNode}
-                navMode={navMode}
+          <Mounted k={section} className="pf-view-fade">
+            {section === "home" && (
+              <HomeView
+                projects={projects}
+                mode={homeMode}
+                onOpenProject={navProject}
+                onOpenNode={navNode}
+                onNewExploration={openNew}
+                onExploreCandidate={openScoutPrefill}
+                onNav={navView}
+                onActed={refresh}
               />
-            </div>
-          )}
-          {route.view === "pressure" && (
-            <PressureTestView onOpenNode={navNode} onNewExploration={openNew} />
-          )}
-          {route.view === "compare" && (
-            <CompareView onOpenNode={navNode} onNewExploration={openNew} />
-          )}
-          {route.view === "starred" && (
-            <StarredView
-              onOpenNode={navNode}
-              onImported={(slug) => { window.location.hash = `#/library/${encodeURIComponent(slug)}`; }}
-            />
-          )}
-          {route.view === "library" && (
-            <LibraryView
-              slug={route.slug}
-              onOpenProject={(slug) => {
-                window.location.hash = slug ? `#/library/${encodeURIComponent(slug)}` : "#/library";
-              }}
-            />
-          )}
-          {route.view === "graveyard" && (
-            <GraveyardView onOpenNode={navNode} />
-          )}
-          {route.view === "assistant" && (
-            <AssistantView onNav={navView} onActed={refresh} />
-          )}
+            )}
+            {section === "explore" && route.view === "exploration" && (
+              <div className="shell explorer-shell">
+                <ExplorerView route={route} navHome={navHome} navProject={navProject} navNode={navNode} navMode={navMode} />
+              </div>
+            )}
+            {section === "explore" && route.view !== "exploration" && (
+              <ExploreWorkspace
+                projects={projects}
+                tab={exploreTab}
+                onTab={(t) => navView(t === "live" ? "explore" : t)}
+                onOpenProject={navProject}
+                onOpenNode={navNode}
+                onNewExploration={openNew}
+              />
+            )}
+            {section === "library" && (
+              <LibraryWorkspace
+                slug={librarySlug}
+                onOpenProject={openLibrary}
+                onOpenNode={navNode}
+                onImported={(slug) => openLibrary(slug)}
+              />
+            )}
           </Mounted>
         </main>
       </PlatformShell>

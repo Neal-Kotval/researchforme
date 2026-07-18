@@ -1,0 +1,45 @@
+/* Home — the Claude-style hero: a centered greeting, a big composer with an
+   Explore | Ask toggle, and quick-action chips beneath it. Idle and calm;
+   the real content (runs, ideas) lives on Explore and Library. */
+.home-hero {
+  max-width: 720px; margin: 0 auto; min-height: calc(100vh - 120px);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 24px 24px 80px; gap: 20px;
+}
+.home-greet {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  font-size: 30px; font-weight: var(--fw-semibold); color: var(--ink);
+  letter-spacing: -0.02em; text-align: center;
+}
+.home-greet-mark {
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
+  background: var(--ink); display: grid; place-items: center;
+}
+.home-greet-mark svg { width: 17px; height: 17px; }
+
+/* Explore | Ask toggle — sits just inside the composer's top-left. */
+.home-modes { display: flex; justify-content: center; }
+.home-mode-seg { display: inline-flex; gap: 2px; background: var(--slate-06); border-radius: 9999px; padding: 3px; }
+.home-mode-btn {
+  border: none; background: none; cursor: pointer; padding: 6px 16px; border-radius: 9999px;
+  font-size: var(--fs-secondary); font-weight: var(--fw-medium); color: var(--slate);
+  transition: background var(--dur-ui) var(--ease-out), color var(--dur-ui) var(--ease-out);
+}
+.home-mode-btn.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(50,30,72,0.08); }
+.home-mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.home-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.home-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: var(--fs-secondary); color: var(--slate);
+  background: none; border: 1px solid var(--border); border-radius: 9999px;
+  padding: 8px 15px; cursor: pointer; transition: background var(--dur-ui) var(--ease-out), color var(--dur-ui) var(--ease-out);
+}
+.home-chip:hover { background: var(--hover); color: var(--ink); }
+.home-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.home-chip svg { width: 15px; height: 15px; }
+.home-err { text-align: center; }
+
+/* When there is live/queued activity, a quiet strip sits below the hero so the
+   home still surfaces "what's running" without cluttering the composer. */
+.home-belowfold { max-width: 720px; margin: 0 auto; padding: 0 24px 60px; display: flex; flex-direction: column; gap: 16px; }

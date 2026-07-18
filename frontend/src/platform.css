@@ -84,16 +84,16 @@
 .pf-nav-item svg { flex: none; position: relative; z-index: 1; }
 .pf-nav-item .pf-txt { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .pf-nav-item .pf-nav-live, .pf-nav-item .pf-kbd { position: relative; z-index: 1; }
-.pf-nav-item:hover:not(.active) { background: var(--surface-hover); }
-.pf-nav-item.active { color: var(--text); background: transparent; }
-/* The sliding highlight that travels between nav items (motion layoutId). Under
-   reduced motion it simply appears under the active item — same affordance, no travel. */
+.pf-nav-item:hover:not(.active) { background: var(--slate-06); }
+.pf-nav-item.active { color: var(--ink); background: var(--pressed); font-weight: var(--fw-semibold); }
+/* The sliding highlight that travels between nav items (motion layoutId): the
+   active item's full-width tint pill. Reduced motion → it just appears, no travel. */
 .pf-nav-ink {
   position: absolute;
   inset: 0;
   z-index: 0;
-  border-radius: var(--r-xl);
-  background: var(--surface-hover);
+  border-radius: var(--r-btn);
+  background: var(--tint);
 }
 .pf-nav-item:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 
@@ -234,25 +234,26 @@
 
 .pf-topbar {
   flex: none;
-  height: 60px;
+  min-height: 60px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 26px;
+  padding: 12px 24px;
 }
 .pf-topbar-titlerow { display: flex; align-items: center; gap: 9px; }
 .pf-topbar h1 {
-  font-size: 17px;
+  font-size: var(--fs-title);
   font-weight: var(--fw-semibold);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   margin: 0;
+  line-height: 1.15;
 }
 .pf-view-sub {
-  font-size: 12px;
-  color: var(--text-faint);
-  margin-top: 1px;
+  font-size: var(--fs-secondary);
+  color: var(--slate);
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -295,8 +296,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background-image: radial-gradient(var(--border) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background: var(--bg);
   display: flex;
   flex-direction: column;
 }
@@ -307,9 +307,10 @@
 
 /* Width-capped per the handoff, but centered in the content region so wide
    monitors don't read as a half-empty screen. */
-.pf-view { padding: 26px 30px 40px; width: 100%; max-width: 1080px; margin-inline: auto; }
+.pf-view { padding: 28px 24px 56px; width: 100%; max-width: var(--maxw); margin-inline: auto; }
 .pf-view.w880 { max-width: 880px; }
 .pf-view.w940 { max-width: 940px; }
+.pf-view.w1000 { max-width: 1000px; }
 
 /* Section modules (Home): heading + sub, then content */
 .pfm { margin-bottom: 30px; }
@@ -956,7 +957,7 @@
 .as-composer .btn-primary { display: inline-flex; align-items: center; gap: 7px; }
 
 /* ------------------------------------------------------------- responsive -- */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .pf-sidebar { width: 60px; padding: 16px 8px; align-items: center; }
   .pf-sidebar .pf-txt,
   .pf-sidebar .pf-navlabel,
@@ -964,6 +965,7 @@
   .pf-sidebar .pf-kbd,
   .pf-logo > div:last-child,
   .pf-usage,
+  .pf-sidebar .tpf,
   .pf-user > div:last-child { display: none; }
   .pf-nav { width: 100%; }
   .pf-nav-item { justify-content: center; padding: 9px 0; }

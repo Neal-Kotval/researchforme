@@ -1,92 +1,14 @@
 import { useMemo, useState } from "react";
-import { createProject, ApiError } from "../../autonomous/api";
+import { createProject, control, ApiError } from "../../autonomous/api";
 import type { Project } from "../../autonomous/types";
 import { ACTIVE_STATUSES } from "../../hooks/useProjects";
+import { Card, Composer, EmptyState, SectionHeader } from "../ui";
+import { RunCard, type RunControlReq } from "../ui/RunCard";
 
 interface Props {
   projects: Project[];
   onOpenProject: (pid: string) => void;
   onNewExploration: () => void;
-}
-
-function fmtTok(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return `${Math.round(n)}`;
-}
-
-/** Wall-clock runtime: to now while running, frozen at last activity when not. */
-function elapsed(p: Project): string {
-  const end = p.status === "running" ? Date.now() : Date.parse(p.updated_at);
-  const ms = end - Date.parse(p.created_at);
-  if (Number.isNaN(ms) || ms < 0) return "—";
-  const m = Math.floor(ms / 60_000);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 100) return `${h}h ${String(m % 60).padStart(2, "0")}m`;
-  return `${Math.round(h / 24)}d`;
-}
-
-/** Mode pill class + label for a run card. */
-function runMode(p: Project): { cls: string; word: string; live: boolean } {
-  if (p.status === "running") {
-    const m = p.stats.mode;
-    if (m === "curbing") return { cls: "curbing", word: "curbing", live: false };
-    return { cls: "sprinting", word: "sprinting", live: true };
-  }
-  if (ACTIVE_STATUSES.has(p.status)) return { cls: "paused", word: "paused", live: false };
-  return { cls: "done", word: p.status.replace(/_/g, " "), live: false };
-}
-
-/** The "what is it doing right now" line under a run's name. */
-function nowLine(p: Project): string {
-  if (p.status === "running") {
-    if (p.stats.mode === "curbing") {
-      return "Governor slowing spend — deep-rigor passes deferred to the next window";
-    }
-    return `Hunting across ${p.stats.frontier_size} open branch${p.stats.frontier_size === 1 ? "" : "es"} — ${p.stats.candidates} candidates so far`;
-  }
-  if (p.status === "paused") return "Paused — resumes exactly where it stopped";
-  if (p.status === "usage_paused") return "Waiting on the usage governor — resumes automatically";
-  if (p.status === "milestone_paused") return "Milestone reached — waiting for your go-ahead";
-  return p.stats.stop_reason ?? "Stopped";
-}
-
-/** One run row — mirrors Home's active-run card so the two screens read alike. */
-function RunCard({ p, onOpen }: { p: Project; onOpen: () => void }) {
-  const mode = runMode(p);
-  const cap = p.budget.max_tokens;
-  const pctW = cap ? Math.min(100, (p.stats.tokens_spent / cap) * 100) : 100;
-  return (
-    <button className="pf-run-card" onClick={onOpen}>
-      <div className="pf-run-main">
-        <div className="pf-run-head">
-          <span className="pf-run-name">{p.domain}</span>
-          <span className={`pf-pill ${mode.cls}`}>
-            <span className={`pf-dot${mode.live ? " pulse" : ""}`} />
-            {mode.word}
-          </span>
-        </div>
-        <div className="pf-run-now">{nowLine(p)}</div>
-        <div className="pf-run-stats">
-          <span className="pf-stat"><b>{p.stats.nodes}</b><small>nodes</small></span>
-          <span className="pf-stat"><b>{p.stats.gaps}</b><small>gaps</small></span>
-          <span className="pf-stat"><b>{p.stats.stars}</b><small>starred</small></span>
-          <span className="pf-stat"><b>{elapsed(p)}</b><small>{p.status === "running" ? "running" : "ran"}</small></span>
-        </div>
-      </div>
-      <div className="pf-run-spend">
-        <span className="pf-run-spend-label">Spend</span>
-        <div className="pf-run-bar">
-          <span className={cap ? "" : "nocap"} style={{ width: `${pctW}%` }} />
-        </div>
-        <span className="pf-run-cap">
-          {fmtTok(p.stats.tokens_spent)}
-          {cap ? ` of ${fmtTok(cap)} tok cap` : " tok · no cap"}
-        </span>
-      </div>
-    </button>
-  );
 }
 
 const STEPS = [
@@ -97,15 +19,12 @@ const STEPS = [
 ];
 
 /**
- * Autonomous research (Flow §2): the fully-autonomous mode. Point the engine at
- * a market, hand it a budget, and it maps → synthesizes → red-teams → ranks on
- * its own, pausing and resuming under the governor. This is the landing page for
- * that mode — a fast launch line, the live runs, and how the loop works. Deep
- * per-run drill-down still lives in Explore / the exploration view.
+ * Autonomous research (v3 §Autonomous): a hero launch line, the live runs, and
+ * the loop explainer that folds away once you have history. Point the engine at
+ * a market, hand it a budget — it maps → synthesizes → red-teams → ranks on its
+ * own. Built from the shared RunCard so it reads identically to Home/Explore.
  */
 export default function AutonomousView({ projects, onOpenProject, onNewExploration }: Props) {
-  // Fast path: type a market, press Enter, an autonomous run is going. Steering
-  // (intake, advantages, budget) lives in the full drawer via "steer…".
   const [domain, setDomain] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -115,9 +34,7 @@ export default function AutonomousView({ projects, onOpenProject, onNewExplorati
     setBusy(true);
     setErr(null);
     try {
-      const p = await createProject({
-        domain: d, autostart: true, budget: { max_nodes: 70, pace: "balanced" },
-      });
+      const p = await createProject({ domain: d, autostart: true, budget: { max_nodes: 70, pace: "balanced" } });
       setDomain("");
       onOpenProject(p.id);
     } catch (e) {
@@ -128,108 +45,97 @@ export default function AutonomousView({ projects, onOpenProject, onNewExplorati
   };
 
   const active = useMemo(
-    () =>
-      projects
-        .filter((p) => ACTIVE_STATUSES.has(p.status))
-        .sort((a, b) => {
-          const r = (b.status === "running" ? 1 : 0) - (a.status === "running" ? 1 : 0);
-          return r !== 0 ? r : (b.updated_at || "").localeCompare(a.updated_at || "");
-        }),
+    () => projects.filter((p) => ACTIVE_STATUSES.has(p.status)).sort((a, b) => {
+      const r = (b.status === "running" ? 1 : 0) - (a.status === "running" ? 1 : 0);
+      return r !== 0 ? r : (b.updated_at || "").localeCompare(a.updated_at || "");
+    }),
     [projects]
   );
-
   const recent = useMemo(
-    () =>
-      projects
-        .filter((p) => !ACTIVE_STATUSES.has(p.status))
-        .sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""))
-        .slice(0, 4),
+    () => projects.filter((p) => !ACTIVE_STATUSES.has(p.status))
+      .sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || "")).slice(0, 4),
     [projects]
   );
+  const hasRuns = active.length + recent.length > 0;
+
+  const [busyPid, setBusyPid] = useState<string | null>(null);
+  const runControl = (pid: string, req: RunControlReq) => {
+    setBusyPid(pid);
+    control(pid, req).catch(() => {}).finally(() => setBusyPid(null));
+  };
+
+  // Once there's history the explainer collapses behind a toggle; first-run sees it inline.
+  const [howOpen, setHowOpen] = useState(false);
+  const showSteps = !hasRuns || howOpen;
 
   return (
-    <div className="pf-view">
-      {/* Fast launch — one line to a running autonomous agent. */}
-      <div className="quick-explore">
-        <span className="qe-icon" aria-hidden>▸</span>
-        <input
-          className="qe-input"
-          placeholder="Point the engine at a market… (e.g. onboarding tooling for solo law firms) — Enter to launch"
+    <div className="pf-view ui-page">
+      {/* Hero launch — one line to a running autonomous agent. */}
+      <section>
+        <Composer
+          size="hero"
           value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") void launch(); }}
+          onChange={setDomain}
+          onSubmit={() => void launch()}
+          placeholder="Point the engine at a market… (e.g. onboarding tooling for solo law firms)"
           disabled={busy}
+          ariaLabel="Point the engine at a market"
+          onSliders={onNewExploration}
+          slidersTitle="Budget & steering — open the full drawer"
+          submit={{ disabled: busy || domain.trim().length < 2, busy, title: "Launch run" }}
         />
-        <button
-          className="btn btn-primary qe-go"
-          onClick={() => void launch()}
-          disabled={busy || domain.trim().length < 2}
-        >
-          {busy ? "Launching…" : "Launch ▸"}
-        </button>
-        <button className="qe-steer" onClick={onNewExploration}
-                title="Open the full drawer to add steering, intake, and budget">
-          steer…
-        </button>
-      </div>
-      {err && <div className="qe-err">{err}</div>}
+        {err && <div className="ui-inline-err">{err}</div>}
+      </section>
 
-      {/* 1 — Live autonomous runs */}
-      <section className="pfm">
-        <div className="pfm-head">
-          <div className="pfm-title">Live autonomous runs</div>
-          <div className="pfm-sub">
-            What the engine is working on unattended. Open any run to steer, pause, or drill in —
-            it resumes exactly where it stopped.
-          </div>
-        </div>
+      {/* Live autonomous runs */}
+      <section>
+        <SectionHeader title="Live autonomous runs"
+          sub="What the engine is working on unattended. Open any run to steer, pause, or drill in — it resumes exactly where it stopped." />
         {active.length > 0 ? (
-          <div className="pf-run-stack">
+          <div className="ui-run-stack">
             {active.map((p) => (
-              <RunCard key={p.id} p={p} onOpen={() => onOpenProject(p.id)} />
+              <RunCard key={p.id} p={p} onOpen={() => onOpenProject(p.id)}
+                onControl={(req) => runControl(p.id, req)} busy={busyPid === p.id} />
             ))}
           </div>
         ) : (
-          <div className="pf-empty">
-            No autonomous run is going right now.
-            <br />
-            <button className="btn btn-primary" onClick={onNewExploration}>＋ Launch a run</button>
-          </div>
+          <Card pad>
+            <EmptyState title="No autonomous run is going right now"
+              body="Point the engine at a market above and it maps, synthesizes, and red-teams on its own — pausing under the governor."
+              action={{ label: "Launch a run", onClick: onNewExploration, iconLeft: "＋" }} />
+          </Card>
         )}
       </section>
 
-      {/* 2 — How the loop works */}
-      <section className="pfm">
-        <div className="pfm-head">
-          <div className="pfm-title">How autonomous research works</div>
-          <div className="pfm-sub">
-            You give it a market and a budget. It runs the loop on its own until the budget is spent
-            or you pause it.
-          </div>
-        </div>
-        <ol className="pf-steps">
-          {STEPS.map((s, i) => (
-            <li className="pf-step" key={s.t}>
-              <span className="pf-step-n">{i + 1}</span>
-              <div>
-                <div className="pf-step-t">{s.t}</div>
-                <div className="pf-step-d">{s.d}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
+      {/* How the loop works — inline on first run, collapsible once there's history */}
+      <section>
+        <SectionHeader title="How autonomous research works"
+          sub="You give it a market and a budget. It runs the loop on its own until the budget is spent or you pause it."
+          howItWorks={hasRuns ? { open: howOpen, onToggle: () => setHowOpen((o) => !o), label: showSteps ? "Hide" : "Show steps" } : undefined} />
+        {showSteps && (
+          <ol className="ui-steps" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {STEPS.map((s, i) => (
+              <li className="ui-step" key={s.t}>
+                <span className="ui-step-n">{i + 1}</span>
+                <div>
+                  <div className="ui-step-t">{s.t}</div>
+                  <div className="ui-step-d">{s.d}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
-      {/* 3 — Recent runs (only when the engine has history) */}
+      {/* Recent runs */}
       {recent.length > 0 && (
-        <section className="pfm">
-          <div className="pfm-head">
-            <div className="pfm-title">Recent runs</div>
-            <div className="pfm-sub">Finished or stopped explorations — reopen one to resume or review.</div>
-          </div>
-          <div className="pf-run-stack">
+        <section>
+          <SectionHeader title="Recent runs"
+            sub="Finished or stopped explorations — reopen one to resume or review." />
+          <div className="ui-run-stack">
             {recent.map((p) => (
-              <RunCard key={p.id} p={p} onOpen={() => onOpenProject(p.id)} />
+              <RunCard key={p.id} p={p} onOpen={() => onOpenProject(p.id)}
+                onControl={(req) => runControl(p.id, req)} busy={busyPid === p.id} />
             ))}
           </div>
         </section>

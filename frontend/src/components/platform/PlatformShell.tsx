@@ -1,84 +1,47 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { getUsage } from "../../autonomous/api";
-import type { GlobalUsage, Project } from "../../autonomous/types";
+import { useMemo, type ReactNode } from "react";
+import type { Project } from "../../autonomous/types";
 import type { Route } from "../../hooks/useHashRoute";
+import TokenPaceFooter from "./TokenPaceFooter";
 
-/** Which sidebar item a route lights up. */
-export type PlatformView = "home" | "explore" | "autonomous" | "pressure" | "compare" | "assistant" | "graveyard" | "starred" | "library";
+/** The consolidated nav: three destinations. Everything else folds into these. */
+export type PlatformView = "home" | "explore" | "library";
 
 export function routeToPlatformView(route: Route): PlatformView {
   switch (route.view) {
     case "explore":
-    case "exploration": return "explore";
-    case "autonomous": return "autonomous";
-    case "pressure": return "pressure";
-    case "compare": return "compare";
-    case "assistant": return "assistant";
-    case "graveyard": return "graveyard";
-    case "starred": return "starred";
-    case "library": return "library";
-    default: return "home";
+    case "exploration":
+    case "autonomous":
+    case "pressure":
+    case "compare": return "explore";
+    case "library":
+    case "starred":
+    case "graveyard": return "library";
+    case "assistant":
+    default: return "home"; // assistant folds into Home's composer (Ask mode)
   }
 }
 
 const VIEW_META: Record<PlatformView, { title: string; sub: string }> = {
-  home: { title: "Home", sub: "Ideas that survived the red team, and what the engine is doing right now." },
-  explore: { title: "Explore", sub: "The engine is hunting live across signal. Pause anytime — it resumes where it stopped." },
-  autonomous: { title: "Autonomous research", sub: "Point the engine at a market, hand it a budget — it maps, synthesizes, and red-teams on its own." },
-  pressure: { title: "Pressure-test", sub: "Six adversarial lenses attack every candidate before it reaches you." },
-  compare: { title: "Compare", sub: "Weigh the survivors by fit × viability. Every score carries its provenance." },
-  assistant: { title: "Assistant", sub: "Drive the whole platform in plain language, through its tool layer." },
-  graveyard: { title: "Graveyard", sub: "Every space that was killed or passed — and why. Check here before re-chasing an idea." },
-  library: { title: "Library", sub: "Your projects — real folders of markdown on disk. Import starred ideas, work them into a plan." },
-  starred: { title: "Starred ideas", sub: "Your shortlist across every exploration — what you starred, not what the engine scored highly. Select ideas to export into a project." },
+  home: { title: "Home", sub: "" },
+  explore: { title: "Explore", sub: "Hunt live, run autonomously, red-team, and compare — all in one place." },
+  library: { title: "Library", sub: "Your ideas and the graveyard — everything the engine surfaced or buried." },
 };
-
-function fmtTok(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
-  return `${Math.round(n)}`;
-}
 
 /* --------------------------------------------------------------- icons -- */
 const ic = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 const IconHome = () => (<svg {...ic}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>);
 const IconExplore = () => (<svg {...ic}><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3" /><circle cx="12" cy="12" r="2" /></svg>);
-/** Autonomous — an orbiting nucleus: the engine that runs itself. */
-const IconAuto = () => (
-  <svg {...ic}>
-    <circle cx="12" cy="12" r="2.1" />
-    <ellipse cx="12" cy="12" rx="9" ry="4" />
-    <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(60 12 12)" />
-    <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(120 12 12)" />
-  </svg>
-);
-const IconShield = () => (<svg {...ic}><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" /></svg>);
-const IconBars = () => (<svg {...ic}><path d="M5 21V10M12 21V4M19 21v-7" /></svg>);
-const IconChat = () => (<svg {...ic}><path d="M4 5h16v11H8l-4 4V5Z" /></svg>);
-/** Ghost — the graveyard's mark: a domed body with a wavy hem and two eyes. */
-const IconGhost = () => (
-  <svg {...ic}>
-    <path d="M5 20v-9a7 7 0 0 1 14 0v9l-2.3-1.8L14.4 20l-2.4-1.8L9.6 20l-2.3-1.8L5 20Z" />
-    <path d="M9.5 10.5h.01" />
-    <path d="M14.5 10.5h.01" />
-  </svg>
-);
 const IconLibrary = () => (<svg {...ic}><path d="M4 5h6v14H4zM14 5h6v14h-6" /><path d="M4 9h6M14 9h6" /></svg>);
-const IconStar = () => (<svg {...ic}><path d="m12 4 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8L12 4Z" /></svg>);
 const IconPlus = () => (<svg {...ic} width={14} height={14} strokeWidth={2.1}><path d="M12 5v14M5 12h14" /></svg>);
 const IconChatSm = () => (<svg {...ic} width={14} height={14} strokeWidth={1.8}><path d="M4 5h16v11H8l-4 4V5Z" /></svg>);
 
-/** The rising-signal logo mark (handoff spec). */
+/** Gap Finder mark — the bold north-east arrow (from the brand logo), ink tile. */
 function LogoMark() {
   return (
     <div className="pf-logo-mark" aria-hidden>
-      <span className="pf-logo-base" />
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M4 16 L10 9 L14 13 L20 5" stroke="var(--highlight)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="4" cy="16" r="1.5" fill="var(--text-ghost)" />
-        <circle cx="10" cy="9" r="1.5" fill="var(--text-ghost)" />
-        <circle cx="14" cy="13" r="1.5" fill="var(--text-ghost)" />
-        <circle cx="20" cy="5" r="2.6" fill="var(--highlight)" />
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+        stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 17 17 7" /><path d="M8.5 7H17v8.5" />
       </svg>
     </div>
   );
@@ -86,50 +49,27 @@ function LogoMark() {
 
 interface Props {
   route: Route;
-  /** The App-level projects poll — drives the LIVE tag and agent-live pill. */
   projects: Project[];
   onNav: (view: PlatformView) => void;
+  onAsk: () => void;
   onNewExploration: () => void;
   children: ReactNode;
 }
 
 /**
- * The persistent platform shell (design handoff): fixed left sidebar with the
- * FLOW / WORKSPACE nav + usage meter, a per-view top bar with the "agent live"
- * pill and the two global actions, and the dotted-grid content region.
+ * The persistent shell: a Claude-style sidebar with three destinations
+ * (Home · Explore · Library) and the token-pace footer. Home is a full-bleed
+ * hero (no top bar); Explore and Library carry a light title bar with the two
+ * global actions.
  */
-export default function PlatformShell({ route, projects, onNav, onNewExploration, children }: Props) {
+export default function PlatformShell({ route, projects, onNav, onAsk, onNewExploration, children }: Props) {
   const view = routeToPlatformView(route);
   const meta = VIEW_META[view];
-
-  // An open library project takes over the content area: the per-view top bar
-  // gives way to the project's own toolbar, and the workspace fills edge-to-edge
-  // beside the app sidebar — a focused, filesystem-like fullscreen. The sidebar
-  // stays so navigation (and getting back to the list) is always one click away.
   const fullscreen = route.view === "library" && !!route.slug;
-
-  // The shared governor snapshot for the sidebar usage meter.
-  const [usage, setUsage] = useState<GlobalUsage | null>(null);
-  useEffect(() => {
-    let alive = true;
-    const tick = () => getUsage().then((u) => alive && setUsage(u)).catch(() => {});
-    tick();
-    // 6s: the rate is a trailing-60s average, so this is live enough to watch the
-    // pace move without hammering the endpoint.
-    const id = window.setInterval(tick, 6_000);
-    return () => { alive = false; window.clearInterval(id); };
-  }, []);
-
+  const bareHero = view === "home";
   const anyRunning = useMemo(() => projects.some((p) => p.status === "running"), [projects]);
-  const ratio = usage?.usage_ratio;
-  const pct = ratio != null ? Math.min(100, Math.round(ratio * 100)) : null;
 
-  const navItem = (
-    key: PlatformView,
-    label: string,
-    icon: ReactNode,
-    extra?: ReactNode
-  ) => (
+  const navItem = (key: PlatformView, label: string, icon: ReactNode, extra?: ReactNode) => (
     <button
       className={`pf-nav-item${view === key ? " active" : ""}`}
       onClick={() => onNav(key)}
@@ -153,101 +93,32 @@ export default function PlatformShell({ route, projects, onNav, onNewExploration
           </div>
         </div>
 
-        {/* Scrollable so the logo stays pinned at the top and the usage meter at
-            the bottom; the nav in between scrolls when the viewport is too short
-            to hold every item (which it can be, now that Workspace has grown). */}
         <div className="pf-side-scroll">
-          <div className="pf-navlabel">Flow</div>
           <nav className="pf-nav">
             {navItem("home", "Home", <IconHome />)}
             {navItem("explore", "Explore", <IconExplore />,
               anyRunning ? <span className="pf-nav-live">live</span> : undefined)}
-            {navItem("autonomous", "Autonomous research", <IconAuto />)}
-            {navItem("pressure", "Pressure-test", <IconShield />)}
-            {navItem("compare", "Compare", <IconBars />)}
-          </nav>
-
-          <div className="pf-navlabel">Workspace</div>
-          <nav className="pf-nav">
             {navItem("library", "Library", <IconLibrary />)}
-            {navItem("starred", "Starred", <IconStar />)}
-            {navItem("graveyard", "Graveyard", <IconGhost />)}
-            {navItem("assistant", "Assistant", <IconChat />, <span className="pf-kbd">/</span>)}
           </nav>
         </div>
 
-        {/* Token pace — the app's own consumption, from measured governor numbers
-            (rate is trailing-60s; projection is that rate held for a day). These
-            are the app's LLM spend, NOT the Claude subscription's 5h/7d windows,
-            which the harness never exposes to the app — so we show what is real. */}
-        <div className="pf-usage">
-          <div className="pf-usage-row">
-            <span className="pf-usage-label">Token pace</span>
-            {usage && (
-              <span className={`pf-usage-mode m-${usage.in_backoff ? "backoff" : usage.mode}`}>
-                {usage.in_backoff
-                  ? `backoff ${Math.ceil(usage.backoff_remaining_s)}s`
-                  : usage.mode}
-              </span>
-            )}
-          </div>
-
-          {usage ? (
-            <>
-              <div className="pf-pace-grid">
-                <div className="pf-pace-cell">
-                  <b className={`pf-pace-num lvl-${usage.usage_level}`}>
-                    {fmtTok(usage.rate_per_min)}
-                  </b>
-                  <span className="pf-pace-unit">tok/min now</span>
-                </div>
-                <div className="pf-pace-cell">
-                  <b className="pf-pace-num">~{fmtTok(usage.projected_24h)}</b>
-                  <span className="pf-pace-unit">/day at this pace</span>
-                </div>
-              </div>
-
-              {usage.effective_cap ? (
-                <>
-                  <div className="pf-usage-track">
-                    <span
-                      className={`pf-usage-fill${usage.usage_level === "high" || usage.usage_level === "heavy" ? " hot" : ""}`}
-                      style={{ width: `${pct ?? 0}%` }}
-                    />
-                  </div>
-                  <div className="pf-usage-cap">
-                    {fmtTok(usage.daily_spent)} / {fmtTok(usage.effective_cap)} today
-                    {pct != null ? ` · ${pct}%` : ""}
-                  </div>
-                </>
-              ) : (
-                <div className="pf-usage-cap">
-                  {fmtTok(usage.daily_spent)} today · no cap set
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="pf-usage-cap">usage unavailable</div>
-          )}
-        </div>
+        <TokenPaceFooter />
       </aside>
 
       <div className={`pf-main${fullscreen ? " pf-fullscreen" : ""}`}>
-        {!fullscreen && (
+        {!fullscreen && !bareHero && (
           <header className="pf-topbar">
             <div style={{ minWidth: 0 }}>
               <div className="pf-topbar-titlerow">
                 <h1>{meta.title}</h1>
                 {anyRunning && (
-                  <span className="pf-live-pill">
-                    <span className="pf-dot pulse" />agent live
-                  </span>
+                  <span className="pf-live-pill"><span className="pf-dot pulse" />agent live</span>
                 )}
               </div>
-              <div className="pf-view-sub">{meta.sub}</div>
+              {meta.sub && <div className="pf-view-sub">{meta.sub}</div>}
             </div>
             <div className="pf-topbar-actions">
-              <button className="btn" onClick={() => onNav("assistant")}>
+              <button className="btn" onClick={onAsk}>
                 <IconChatSm />Ask<span className="pf-kbd">/</span>
               </button>
               <button className="btn btn-primary" onClick={onNewExploration}>

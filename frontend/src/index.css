@@ -6,8 +6,12 @@
    ========================================================================== */
 
 @import "./tokens.css";
+@import "./components/ui/ui.css";
+@import "./components/platform/home.css";
+@import "./components/platform/explore.css";
+@import "./components/platform/library.css";
 /* Fonts, self-hosted (bundled by Vite) — no render-blocking network fetch.
-   Inter Tight carries the UI; JetBrains Mono carries every number/ID/meta. */
+   System sans (SF/Inter) carries the UI; JetBrains Mono carries paths + token counts. */
 @import "@fontsource-variable/inter-tight/index.css";
 @import "@fontsource-variable/jetbrains-mono/index.css";
 @import "@fontsource-variable/inter/index.css";
@@ -92,27 +96,34 @@ button {
 .meta-pill.hit .dot { background: var(--live); }
 .meta-pill.miss .dot { background: var(--accent); }
 
-/* generic buttons */
+/* generic buttons — v3: primary=ink fill, secondary=white/slate border,
+   quiet=text slate, danger=danger fill. 40px (36 compact), 12px radius. */
 .btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-radius: var(--r-lg);
-  font-size: 13.5px; font-weight: 550; letter-spacing: -0.01em;
-  border: 1px solid var(--border-strong);
-  background: var(--surface); color: var(--text);
-  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, transform 0.1s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 40px; padding: 0 16px; border-radius: var(--r-btn);
+  font-size: 14px; font-weight: var(--fw-medium); letter-spacing: -0.006em;
+  border: 1px solid var(--slate-15);
+  background: var(--surface); color: var(--ink);
+  transition: background var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out),
+    box-shadow var(--dur-ui) var(--ease-out), transform var(--dur-ui) var(--ease-out);
 }
-.btn:hover { background: var(--surface-2); border-color: var(--text-ghost); }
-.btn:active { transform: translateY(1px); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary {
-  background: var(--primary); border-color: transparent; color: var(--primary-fg);
-  box-shadow: var(--shadow-sm);
-}
+.btn { white-space: nowrap; }
+.btn:hover { background: var(--slate-06); border-color: color-mix(in srgb, var(--slate) 22%, #fff); }
+.btn:active { transform: translateY(0.5px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: none; }
+.btn-ico { display: inline-flex; flex: none; }
+.btn-ico svg { width: 16px; height: 16px; display: block; }
+.btn-primary { background: var(--ink); border-color: transparent; color: #fff; }
 .btn-primary:hover { background: var(--primary-hover); border-color: transparent; }
-.btn-primary:disabled { background: var(--primary); }
-.btn-ghost { background: transparent; border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface-2); }
-.btn-sm { padding: 5px 11px; font-size: 12.5px; }
+.btn-primary:disabled { background: var(--ink); }
+.btn-quiet { background: transparent; border-color: transparent; color: var(--slate); }
+.btn-quiet:hover { background: var(--slate-06); border-color: transparent; color: var(--ink); }
+.btn-danger { background: var(--danger); border-color: transparent; color: #fff; }
+.btn-danger:hover { background: var(--danger-hover); border-color: transparent; }
+.btn-ghost { background: transparent; border-color: var(--slate-12); }
+.btn-ghost:hover { background: var(--slate-06); }
+.btn-sm { height: 36px; padding: 0 12px; font-size: 13px; gap: 6px; border-radius: 10px; }
 
 /* ============================================================== cards ==== */
 .card {

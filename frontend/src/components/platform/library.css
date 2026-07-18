@@ -1,0 +1,8 @@
+/* Library workspace — ideas + graveyard side by side (Overview). The inner
+   view components bring their own .pf-view wrapper; neutralize it so they sit
+   inside the split columns cleanly. */
+.lib-split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 1120px; margin: 0 auto; padding: 20px 24px 56px; }
+.lib-split .pf-view { max-width: none; padding: 0; margin: 0; }
+.lib-split-col { min-width: 0; }
+.lib-split-head { font-size: var(--fs-card); font-weight: var(--fw-semibold); color: var(--ink); margin-bottom: 14px; }
+@media (max-width: 980px) { .lib-split { grid-template-columns: 1fr; } }

@@ -8,9 +8,9 @@ import {
   type LibraryProject,
 } from "../../autonomous/api";
 import ProjectWorkspace from "./ProjectWorkspace";
+import { Button, Card, ScoreBadge } from "../ui";
 
 interface Props {
-  /** Project slug to open, or null for the project list. */
   slug: string | null;
   onOpenProject: (slug: string | null) => void;
 }
@@ -25,36 +25,9 @@ function fmtWhen(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-/** Validation score → band class, matching the dashboard's read. */
-function scoreBand(v: number): string {
-  if (v >= 70) return "hi";
-  if (v >= 45) return "mid";
-  if (v >= 25) return "lo";
-  return "crit";
-}
-
-/** A manila-folder glyph — the tab + body of a filesystem folder. */
-function FolderIcon() {
-  return (
-    <svg className="lc-folder" width="46" height="38" viewBox="0 0 46 38" fill="none" aria-hidden>
-      <path
-        d="M3 8a3 3 0 0 1 3-3h11l4 4h19a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8Z"
-        fill="var(--accent-tint)"
-        stroke="var(--accent-strong)"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <path d="M3 13h40" stroke="var(--accent-strong)" strokeWidth="1.1" opacity="0.4" />
-    </svg>
-  );
-}
-
 /**
- * The library (Phase 5 W-2): projects are real folders of markdown on disk.
- *
- * The library root is shown, deliberately: these are the user's files, in a
- * path they can open in any editor, and the app should never be coy about where
- * it put them.
+ * Library (v3): projects are real folders of markdown on disk. Path + New
+ * project on one row, then flat project rows ordered "which one is fundable?".
  */
 export default function LibraryView({ slug, onOpenProject }: Props) {
   const [projects, setProjects] = useState<LibraryProject[] | null>(null);
@@ -77,13 +50,9 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
     }
   };
 
-  useEffect(() => {
-    if (slug === null) void load();
-  }, [slug]);
+  useEffect(() => { if (slug === null) void load(); }, [slug]);
 
-  if (slug) {
-    return <ProjectWorkspace slug={slug} onBack={() => onOpenProject(null)} />;
-  }
+  if (slug) return <ProjectWorkspace slug={slug} onBack={() => onOpenProject(null)} />;
 
   const create = async () => {
     if (!title.trim()) return;
@@ -100,10 +69,10 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
     }
   };
 
-  const confirmDelete = async (slug: string) => {
+  const confirmDelete = async (s: string) => {
     setDeleting(true);
     try {
-      await deleteLibraryProject(slug);
+      await deleteLibraryProject(s);
       setPendingDelete(null);
       await load();
     } catch (e) {
@@ -113,132 +82,82 @@ export default function LibraryView({ slug, onOpenProject }: Props) {
     }
   };
 
-  if (error) return <div className="gy-empty">{error}</div>;
-  if (projects === null) return <div className="gy-empty">Reading the library…</div>;
-
-  // Validated projects first, best score on top — so the strongest candidate is
-  // the first thing you see; then unvalidated projects by recency. This is the
-  // "which one is fundable?" ordering, not filesystem-alphabetical.
-  const ordered = [...projects].sort((a, b) => {
+  const ordered = projects ? [...projects].sort((a, b) => {
     const av = a.viability, bv = b.viability;
     if (av != null && bv != null) return bv - av;
     if (av != null) return -1;
     if (bv != null) return 1;
     return Date.parse(b.updated_at) - Date.parse(a.updated_at);
-  });
+  }) : [];
 
   return (
-    <div className="pf-view w940 library-view">
-      <div className="lib-bar">
-        <span className="lib-root" title="Your projects are plain markdown files here — open them in any editor, or put them in git.">
-          {root || "…"}
-        </span>
-        {creating ? (
-          <div className="lib-new">
-            <input
-              autoFocus
-              className="lib-input"
-              placeholder="Project name…"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void create();
-                if (e.key === "Escape") setCreating(false);
-              }}
-            />
-            <button className="btn btn-primary" disabled={busy || !title.trim()} onClick={() => void create()}>
-              Create
-            </button>
-            <button className="btn btn-ghost" onClick={() => setCreating(false)}>
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button className="btn btn-primary" onClick={() => setCreating(true)}>
-            + New project
-          </button>
-        )}
-      </div>
-
-      {projects.length === 0 ? (
-        <div className="gy-empty">
-          <p>The library is empty.</p>
-          <p className="insp-note">
-            Star ideas in an exploration, then export them from <b>Starred</b> — each
-            project becomes a folder of markdown you own.
-          </p>
+    <div className="pf-view ui-page">
+      <section>
+        <div className="lib-bar2">
+          <span className="lib-root2" title="Your projects are plain markdown files here — open them in any editor, or put them in git.">
+            {root || "…"}
+          </span>
+          {creating ? (
+            <div className="lib-new2">
+              <input autoFocus className="lib-input2" placeholder="Project name…" value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void create(); if (e.key === "Escape") setCreating(false); }} />
+              <Button variant="primary" disabled={busy || !title.trim()} onClick={() => void create()}>Create</Button>
+              <Button variant="quiet" onClick={() => setCreating(false)}>Cancel</Button>
+            </div>
+          ) : (
+            <Button variant="primary" iconLeft="＋" onClick={() => setCreating(true)}>New project</Button>
+          )}
         </div>
-      ) : (
-        <div className="lib-grid">
-          {ordered.map((p) => (
-            <div className="lib-card-wrap" key={p.slug}>
-              <button
-                className="lib-card"
-                onClick={() => onOpenProject(p.slug)}
-                title={p.verdict || undefined}
-              >
-                <div className="lc-top">
-                  <FolderIcon />
+
+        {error ? (
+          <Card pad><div className="ui-empty-body" role="alert" style={{ textAlign: "center", maxWidth: "none" }}>{error}</div></Card>
+        ) : projects === null ? (
+          <Card pad><div className="ui-empty-body" style={{ textAlign: "center", maxWidth: "none" }}>Reading the library…</div></Card>
+        ) : projects.length === 0 ? (
+          <Card pad>
+            <div className="ui-empty">
+              <div className="ui-empty-title">The library is empty</div>
+              <div className="ui-empty-body">Star ideas in an exploration, then export them from Starred — each project becomes a folder of markdown you own.</div>
+            </div>
+          </Card>
+        ) : (
+          <div className="lib-list">
+            {ordered.map((p) => (
+              <div className="lib-row" key={p.slug}>
+                <button className="lib-open" onClick={() => onOpenProject(p.slug)} title={p.verdict || undefined}>
+                  <div className="lib-open-main">
+                    <div className="lib-title-row">
+                      <span className="lib-title2">{p.title}</span>
+                      <span className="ui-chip ui-chip--slate ui-chip--sm">{p.status}</span>
+                    </div>
+                    {p.verdict && <div className="lib-verdict2">{p.verdict}</div>}
+                    <div className="lib-meta2">{p.idea_count} idea{p.idea_count === 1 ? "" : "s"} · {fmtWhen(p.updated_at)}</div>
+                  </div>
                   {p.viability != null && (
-                    <span
-                      className={`lc-score ${scoreBand(p.viability)}${p.validation_stale ? " stale" : ""}`}
-                      title={
-                        p.validation_stale
-                          ? `Score ${p.viability} is stale — the plan was strengthened since. Re-validate to rescore.`
-                          : "Project critique score — how well the assembled bet survived the red team"
-                      }
-                    >
-                      {p.viability}
-                      {p.validation_stale && <span className="lc-score-stale">·stale</span>}
+                    <span title={p.validation_stale
+                      ? `Score ${p.viability} is stale — the plan was strengthened since. Re-validate to rescore.`
+                      : "Project critique score — how well the assembled bet survived the red team"}>
+                      <ScoreBadge value={p.viability} verified={!p.validation_stale} />
                     </span>
                   )}
-                </div>
-                <span className="lc-title" title={p.title}>{p.title}</span>
-                {p.verdict && <span className="lc-verdict">{p.verdict}</span>}
-                <div className="lc-meta">
-                  <span className={`lc-status st-${p.status}`}>{p.status}</span>
-                  <span>{p.idea_count} idea{p.idea_count === 1 ? "" : "s"}</span>
-                  <span>{fmtWhen(p.updated_at)}</span>
-                </div>
-              </button>
-
-              <button
-                className="lc-del"
-                title="Delete this project"
-                aria-label={`Delete ${p.title}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPendingDelete(p.slug);
-                }}
-              >
-                ×
-              </button>
-
-              {pendingDelete === p.slug && (
-                <div className="lc-confirm" onClick={(e) => e.stopPropagation()}>
-                  <span className="lc-confirm-q">Delete this project?</span>
-                  <div className="lc-confirm-btns">
-                    <button
-                      className="btn btn-sm lc-confirm-del"
-                      disabled={deleting}
-                      onClick={() => void confirmDelete(p.slug)}
-                    >
-                      {deleting ? "Deleting…" : "Delete"}
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      disabled={deleting}
-                      onClick={() => setPendingDelete(null)}
-                    >
-                      Cancel
-                    </button>
+                </button>
+                <button className="lib-del2" title="Delete this project" aria-label={`Delete ${p.title}`}
+                  onClick={(e) => { e.stopPropagation(); setPendingDelete(p.slug); }}>×</button>
+                {pendingDelete === p.slug && (
+                  <div className="lib-confirm2" onClick={(e) => e.stopPropagation()}>
+                    <span className="lib-confirm2-q">Delete this project?</span>
+                    <div className="lib-confirm2-btns">
+                      <Button variant="danger" size="sm" disabled={deleting} onClick={() => void confirmDelete(p.slug)}>{deleting ? "Deleting…" : "Delete"}</Button>
+                      <Button variant="quiet" size="sm" disabled={deleting} onClick={() => setPendingDelete(null)}>Cancel</Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

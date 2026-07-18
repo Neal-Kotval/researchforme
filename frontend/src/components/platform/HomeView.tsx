@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { scout, createProject, ApiError } from "../../autonomous/api";
+import { scout, createProject, control, ApiError } from "../../autonomous/api";
 import { nodeTrust, type Project, type ScoutCandidate } from "../../autonomous/types";
 import { ACTIVE_STATUSES } from "../../hooks/useProjects";
 import FitChip from "../autonomous/FitChip";
@@ -7,74 +7,72 @@ import ViabChip from "../autonomous/ViabChip";
 import { usePressureTestedIdeas } from "./usePressureTestedIdeas";
 import PreferenceDistillCard from "./PreferenceDistillCard";
 import RecentSignals from "./RecentSignals";
+import { Button, Card, Composer, EmptyState, SectionHeader } from "../ui";
+import { RunCard, type RunControlReq } from "../ui/RunCard";
+import AssistantView from "./AssistantView";
+
+type AssistantNav = "home" | "explore" | "pressure" | "compare" | "assistant";
 
 interface Props {
   projects: Project[];
+  /** Composer mode — "ask" folds the Assistant into Home (the #/assistant route). */
+  mode: "explore" | "ask";
   onOpenProject: (pid: string) => void;
   onOpenNode: (pid: string, nodeId: string) => void;
   onNewExploration: () => void;
   onExploreCandidate: (c: ScoutCandidate) => void;
+  onNav: (view: AssistantNav) => void;
+  onActed: () => void;
 }
 
-function fmtTok(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return `${Math.round(n)}`;
+/** Verdict text clamped to 3 lines with an in-place Read more. */
+function Clamp({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const long = text.length > 130;
+  return (
+    <div>
+      <div className={open || !long ? "ui-idea-verdict" : "ui-idea-verdict ui-clamp ui-clamp-3"}>{text}</div>
+      {long && (
+        <button className="ui-readmore" onClick={() => setOpen((o) => !o)}>
+          {open ? "Read less" : "Read more"}
+        </button>
+      )}
+    </div>
+  );
 }
 
-/** Wall-clock runtime: to now while running, frozen at last activity when not. */
-function elapsed(p: Project): string {
-  const end = p.status === "running" ? Date.now() : Date.parse(p.updated_at);
-  const ms = end - Date.parse(p.created_at);
-  if (Number.isNaN(ms) || ms < 0) return "—";
-  const m = Math.floor(ms / 60_000);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 100) return `${h}h ${String(m % 60).padStart(2, "0")}m`;
-  return `${Math.round(h / 24)}d`;
-}
-
-/** Mode pill class + label for a run card. */
-function runMode(p: Project): { cls: string; word: string; live: boolean } {
-  if (p.status === "running") {
-    const m = p.stats.mode;
-    if (m === "curbing") return { cls: "curbing", word: "curbing", live: false };
-    return { cls: "sprinting", word: "sprinting", live: true };
-  }
-  if (ACTIVE_STATUSES.has(p.status)) return { cls: "paused", word: "paused", live: false };
-  return { cls: "done", word: p.status.replace(/_/g, " "), live: false };
-}
-
-/** The "what is it doing right now" line under a run's name. */
-function nowLine(p: Project): string {
-  if (p.status === "running") {
-    if (p.stats.mode === "curbing") {
-      return "Governor slowing spend — deep-rigor passes deferred to the next window";
-    }
-    return `Hunting across ${p.stats.frontier_size} open branch${p.stats.frontier_size === 1 ? "" : "es"} — ${p.stats.candidates} candidates so far`;
-  }
-  if (p.status === "paused") return "Paused — resumes exactly where it stopped";
-  if (p.status === "usage_paused") return "Waiting on the usage governor — resumes automatically";
-  if (p.status === "milestone_paused") return "Milestone reached — waiting for your go-ahead";
-  return p.stats.stop_reason ?? "Stopped";
+/** One survivor idea — score + title + clamped verdict + meta chips. */
+function IdeaCard({ i, onOpen }: { i: ReturnType<typeof usePressureTestedIdeas>["ideas"][number]; onOpen: () => void }) {
+  const n = i.node;
+  const pt = n.pressure_test!;
+  const trust = nodeTrust(n);
+  return (
+    <Card className="ui-ideacard">
+      <div className="ui-idea-top">
+        <ViabChip value={n.viability} trust={trust} star={n.star} />
+        <FitChip value={n.fit} labeled />
+      </div>
+      <button className="ui-idea-title ui-idea-titlebtn" onClick={onOpen}>{n.gap?.title ?? n.title}</button>
+      {n.gap?.why_now && <Clamp text={n.gap.why_now} />}
+      <div className="ui-chiprow">
+        <span className="ui-chip ui-chip--slate ui-chip--sm">{i.domain}</span>
+        {n.confidence && <span className="ui-chip ui-chip--outline ui-chip--sm">{n.confidence} confidence</span>}
+        <span className="ui-chip ui-chip--slate ui-chip--sm">red team {pt.survived}/{pt.lenses.length}</span>
+      </div>
+    </Card>
+  );
 }
 
 /**
- * Home (design handoff §1): the machine's findings first (Worth your
- * attention), then what it is doing (Active exploration), then where to look
- * next (Suggested spaces). Composed from platform primitives — no legacy
- * dashboard embedding.
+ * Home (v3 §Home): findings first (Worth your attention) → what's running now
+ * (Active exploration, the shared RunCard) → where to look next (Suggested
+ * spaces) → what moved (Recent signals). Built from v3 primitives.
  */
 export default function HomeView({
-  projects,
-  onOpenProject,
-  onOpenNode,
-  onNewExploration,
-  onExploreCandidate,
+  projects, mode, onOpenProject, onOpenNode, onNewExploration, onExploreCandidate, onNav, onActed,
 }: Props) {
-  // One-line quick explore: type a market, press Enter, it's running. The fast
-  // path to "more ideas" — sensible defaults, no dialog. Steering lives in the
-  // full drawer for when you want it.
+  // One-line quick explore: type a market, Enter, it's running (sensible
+  // defaults, no dialog). Full steering lives in the drawer via "Add steering".
   const [quickDomain, setQuickDomain] = useState("");
   const [quickBusy, setQuickBusy] = useState(false);
   const [quickErr, setQuickErr] = useState<string | null>(null);
@@ -84,9 +82,7 @@ export default function HomeView({
     setQuickBusy(true);
     setQuickErr(null);
     try {
-      const p = await createProject({
-        domain, autostart: true, budget: { max_nodes: 70, pace: "balanced" },
-      });
+      const p = await createProject({ domain, autostart: true, budget: { max_nodes: 70, pace: "balanced" } });
       setQuickDomain("");
       onOpenProject(p.id);
     } catch (e) {
@@ -98,23 +94,24 @@ export default function HomeView({
 
   const { ideas, loading } = usePressureTestedIdeas();
   const survivors = useMemo(
-    () =>
-      ideas
-        .filter((i) => (i.node.pressure_test?.survived ?? 0) > 0 && (i.node.viability ?? 0) > 0)
-        .slice(0, 3),
+    () => ideas.filter((i) => (i.node.pressure_test?.survived ?? 0) > 0 && (i.node.viability ?? 0) > 0).slice(0, 3),
     [ideas]
   );
 
   const active = useMemo(
-    () =>
-      projects
-        .filter((p) => ACTIVE_STATUSES.has(p.status))
-        .sort((a, b) => {
-          const r = (b.status === "running" ? 1 : 0) - (a.status === "running" ? 1 : 0);
-          return r !== 0 ? r : (b.updated_at || "").localeCompare(a.updated_at || "");
-        }),
+    () => projects.filter((p) => ACTIVE_STATUSES.has(p.status)).sort((a, b) => {
+      const r = (b.status === "running" ? 1 : 0) - (a.status === "running" ? 1 : 0);
+      return r !== 0 ? r : (b.updated_at || "").localeCompare(a.updated_at || "");
+    }),
     [projects]
   );
+
+  // Inline run controls on the RunCard — mutate; App's poll re-syncs status.
+  const [busyPid, setBusyPid] = useState<string | null>(null);
+  const runControl = (pid: string, req: RunControlReq) => {
+    setBusyPid(pid);
+    control(pid, req).catch(() => {}).finally(() => setBusyPid(null));
+  };
 
   /* ----------------------------------------------------------------- scout -- */
   const [scoutBrief, setScoutBrief] = useState("");
@@ -134,202 +131,122 @@ export default function HomeView({
     }
   };
 
+  // Ask mode folds the Assistant into Home (the #/assistant route). Rendered
+  // after all hooks above so the hook order never changes when toggling modes.
+  if (mode === "ask") return <AssistantView onNav={onNav} onActed={onActed} />;
+
   return (
-    <div className="pf-view">
-      {/* One-line quick explore — the fast path to more ideas. */}
-      <div className="quick-explore">
-        <span className="qe-icon" aria-hidden>▸</span>
-        <input
-          className="qe-input"
-          placeholder="Explore a market… (e.g. domestic semiconductor packaging) — Enter to launch"
+    <div className="pf-view ui-page">
+      {/* Launch — the composer hero: one line to a running exploration. */}
+      <section>
+        <Composer
+          size="hero"
           value={quickDomain}
-          onChange={(e) => setQuickDomain(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") void quickExplore(); }}
+          onChange={setQuickDomain}
+          onSubmit={() => void quickExplore()}
+          placeholder="Explore a market… (e.g. domestic semiconductor packaging)"
           disabled={quickBusy}
+          ariaLabel="Explore a market"
+          onSliders={onNewExploration}
+          slidersTitle="Budget & steering — open the full drawer"
+          submit={{ disabled: quickDomain.trim().length < 2, busy: quickBusy, title: "Launch exploration" }}
         />
-        <button
-          className="btn btn-primary qe-go"
-          onClick={() => void quickExplore()}
-          disabled={quickBusy || quickDomain.trim().length < 2}
-        >
-          {quickBusy ? "Launching…" : "Explore ▸"}
-        </button>
-        <button className="qe-steer" onClick={onNewExploration}
-                title="Open the full drawer to add steering, intake, and budget">
-          steer…
-        </button>
-      </div>
-      {quickErr && <div className="qe-err">{quickErr}</div>}
+        {quickErr && <div className="ui-inline-err">{quickErr}</div>}
+      </section>
 
       {/* 1 — Worth your attention */}
-      <section className="pfm">
-        <div className="pfm-head">
-          <div className="pfm-title">Worth your attention</div>
-          <div className="pfm-sub">Ideas that survived the red team, ranked by fit × viability.</div>
-        </div>
+      <section>
+        <SectionHeader title="Worth your attention"
+          sub="Ideas that survived the red team, ranked by fit × viability." />
         {survivors.length > 0 ? (
-          <div className="pf-grid3">
-            {survivors.map((i) => {
-              const n = i.node;
-              const pt = n.pressure_test!;
-              const trust = nodeTrust(n);
-              return (
-                <button key={n.id} className="pf-idea-card" onClick={() => onOpenNode(i.pid, n.id)}>
-                  <div className="pf-idea-chips">
-                    <ViabChip value={n.viability} trust={trust} star={n.star} />
-                    {trust === "unverified" && <span className="pf-idea-unv">unverified</span>}
-                    <FitChip value={n.fit} labeled />
-                  </div>
-                  <div className="pf-idea-title">{n.gap?.title ?? n.title}</div>
-                  {n.gap?.why_now && <div className="pf-idea-why">{n.gap.why_now}</div>}
-                  <div className="pf-idea-meta">
-                    {i.domain}
-                    {n.confidence ? ` · ${n.confidence} confidence` : ""}
-                    {` · red team ${pt.survived}/${pt.lenses.length}`}
-                  </div>
-                </button>
-              );
-            })}
+          <div className="ui-cardgrid">
+            {survivors.map((i) => <IdeaCard key={i.node.id} i={i} onOpen={() => onOpenNode(i.pid, i.node.id)} />)}
           </div>
         ) : (
-          <div className="pf-empty">
-            {loading
-              ? "Checking the latest runs…"
-              : "No idea has survived a red team yet. They land here once a run scores and pressure-tests its candidates."}
-          </div>
+          <Card pad>
+            <EmptyState
+              title={loading ? "Checking the latest runs…" : "Nothing has survived the red team yet"}
+              body={loading ? undefined : "Ideas land here once a run scores its candidates and the six adversarial lenses have had their turn."}
+            />
+          </Card>
         )}
       </section>
 
-      {/* 2 — Active exploration */}
-      <section className="pfm">
-        <div className="pfm-head">
-          <div className="pfm-title">Active exploration</div>
-          <div className="pfm-sub">
-            What the engine is doing right now. Pause any run — it resumes exactly where it stopped.
-          </div>
-        </div>
+      {/* 2 — Active exploration (shared RunCard, with inline Resume / Curb) */}
+      <section>
+        <SectionHeader title="Active exploration"
+          sub="What the engine is doing right now. Pause any run — it resumes exactly where it stopped." />
         {active.length > 0 ? (
-          <div className="pf-run-stack">
-            {active.map((p) => {
-              const mode = runMode(p);
-              const cap = p.budget.max_tokens;
-              const pctW = cap ? Math.min(100, (p.stats.tokens_spent / cap) * 100) : 100;
-              return (
-                <button key={p.id} className="pf-run-card" onClick={() => onOpenProject(p.id)}>
-                  <div className="pf-run-main">
-                    <div className="pf-run-head">
-                      <span className="pf-run-name">{p.domain}</span>
-                      <span className={`pf-pill ${mode.cls}`}>
-                        <span className={`pf-dot${mode.live ? " pulse" : ""}`} />
-                        {mode.word}
-                      </span>
-                    </div>
-                    <div className="pf-run-now">{nowLine(p)}</div>
-                    <div className="pf-run-stats">
-                      <span className="pf-stat"><b>{p.stats.nodes}</b><small>nodes</small></span>
-                      <span className="pf-stat"><b>{p.stats.gaps}</b><small>gaps</small></span>
-                      <span className="pf-stat"><b>{p.stats.stars}</b><small>starred</small></span>
-                      <span className="pf-stat"><b>{elapsed(p)}</b><small>{p.status === "running" ? "running" : "ran"}</small></span>
-                    </div>
-                  </div>
-                  <div className="pf-run-spend">
-                    <span className="pf-run-spend-label">Spend</span>
-                    <div className="pf-run-bar">
-                      <span
-                        className={cap ? "" : "nocap"}
-                        style={{ width: `${pctW}%` }}
-                      />
-                    </div>
-                    <span className="pf-run-cap">
-                      {fmtTok(p.stats.tokens_spent)}
-                      {cap ? ` of ${fmtTok(cap)} tok cap` : " tok · no cap"}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="ui-run-stack">
+            {active.map((p) => (
+              <RunCard key={p.id} p={p} onOpen={() => onOpenProject(p.id)}
+                onControl={(req) => runControl(p.id, req)} busy={busyPid === p.id} />
+            ))}
           </div>
         ) : (
-          <div className="pf-empty">
-            Nothing is running.
-            <br />
-            <button className="btn btn-primary" onClick={onNewExploration}>＋ New exploration</button>
-          </div>
+          <Card pad>
+            <EmptyState title="Nothing is running"
+              body="Point the engine at a market and it maps, synthesizes, and red-teams on its own."
+              action={{ label: "New exploration", onClick: onNewExploration, iconLeft: "＋" }} />
+          </Card>
         )}
       </section>
 
       {/* 3 — Suggested spaces */}
-      <section className="pfm">
-        <div className="pfm-head">
-          <div className="pfm-title">Suggested spaces</div>
-          <div className="pfm-sub">
-            Domains the engine proposes from signal convergence — each shows what triggered it.
-          </div>
-        </div>
-
-        <div className="pf-scout-bar">
-          <input
-            className="pf-scout-brief"
-            placeholder="Optional: who you are / what you're good at — sharpens the suggestions"
-            value={scoutBrief}
-            onChange={(e) => setScoutBrief(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && scoutState !== "loading" && runScout()}
-          />
-          <button className="btn btn-primary" onClick={runScout} disabled={scoutState === "loading"}>
-            {scoutState === "loading" ? "Scouting…" : "Scout for spaces"}
-          </button>
-        </div>
-
-        {scoutState === "error" && (
-          <div className="pf-scout-note" role="alert">
-            ⚠︎ {scoutErr}{" "}
-            <button className="btn btn-sm" onClick={runScout} style={{ marginLeft: 8 }}>Retry</button>
+      <section>
+        <SectionHeader title="Suggested spaces"
+          sub="Domains the engine proposes from signal convergence — each shows what triggered it." />
+        <Composer
+          value={scoutBrief}
+          onChange={setScoutBrief}
+          onSubmit={() => scoutState !== "loading" && runScout()}
+          placeholder="Optional: who you are / what you're good at — sharpens the suggestions"
+          ariaLabel="Who you are, what you're good at"
+          submit={{ busy: scoutState === "loading", title: "Scout for spaces" }}
+        />
+        {scoutState === "idle" && (
+          <div className="ui-field-help">
+            Scout reads live signals (Reddit, HN, GitHub, newsletters) and proposes spaces shaped
+            like ownable companies. A line about yourself narrows the hunt.
           </div>
         )}
-        {scoutState === "idle" && (
-          <div className="pf-scout-note">
-            Not sure where to point the explorer? Scout reads live signals (Reddit, HN, GitHub,
-            newsletters) and proposes spaces shaped like ownable companies.
+        {scoutState === "error" && (
+          <div className="ui-inline-err" role="alert">
+            ⚠︎ {scoutErr} <button className="ui-readmore" onClick={runScout} style={{ marginLeft: 6 }}>Retry</button>
           </div>
         )}
         {scoutState === "ready" && candidates.length === 0 && (
-          <div className="pf-scout-note">
-            No ownable spaces surfaced from the current signals. Add a line about yourself above
-            and scout again — steering narrows the hunt.
-          </div>
+          <Card pad style={{ marginTop: 12 }}>
+            <EmptyState title="No ownable spaces surfaced"
+              body="Nothing shaped like a company came out of the current signals. Add a line about yourself above and scout again — steering narrows the hunt." />
+          </Card>
         )}
         {scoutState === "ready" && candidates.length > 0 && (
-          <div className="pf-grid3">
+          <div className="ui-cardgrid" style={{ marginTop: 12 }}>
             {candidates.map((c, i) => (
-              <div className="pf-scout-card" key={c.domain + i}>
-                <div className="pf-scout-title">{c.domain}</div>
-                <div className="pf-scout-sigs">
+              <Card key={c.domain + i} className="ui-ideacard">
+                <div className="ui-idea-title">{c.domain}</div>
+                <div className="hv-scout-sigs">
                   {c.signals.slice(0, 2).map((s, j) => (
-                    <a
-                      key={j}
-                      className="pf-scout-sig"
-                      href={s.url || undefined}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <span className="src-chip">{s.source}</span>
-                      <span className="pf-sig-text">{s.title}</span>
+                    <a key={j} className="hv-scout-sig" href={s.url || undefined} target="_blank" rel="noreferrer">
+                      <span className="ui-chip ui-chip--slate ui-chip--sm">{s.source}</span>
+                      <span className="hv-scout-sig-txt">{s.title}</span>
                     </a>
                   ))}
                 </div>
-                <button className="btn" onClick={() => onExploreCandidate(c)}>
-                  Explore this space
-                </button>
-              </div>
+                <div className="ui-chiprow">
+                  <Button variant="quiet" size="sm" onClick={() => onExploreCandidate(c)}>Explore this space →</Button>
+                </div>
+              </Card>
             ))}
           </div>
         )}
       </section>
 
-      {/* 4 — distill the triage record into steering (H3, review-before-apply) */}
+      {/* 4 — distilled preferences (self-gates; review-before-apply) */}
       <PreferenceDistillCard />
 
-      {/* 5 — Recent signals: what moved on the watched spaces (C2) */}
+      {/* 5 — Recent signals: what moved on the watched spaces */}
       <RecentSignals onOpenNode={onOpenNode} />
     </div>
   );
