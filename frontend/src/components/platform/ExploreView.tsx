@@ -13,6 +13,7 @@ import ViabChip from "../autonomous/ViabChip";
 import FitChip from "../autonomous/FitChip";
 import { Button, Card, Chip, EmptyState, Segmented } from "../ui";
 import { RunCard, type RunControlReq } from "../ui/RunCard";
+import AllExplorations from "./AllExplorations";
 
 interface Props {
   projects: Project[];
@@ -139,6 +140,11 @@ export default function ExploreView({ projects, onOpenProject, onOpenNode, onNew
 
   return (
     <div className="pf-view ui-page">
+      {/* The whole folder at a glance — click any card to open it fullscreen. */}
+      <AllExplorations projects={projects} activePid={pid} onOpen={onOpenProject} />
+
+      {/* Below: the live feed of the run currently being watched. Switch which
+          one with the segmented control when several are active. */}
       {activeRuns.length > 1 && (
         <Segmented items={activeRuns.map((r) => ({ id: r.id, label: r.domain }))}
           value={pid} onChange={setSelectedPid} ariaLabel="Active runs" />
